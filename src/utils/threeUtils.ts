@@ -106,7 +106,8 @@ export function createArrow(direction: THREE.Vector3, origin: THREE.Vector3, len
 }
 
 /**
- * Creates FOV angle annotations using only text labels
+ * Creates FOV angle annotations with arrows and text labels
+ * Enhanced to make annotations more visible and illustrative
  */
 export function createFOVAnnotations(
   satellitePosition: THREE.Vector3,
@@ -117,28 +118,126 @@ export function createFOVAnnotations(
 ): THREE.Group {
   const group = new THREE.Group();
   
-  // Create horizontal FOV label
+  // Calculate better positions for the labels based on the FOV angles
+  const distanceFromOrigin = 1000; // Fixed distance for visibility
+  
+  // Create horizontal FOV label with arrow indicators
   const hLabel = createTextSprite(`HFOV: ${fovHDeg.toFixed(2)}°`, { 
-    fontsize: 24,
+    fontsize: 32, // Increased font size
     textColor: { r: 0, g: 255, b: 0, a: 1.0 },
-    backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
+    backgroundColor: { r: 0, g: 0, b: 0, a: 0.8 } // More opaque background
   });
   
-  // Position the label at a reasonable distance from the sensor field
-  // so it's visible but not in the way
-  hLabel.position.set(200, -300, 0);
+  // Position label at right side of the sensor field view
+  hLabel.position.set(distanceFromOrigin, -200, 0);
   group.add(hLabel);
+  
+  // Add horizontal FOV indicator arrows
+  const hArrowLeft = createArrow(
+    new THREE.Vector3(-1, 0, 0), // Left direction
+    new THREE.Vector3(0, -100, 0), // Slightly below origin
+    distanceFromOrigin * 0.8, // Arrow length
+    0x00FF00 // Green color
+  );
+  group.add(hArrowLeft);
+  
+  const hArrowRight = createArrow(
+    new THREE.Vector3(1, 0, 0), // Right direction
+    new THREE.Vector3(0, -100, 0), // Slightly below origin
+    distanceFromOrigin * 0.8, // Arrow length
+    0x00FF00 // Green color
+  );
+  group.add(hArrowRight);
   
   // Create vertical FOV label
   const vLabel = createTextSprite(`VFOV: ${fovVDeg.toFixed(2)}°`, {
-    fontsize: 24,
-    textColor: { r: 255, g: 0, b: 0, a: 1.0 },
-    backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
+    fontsize: 32, // Increased font size
+    textColor: { r: 255, g: 50, b: 50, a: 1.0 },
+    backgroundColor: { r: 0, g: 0, b: 0, a: 0.8 } // More opaque background
   });
   
-  // Position the label at a reasonable distance from the sensor field
-  vLabel.position.set(0, -300, 200);
+  // Position label on the side for better visibility
+  vLabel.position.set(0, -200, distanceFromOrigin);
   group.add(vLabel);
+  
+  // Add vertical FOV indicator arrows
+  const vArrowUp = createArrow(
+    new THREE.Vector3(0, 0, 1), // Up direction (in the scene's coordinate system)
+    new THREE.Vector3(0, -100, 0), // Slightly below origin
+    distanceFromOrigin * 0.8, // Arrow length
+    0xFF3333 // Red color
+  );
+  group.add(vArrowUp);
+  
+  const vArrowDown = createArrow(
+    new THREE.Vector3(0, 0, -1), // Down direction
+    new THREE.Vector3(0, -100, 0), // Slightly below origin
+    distanceFromOrigin * 0.8, // Arrow length
+    0xFF3333 // Red color
+  );
+  group.add(vArrowDown);
+  
+  // Add diagonal arrows to show the actual FOV angles
+  const hAngle = fovH / 2; // Half of horizontal FOV
+  const vAngle = fovV / 2; // Half of vertical FOV
+  
+  // Calculate directions based on FOV angles
+  const rightDirection = new THREE.Vector3(
+    Math.sin(hAngle),
+    -Math.cos(hAngle),
+    0
+  ).normalize();
+  
+  const leftDirection = new THREE.Vector3(
+    -Math.sin(hAngle),
+    -Math.cos(hAngle),
+    0
+  ).normalize();
+  
+  const upDirection = new THREE.Vector3(
+    0,
+    -Math.cos(vAngle),
+    Math.sin(vAngle)
+  ).normalize();
+  
+  const downDirection = new THREE.Vector3(
+    0,
+    -Math.cos(vAngle),
+    -Math.sin(vAngle)
+  ).normalize();
+  
+  // Create the actual FOV boundary arrows
+  const rightFovArrow = createArrow(
+    rightDirection,
+    new THREE.Vector3(0, 0, 0),
+    distanceFromOrigin * 1.2,
+    0x00AA00 // Darker green
+  );
+  group.add(rightFovArrow);
+  
+  const leftFovArrow = createArrow(
+    leftDirection,
+    new THREE.Vector3(0, 0, 0),
+    distanceFromOrigin * 1.2,
+    0x00AA00 // Darker green
+  );
+  group.add(leftFovArrow);
+  
+  const upFovArrow = createArrow(
+    upDirection,
+    new THREE.Vector3(0, 0, 0),
+    distanceFromOrigin * 1.2,
+    0xAA0000 // Darker red
+  );
+  group.add(upFovArrow);
+  
+  const downFovArrow = createArrow(
+    downDirection,
+    new THREE.Vector3(0, 0, 0),
+    distanceFromOrigin * 1.2,
+    0xAA0000 // Darker red
+  );
+  group.add(downFovArrow);
   
   return group;
 }
