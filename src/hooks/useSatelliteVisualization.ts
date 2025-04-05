@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -130,6 +131,7 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
     
+    // Create FOV annotations with just the text labels (no arrows)
     const fovAnnotations = createFOVAnnotations(
       sceneRef.current.satellite.position,
       fovH,

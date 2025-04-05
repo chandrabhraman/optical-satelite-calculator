@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 
 /**
@@ -107,7 +106,7 @@ export function createArrow(direction: THREE.Vector3, origin: THREE.Vector3, len
 }
 
 /**
- * Creates FOV angle annotations
+ * Creates FOV angle annotations using only text labels
  */
 export function createFOVAnnotations(
   satellitePosition: THREE.Vector3,
@@ -118,56 +117,27 @@ export function createFOVAnnotations(
 ): THREE.Group {
   const group = new THREE.Group();
   
-  // Constants for annotation
-  const arrowLength = 400;
-  const horizontalColor = 0x00ff00;
-  const verticalColor = 0xff0000;
-  
-  // Calculate directional vectors for Earth-pointing orientation
-  const forward = new THREE.Vector3(0, -1, 0); // Pointing toward Earth
-  
-  // Create horizontal FOV annotations
-  const hAngleHalf = fovH / 2;
-  
-  // Left horizontal edge
-  const leftDir = new THREE.Vector3(-Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
-  const leftArrow = createArrow(leftDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
-  group.add(leftArrow);
-  
-  // Right horizontal edge
-  const rightDir = new THREE.Vector3(Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
-  const rightArrow = createArrow(rightDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
-  group.add(rightArrow);
-  
-  // Horizontal label
+  // Create horizontal FOV label
   const hLabel = createTextSprite(`HFOV: ${fovHDeg.toFixed(2)}°`, { 
     fontsize: 24,
     textColor: { r: 0, g: 255, b: 0, a: 1.0 },
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
   });
-  hLabel.position.set(arrowLength * 0.7, -arrowLength * 0.3, 0);
+  
+  // Position the label at a reasonable distance from the sensor field
+  // so it's visible but not in the way
+  hLabel.position.set(200, -300, 0);
   group.add(hLabel);
   
-  // Create vertical FOV annotations
-  const vAngleHalf = fovV / 2;
-  
-  // Top vertical edge
-  const topDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), Math.sin(vAngleHalf));
-  const topArrow = createArrow(topDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
-  group.add(topArrow);
-  
-  // Bottom vertical edge
-  const bottomDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), -Math.sin(vAngleHalf));
-  const bottomArrow = createArrow(bottomDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
-  group.add(bottomArrow);
-  
-  // Vertical label
+  // Create vertical FOV label
   const vLabel = createTextSprite(`VFOV: ${fovVDeg.toFixed(2)}°`, {
     fontsize: 24,
     textColor: { r: 255, g: 0, b: 0, a: 1.0 },
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
   });
-  vLabel.position.set(0, -arrowLength * 0.3, arrowLength * 0.7);
+  
+  // Position the label at a reasonable distance from the sensor field
+  vLabel.position.set(0, -300, 200);
   group.add(vLabel);
   
   return group;
