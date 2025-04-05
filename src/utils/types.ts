@@ -44,3 +44,11 @@ export interface CalculationResults {
   nominal: NominalResults;
   worstCase: WorstCaseResults;
 }
+
+export interface VisualizationSettings {
+  earthRadius: number; // km
+  coneColor: string;
+  footprintColor: string;
+  showFootprint: boolean;
+  showSensorField: boolean;
+}
