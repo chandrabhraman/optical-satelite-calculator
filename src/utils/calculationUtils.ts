@@ -1,13 +1,19 @@
 
 import { SensorInputs, CalculationResults } from "./types";
+import { 
+  toRadians, 
+  toDegrees, 
+  calculateIFOV, 
+  calculateCenterPixelSize,
+  calculateEarthCenterAngle
+} from "./sensorCalculations";
 
 export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   // Constants
   const EARTH_RADIUS = 6371000; // meters
   
-  // Helper functions for calculations
-  const toRadians = (degrees: number) => degrees * (Math.PI / 180);
-  const toDegrees = (radians: number) => radians * (180 / Math.PI);
+  // Calculate IFOV (Instantaneous Field of View)
+  const ifov = calculateIFOV(inputs.pixelSize, inputs.focalLength);
   
   // Calculate field of view
   const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
@@ -16,9 +22,9 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   const fovV = 2 * Math.atan(sensorWidthV / (2 * inputs.focalLength));
   
   // Nominal calculations (nadir facing at max altitude)
-  const nominalCenterPixelSize = inputs.pixelSize * inputs.altitudeMax / inputs.focalLength;
+  const nominalCenterPixelSize = calculateCenterPixelSize(ifov, inputs.altitudeMax/1000, 0);
   const nominalEdgePixelAngle = Math.atan((sensorWidthH / 2) / inputs.focalLength);
-  const nominalEarthCenterAngle = Math.asin(inputs.altitudeMax * Math.sin(nominalEdgePixelAngle) / (EARTH_RADIUS + inputs.altitudeMax));
+  const nominalEarthCenterAngle = calculateEarthCenterAngle(inputs.altitudeMax/1000, toDegrees(fovH));
   const nominalEdgePixelSize = nominalCenterPixelSize / Math.cos(nominalEdgePixelAngle);
   const nominalAttitudeControlChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
   const nominalAttitudeMeasurementChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
@@ -28,7 +34,7 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   const offNadirAngle = toRadians(inputs.maxOffNadirAngle);
   const worstCaseEdgePixelAngle = nominalEdgePixelAngle + offNadirAngle;
   const worstCaseEarthCenterAngle = Math.asin(inputs.altitudeMax * Math.sin(worstCaseEdgePixelAngle) / (EARTH_RADIUS + inputs.altitudeMax));
-  const worstCaseCenterPixelSize = nominalCenterPixelSize / Math.cos(offNadirAngle);
+  const worstCaseCenterPixelSize = calculateCenterPixelSize(ifov, inputs.altitudeMax/1000, inputs.maxOffNadirAngle);
   const worstCaseEdgePixelSize = worstCaseCenterPixelSize / Math.cos(nominalEdgePixelAngle);
   const worstCaseAttitudeControlChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy) + offNadirAngle);
   const worstCaseAttitudeMeasurementChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy) + offNadirAngle);

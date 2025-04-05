@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SensorInputs } from "@/utils/types";
+import { calculateSensorParameters } from "@/utils/sensorCalculations";
 
 interface CalculatorFormProps {
   onCalculate: (inputs: SensorInputs) => void;
@@ -26,6 +27,26 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     gpsAccuracy: 10 // m
   });
 
+  // Effect to update focal length when relevant parameters change
+  useEffect(() => {
+    if (inputs.pixelSize && inputs.altitudeMin && inputs.gsdRequirements) {
+      try {
+        // Calculate focal length based on provided formula
+        const calculatedFocalLength = (inputs.altitudeMin * 1000 * inputs.pixelSize) / inputs.gsdRequirements;
+        
+        // Only update if it's significantly different (to prevent infinite loops)
+        if (Math.abs(calculatedFocalLength - inputs.focalLength) > 1) {
+          setInputs(prev => ({
+            ...prev,
+            focalLength: Math.round(calculatedFocalLength)
+          }));
+        }
+      } catch (error) {
+        console.error("Error calculating focal length:", error);
+      }
+    }
+  }, [inputs.pixelSize, inputs.altitudeMin, inputs.gsdRequirements]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInputs({
@@ -44,6 +65,35 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     };
     onCalculate(submittedInputs);
   };
+
+  // Calculate fields of view for display
+  const getFovValues = () => {
+    try {
+      if (inputs.pixelSize && inputs.focalLength) {
+        const params = calculateSensorParameters({
+          pixelSize: inputs.pixelSize,
+          pixelCountH: inputs.pixelCountH,
+          pixelCountV: inputs.pixelCountV,
+          altitudeMin: inputs.altitudeMin,
+          altitudeMax: inputs.altitudeMax,
+          focalLength: inputs.focalLength,
+          aperture: inputs.aperture,
+          nominalOffNadirAngle: inputs.nominalOffNadirAngle
+        });
+        
+        return {
+          hfov: params.hfovDeg.toFixed(2),
+          vfov: params.vfovDeg.toFixed(2)
+        };
+      }
+    } catch (error) {
+      console.error("Error calculating FOV:", error);
+    }
+    
+    return { hfov: "N/A", vfov: "N/A" };
+  };
+  
+  const { hfov, vfov } = getFovValues();
 
   return (
     <Card className="glassmorphism w-full">
@@ -133,6 +183,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 onChange={handleChange}
                 required
               />
+              <p className="text-xs text-muted-foreground">Auto-calculated from GSD, Altitude and Pixel Size</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="aperture">Aperture (mm)</Label>
@@ -194,6 +245,21 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
           </div>
+
+          <div className="p-3 bg-muted/50 rounded-md mt-2">
+            <p className="text-sm font-medium mb-2">Calculated Fields of View</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Horizontal FOV</p>
+                <p className="font-mono">{hfov}°</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Vertical FOV</p>
+                <p className="font-mono">{vfov}°</p>
+              </div>
+            </div>
+          </div>
+          
           <Button type="submit" className="w-full bg-primary hover:bg-primary/80">Calculate</Button>
         </form>
       </CardContent>

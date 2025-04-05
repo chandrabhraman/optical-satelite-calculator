@@ -40,6 +40,137 @@ export function createPyramidGeometry(width: number, height: number, depth: numb
 }
 
 /**
+ * Creates a text sprite for 3D labels
+ */
+export function createTextSprite(message: string, parameters: any = {}): THREE.Sprite {
+  if (parameters === undefined) parameters = {};
+  
+  const fontface = parameters.fontface || 'Arial';
+  const fontsize = parameters.fontsize || 18;
+  const borderThickness = parameters.borderThickness || 4;
+  const borderColor = parameters.borderColor || { r:0, g:0, b:0, a:1.0 };
+  const backgroundColor = parameters.backgroundColor || { r:255, g:255, b:255, a:0.8 };
+  const textColor = parameters.textColor || { r:0, g:0, b:0, a:1.0 };
+  
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) return new THREE.Sprite();
+  
+  context.font = "Bold " + fontsize + "px " + fontface;
+  
+  // Get text size data
+  const metrics = context.measureText(message);
+  const textWidth = metrics.width;
+  
+  // Background color
+  context.fillStyle   = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
+  // Border color
+  context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
+  
+  context.lineWidth = borderThickness;
+  
+  // Text color
+  context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
+  context.fillText(message, borderThickness, fontsize + borderThickness);
+  
+  // Canvas content as texture
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  
+  const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+  const sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(10, 5, 1);
+  
+  return sprite;
+}
+
+/**
+ * Creates arrow for visualization of FOV angles
+ */
+export function createArrow(direction: THREE.Vector3, origin: THREE.Vector3, length: number, color: number): THREE.ArrowHelper {
+  const headLength = length * 0.2;
+  const headWidth = headLength * 0.5;
+  
+  const arrow = new THREE.ArrowHelper(
+    direction.normalize(),
+    origin,
+    length,
+    color,
+    headLength,
+    headWidth
+  );
+  
+  return arrow;
+}
+
+/**
+ * Creates FOV angle annotations
+ */
+export function createFOVAnnotations(
+  satellitePosition: THREE.Vector3,
+  fovH: number, // in radians
+  fovV: number, // in radians
+  fovHDeg: number, // in degrees
+  fovVDeg: number // in degrees
+): THREE.Group {
+  const group = new THREE.Group();
+  
+  // Constants for annotation
+  const arrowLength = 400;
+  const horizontalColor = 0x00ff00;
+  const verticalColor = 0xff0000;
+  
+  // Calculate directional vectors
+  const forward = new THREE.Vector3(0, -1, 0); // Pointing down toward Earth
+  
+  // Create horizontal FOV annotations
+  const hAngleHalf = fovH / 2;
+  
+  // Left horizontal edge
+  const leftDir = new THREE.Vector3(-Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
+  const leftArrow = createArrow(leftDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
+  group.add(leftArrow);
+  
+  // Right horizontal edge
+  const rightDir = new THREE.Vector3(Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
+  const rightArrow = createArrow(rightDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
+  group.add(rightArrow);
+  
+  // Horizontal label
+  const hLabel = createTextSprite(`HFOV: ${fovHDeg.toFixed(2)}°`, { 
+    fontsize: 24,
+    textColor: { r: 0, g: 255, b: 0, a: 1.0 },
+    backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
+  });
+  hLabel.position.set(arrowLength * 0.7, -arrowLength * 0.3, 0);
+  group.add(hLabel);
+  
+  // Create vertical FOV annotations
+  const vAngleHalf = fovV / 2;
+  
+  // Top vertical edge
+  const topDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), Math.sin(vAngleHalf));
+  const topArrow = createArrow(topDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
+  group.add(topArrow);
+  
+  // Bottom vertical edge
+  const bottomDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), -Math.sin(vAngleHalf));
+  const bottomArrow = createArrow(bottomDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
+  group.add(bottomArrow);
+  
+  // Vertical label
+  const vLabel = createTextSprite(`VFOV: ${fovVDeg.toFixed(2)}°`, {
+    fontsize: 24,
+    textColor: { r: 255, g: 0, b: 0, a: 1.0 },
+    backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
+  });
+  vLabel.position.set(0, -arrowLength * 0.3, arrowLength * 0.7);
+  group.add(vLabel);
+  
+  return group;
+}
+
+/**
  * Creates a curved polygon on the Earth surface to represent sensor footprint
  */
 export function createCurvedFootprint(

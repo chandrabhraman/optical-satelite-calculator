@@ -1,22 +1,17 @@
-# Welcome to your Lovable project
+
+# Satellite Optical Sensor Calculator
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/719585fd-ab61-4173-8ab3-c49b1c7264b6
+A comprehensive tool to calculate optical sensor parameters and visualize sensor field coverage for satellite applications.
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/719585fd-ab61-4173-8ab3-c49b1c7264b6) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -59,15 +54,11 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Three.js
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/719585fd-ab61-4173-8ab3-c49b1c7264b6) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my project?
 
 Yes it is!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

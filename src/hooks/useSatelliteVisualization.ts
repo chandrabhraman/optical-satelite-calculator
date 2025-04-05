@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SensorInputs } from '@/utils/types';
 import { LocationData } from '@/components/LocationInput';
-import { createPyramidGeometry, createCurvedFootprint } from '@/utils/threeUtils';
+import { createPyramidGeometry, createCurvedFootprint, createFOVAnnotations } from '@/utils/threeUtils';
+import { calculateSensorParameters } from '@/utils/sensorCalculations';
 
 interface SceneRef {
   scene: THREE.Scene;
@@ -13,6 +14,7 @@ interface SceneRef {
   controls: OrbitControls;
   satellite: THREE.Group;
   sensorField: THREE.Mesh;
+  fovAnnotations: THREE.Group | null;
   sensorFootprint: THREE.Mesh | null;
   earth: THREE.Mesh;
   stars: THREE.Points;
@@ -78,13 +80,24 @@ export function useSatelliteVisualization({
     const earthRadius = 6371; // Earth radius in km
     const altitude = inputs.altitudeMax / 1000; // Convert to km
     
-    // Calculate FOV based on inputs - both horizontal and vertical
-    const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
-    const sensorWidthV = inputs.pixelSize * inputs.pixelCountV / 1000; // in mm
-    const fovH = 2 * Math.atan(sensorWidthH / (2 * inputs.focalLength));
-    const fovV = 2 * Math.atan(sensorWidthV / (2 * inputs.focalLength));
+    // Use new calculation utilities
+    const calculatedParams = calculateSensorParameters({
+      pixelSize: inputs.pixelSize,
+      pixelCountH: inputs.pixelCountH,
+      pixelCountV: inputs.pixelCountV,
+      gsdRequirements: inputs.gsdRequirements,
+      altitudeMin: inputs.altitudeMin / 1000, // Convert to km
+      altitudeMax: inputs.altitudeMax / 1000, // Convert to km
+      focalLength: inputs.focalLength,
+      aperture: inputs.aperture,
+      nominalOffNadirAngle: inputs.nominalOffNadirAngle
+    });
     
-    console.log(`Calculated FOV - Horizontal: ${(fovH * 180 / Math.PI).toFixed(2)}°, Vertical: ${(fovV * 180 / Math.PI).toFixed(2)}°`);
+    // Calculate FOV based on calculated parameters
+    const fovH = calculatedParams.hfovDeg * Math.PI / 180; // Convert to radians
+    const fovV = calculatedParams.vfovDeg * Math.PI / 180; // Convert to radians
+    
+    console.log(`Calculated FOV - Horizontal: ${calculatedParams.hfovDeg.toFixed(2)}°, Vertical: ${calculatedParams.vfovDeg.toFixed(2)}°`);
     
     // Update satellite position if no location is specified
     if (!locationData.location) {
@@ -94,6 +107,10 @@ export function useSatelliteVisualization({
     // Remove existing sensor field and footprint if they exist
     if (sceneRef.current.sensorField) {
       sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+    }
+    
+    if (sceneRef.current.fovAnnotations) {
+      sceneRef.current.satellite.remove(sceneRef.current.fovAnnotations);
     }
     
     if (sceneRef.current.sensorFootprint) {
@@ -139,6 +156,19 @@ export function useSatelliteVisualization({
     // Add sensor field to satellite
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
+    
+    // Create and add FOV annotations
+    const fovAnnotations = createFOVAnnotations(
+      sceneRef.current.satellite.position,
+      fovH,
+      fovV,
+      calculatedParams.hfovDeg,
+      calculatedParams.vfovDeg
+    );
+    
+    // Add annotations to satellite group
+    sceneRef.current.satellite.add(fovAnnotations);
+    sceneRef.current.fovAnnotations = fovAnnotations;
     
     // Create curved footprint on Earth's surface
     const footprint = createCurvedFootprint(
