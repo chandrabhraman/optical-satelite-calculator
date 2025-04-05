@@ -8,7 +8,7 @@ import { SensorInputs, CalculationResults } from "@/utils/types";
 import { calculateResults } from "@/utils/calculationUtils";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
 
@@ -53,18 +53,16 @@ const Index = () => {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
               {results && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={handleShare}>
-                        <Share2 className="h-4 w-4 mr-1" /> Share Results
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Share your calculation results</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handleShare}>
+                      <Share2 className="h-4 w-4 mr-1" /> Share Results
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Share your calculation results</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             <CalculatorForm onCalculate={handleCalculate} />
