@@ -1,11 +1,10 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SensorInputs } from '@/utils/types';
 import { LocationData } from '@/components/LocationInput';
-import { createPyramidGeometry, createCurvedFootprint, createFOVAnnotations } from '@/utils/threeUtils';
+import { createPyramidGeometry, createCurvedFootprint } from '@/utils/threeUtils';
 import { calculateSensorParameters } from '@/utils/sensorCalculations';
 
 interface SceneRef {
@@ -20,6 +19,7 @@ interface SceneRef {
   earth: THREE.Mesh;
   stars: THREE.Points;
   animationId: number;
+  containerSize: { width: number; height: number };
 }
 
 interface UseSatelliteVisualizationProps {
@@ -91,10 +91,10 @@ export function useSatelliteVisualization({
       return;
     }
     
-    const altitude = inputs ? inputs.altitudeMax / 1000 : 600; // Default to 600km if no inputs
-    const earthRadius = 6371; // Earth radius in km
-    
-    const satelliteScale = earthRadius * 0.0002; // 0.02% of Earth radius
+    const containerWidth = sceneRef.current.containerSize.width;
+    const containerHeight = sceneRef.current.containerSize.height;
+    const minDimension = Math.min(containerWidth, containerHeight);
+    const satelliteScale = minDimension * 0.02; 
     
     const loader = new GLTFLoader();
     loader.load(
@@ -123,7 +123,18 @@ export function useSatelliteVisualization({
   };
 
   const createDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
-    const satelliteGeometry = new THREE.BoxGeometry(300, 100, 200);
+    if (!sceneRef.current) return;
+    
+    const containerWidth = sceneRef.current.containerSize.width;
+    const containerHeight = sceneRef.current.containerSize.height;
+    const minDimension = Math.min(containerWidth, containerHeight);
+    const satelliteBaseSize = minDimension * 0.02;
+    
+    const satelliteGeometry = new THREE.BoxGeometry(
+      satelliteBaseSize * 1.5, 
+      satelliteBaseSize * 0.5, 
+      satelliteBaseSize
+    );
     const satelliteMaterial = new THREE.MeshPhongMaterial({
       color: 0xCCCCCC,
       emissive: 0x333333,
@@ -135,7 +146,11 @@ export function useSatelliteVisualization({
     satelliteBody.rotation.x = 0;
     satelliteGroup.add(satelliteBody);
     
-    const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
+    const panelGeometry = new THREE.BoxGeometry(
+      satelliteBaseSize * 2.5, 
+      satelliteBaseSize * 0.025, 
+      satelliteBaseSize
+    );
     const panelMaterial = new THREE.MeshPhongMaterial({
       color: 0x2244AA,
       emissive: 0x112233,
@@ -143,12 +158,12 @@ export function useSatelliteVisualization({
       shininess: 80
     });
     const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    leftPanel.position.x = -400;
+    leftPanel.position.x = -satelliteBaseSize * 2;
     leftPanel.castShadow = true;
     satelliteGroup.add(leftPanel);
     
     const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    rightPanel.position.x = 400;
+    rightPanel.position.x = satelliteBaseSize * 2;
     rightPanel.castShadow = true;
     satelliteGroup.add(rightPanel);
   };
@@ -221,16 +236,7 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
     
-    const fovAnnotations = createFOVAnnotations(
-      sceneRef.current.satellite.position,
-      fovH,
-      fovV,
-      calculatedParams.hfovDeg,
-      calculatedParams.vfovDeg
-    );
-    
-    sceneRef.current.satellite.add(fovAnnotations);
-    sceneRef.current.fovAnnotations = fovAnnotations;
+    sceneRef.current.fovAnnotations = null;
     
     const footprint = createCurvedFootprint(
       earthRadius, 
@@ -263,7 +269,7 @@ export function useSatelliteVisualization({
       45, 
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
-      500000
+      1000000
     );
     camera.position.set(0, 2000, 15000);
     
@@ -289,8 +295,8 @@ export function useSatelliteVisualization({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 100;
-    controls.maxDistance = 200000;
+    controls.minDistance = 10;
+    controls.maxDistance = 500000;
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
@@ -349,6 +355,14 @@ export function useSatelliteVisualization({
     const satellite = new THREE.Group();
     scene.add(satellite);
     
+    const containerSize = {
+      width: containerRef.current.clientWidth,
+      height: containerRef.current.clientHeight
+    };
+    
+    const minDimension = Math.min(containerSize.width, containerSize.height);
+    const satelliteBaseSize = minDimension * 0.02;
+    
     createDefaultSatelliteModel(satellite);
     
     const defaultSensorAngle = Math.PI / 12;
@@ -405,6 +419,13 @@ export function useSatelliteVisualization({
     
     const handleResize = () => {
       if (containerRef.current) {
+        if (sceneRef.current) {
+          sceneRef.current.containerSize = {
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight
+          };
+        }
+        
         camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -441,7 +462,8 @@ export function useSatelliteVisualization({
       sensorFootprint,
       earth,
       stars,
-      animationId: 0
+      animationId: 0,
+      containerSize
     };
     
     if (inputs) {
