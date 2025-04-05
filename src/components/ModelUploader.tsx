@@ -21,10 +21,21 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
       if (file.name.endsWith('.glb') || file.name.endsWith('.gltf') || file.name.endsWith('.blend')) {
         setSelectedFile(file);
         onModelUpload(file);
-        toast({
-          title: "Model selected",
-          description: `${file.name} will be used for visualization.`,
-        });
+        
+        // Show specific message for .blend files
+        if (file.name.endsWith('.blend')) {
+          toast({
+            title: "Blend file selected",
+            description: "Blend files will be rendered as a default model. For best results, export to .glb or .gltf.",
+            variant: "warning",
+            duration: 5000,
+          });
+        } else {
+          toast({
+            title: "Model selected",
+            description: `${file.name} will be used for visualization.`,
+          });
+        }
       } else {
         toast({
           title: "Unsupported file format",
