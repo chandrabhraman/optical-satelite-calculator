@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -55,6 +56,8 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.position.copy(satellitePosition);
     
     sceneRef.current.satellite.lookAt(0, 0, 0);
+    
+    sceneRef.current.satellite.rotateX(Math.PI / 2);
     
     sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
     sceneRef.current.controls.update();
@@ -268,6 +271,7 @@ export function useSatelliteVisualization({
     });
     const satelliteBody = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
     satelliteBody.castShadow = true;
+    satelliteBody.rotation.x = 0; // Reset to 0 for proper orientation
     satellite.add(satelliteBody);
     
     const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
@@ -322,6 +326,10 @@ export function useSatelliteVisualization({
     
     const defaultAltitude = 600;
     satellite.position.y = earthRadius + defaultAltitude;
+    
+    // Apply initial rotation to make satellite point at Earth
+    satellite.lookAt(0, 0, 0);
+    satellite.rotateX(Math.PI / 2);
     
     if (locationData.location) {
       updateSatellitePosition(locationData);
