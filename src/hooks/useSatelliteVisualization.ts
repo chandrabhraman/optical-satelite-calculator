@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -91,10 +92,11 @@ export function useSatelliteVisualization({
       return;
     }
     
+    // For uploaded models, use 2% of viewport size
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
-    const satelliteScale = minDimension * 0.02; 
+    const satelliteScale = minDimension * 0.02; // 2% of viewport size for custom models
     
     const loader = new GLTFLoader();
     loader.load(
@@ -125,10 +127,11 @@ export function useSatelliteVisualization({
   const createDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
     if (!sceneRef.current) return;
     
+    // For default model, use the original sizing which is relative to container but not strictly 2%
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
-    const satelliteBaseSize = minDimension * 0.02;
+    const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
     
     const satelliteGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 1.5, 
@@ -360,6 +363,7 @@ export function useSatelliteVisualization({
       height: containerRef.current.clientHeight
     };
     
+    // Create the default satellite model with the original sizing
     const minDimension = Math.min(containerSize.width, containerSize.height);
     const satelliteBaseSize = minDimension * 0.02;
     
@@ -490,3 +494,4 @@ export function useSatelliteVisualization({
 
   return { updateSatellitePosition, loadCustomModel };
 }
+
