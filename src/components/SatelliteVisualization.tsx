@@ -552,7 +552,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     
     // Position and orient the pyramid correctly:
     // 1. Rotate to point down (toward Earth)
-    newSensorField.rotation.x = Math.PI;
+    newSensorField.rotation.x = -Math.PI; // Changed from Math.PI to -Math.PI to point down
     
     // 2. Position so apex is at satellite center
     newSensorField.position.y = 0;
