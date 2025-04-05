@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 /**
  * Creates a pyramid geometry for sensor field visualization
- * The pyramid is created with apex at origin (0,0,0) and base on negative Y axis
+ * The pyramid is created with apex at origin (0,0,0) and base toward -Y direction (Earth)
  */
 export function createPyramidGeometry(width: number, height: number, depth: number): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
@@ -11,14 +11,14 @@ export function createPyramidGeometry(width: number, height: number, depth: numb
   // Define the 5 vertices of the pyramid (4 base corners + 1 apex)
   // Apex at origin, base extends in negative Y direction
   const vertices = new Float32Array([
-    // Base vertices (in negative Y direction)
+    // Base vertices (toward Earth direction)
     -width/2, -depth, -height/2,  // bottom left
     width/2, -depth, -height/2,   // bottom right
     width/2, -depth, height/2,    // top right
     -width/2, -depth, height/2,   // top left
     
     // Apex vertex at origin
-    0, 0, 0                      // apex (at the satellite position)
+    0, 0, 0                       // apex (at the satellite position)
   ]);
   
   // Define the indices for the triangular faces

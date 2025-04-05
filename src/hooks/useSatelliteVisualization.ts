@@ -120,8 +120,8 @@ export function useSatelliteVisualization({
     
     const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    newSensorField.rotation.x = Math.PI; // Rotate 180 degrees to point toward Earth
-    newSensorField.position.y = -pyramidHeight;
+    newSensorField.rotation.x = 0; 
+    newSensorField.position.y = 0;
     
     if (offNadirRad > 0) {
       newSensorField.rotation.z = offNadirRad;
@@ -269,6 +269,7 @@ export function useSatelliteVisualization({
     });
     const satelliteBody = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
     satelliteBody.castShadow = true;
+    satelliteBody.rotation.x = Math.PI;
     satellite.add(satelliteBody);
     
     const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
@@ -304,8 +305,8 @@ export function useSatelliteVisualization({
     
     const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    sensorField.rotation.x = Math.PI;
-    sensorField.position.y = -sensorHeight;
+    sensorField.rotation.x = 0;
+    sensorField.position.y = 0;
     satellite.add(sensorField);
     
     const defaultFootprintGeometry = new THREE.CircleGeometry(500, 32);
