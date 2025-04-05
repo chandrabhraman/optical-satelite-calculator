@@ -90,8 +90,9 @@ export function createTextSprite(message: string, parameters: any = {}): THREE.S
  * Creates arrow for visualization of FOV angles
  */
 export function createArrow(direction: THREE.Vector3, origin: THREE.Vector3, length: number, color: number): THREE.ArrowHelper {
-  const headLength = length * 0.2;
-  const headWidth = headLength * 0.5;
+  // Reduce arrow head size significantly
+  const headLength = length * 0.05; // Reduced from 0.2 to 0.05
+  const headWidth = headLength * 0.4; // Reduced from 0.5 to 0.4
   
   const arrow = new THREE.ArrowHelper(
     direction.normalize(),
