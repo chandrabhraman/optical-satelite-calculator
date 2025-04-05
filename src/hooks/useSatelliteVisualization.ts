@@ -94,7 +94,7 @@ export function useSatelliteVisualization({
     const altitude = inputs ? inputs.altitudeMax / 1000 : 600; // Default to 600km if no inputs
     const earthRadius = 6371; // Earth radius in km
     
-    const satelliteScale = earthRadius * 0.00002; // 0.002% of Earth radius
+    const satelliteScale = earthRadius * 0.0002; // 0.02% of Earth radius
     
     const loader = new GLTFLoader();
     loader.load(
