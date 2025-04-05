@@ -22,6 +22,7 @@ export interface NominalResults {
   attitudeControlChange: number;
   attitudeMeasurementChange: number;
   gpsPositionChange: number;
+  [key: string]: number;
 }
 
 export interface WorstCaseResults {
@@ -36,6 +37,7 @@ export interface WorstCaseResults {
   pitchEdgeChange: number;
   yawEdgeChange: number;
   rssError: number;
+  [key: string]: number;
 }
 
 export interface CalculationResults {
