@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 import LocationInput, { LocationData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
@@ -13,6 +14,7 @@ interface SatelliteVisualizationProps {
 
 const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   const [locationData, setLocationData] = useState<LocationData>({
     location: null,
     altitude: 500
@@ -37,6 +39,14 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
   const handleModelUpload = (file: File) => {
     setCustomModel(file);
     if (file) {
+      // Show special message for .blend files
+      if (file.name.endsWith('.blend')) {
+        toast({
+          title: "Blend file detected",
+          description: "Converting .blend files to WebGL format. This may take a moment and might not preserve all features.",
+          duration: 5000,
+        });
+      }
       loadCustomModel(file);
     }
   };

@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -68,8 +69,6 @@ export function useSatelliteVisualization({
     
     const objectUrl = URL.createObjectURL(file);
     
-    const loader = new GLTFLoader();
-    
     const satelliteGroup = sceneRef.current.satellite;
     const sensorField = sceneRef.current.sensorField;
     
@@ -84,6 +83,27 @@ export function useSatelliteVisualization({
     
     childrenToKeep.forEach(child => satelliteGroup.add(child));
     
+    // Handle .blend files differently
+    if (file.name.endsWith('.blend')) {
+      console.log('Blend file detected, showing fallback model and notification');
+      createDefaultSatelliteModel(satelliteGroup);
+      
+      // In a real implementation, you might send the .blend file to a conversion service
+      // For now, we'll just show a warning message
+      const { toast } = require('@/components/ui/use-toast');
+      toast({
+        title: "Blend file detected",
+        description: "Direct .blend rendering is not supported in the browser. Please convert your model to .glb or .gltf format using Blender's export feature.",
+        variant: "warning",
+        duration: 6000
+      });
+      
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+    
+    // Handle .glb and .gltf files with GLTFLoader as before
+    const loader = new GLTFLoader();
     loader.load(
       objectUrl,
       (gltf) => {

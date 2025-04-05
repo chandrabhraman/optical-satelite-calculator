@@ -17,8 +17,8 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      // Check if the file is a .glb or .gltf format
-      if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+      // Check if the file is a supported format
+      if (file.name.endsWith('.glb') || file.name.endsWith('.gltf') || file.name.endsWith('.blend')) {
         setSelectedFile(file);
         onModelUpload(file);
         toast({
@@ -28,7 +28,7 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
       } else {
         toast({
           title: "Unsupported file format",
-          description: "Please upload a .glb or .gltf 3D model file.",
+          description: "Please upload a .glb, .gltf, or .blend 3D model file.",
           variant: "destructive"
         });
       }
@@ -50,7 +50,7 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".glb,.gltf"
+          accept=".glb,.gltf,.blend"
           className="hidden"
         />
         <Button 
