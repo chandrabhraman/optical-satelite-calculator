@@ -27,7 +27,8 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
           toast({
             title: "Blend file selected",
             description: "Blend files will be rendered as a default model. For best results, export to .glb or .gltf.",
-            variant: "warning",
+            // Fix: Change 'warning' to 'destructive' as the toast component only accepts 'default' or 'destructive'
+            variant: "destructive",
             duration: 5000,
           });
         } else {
