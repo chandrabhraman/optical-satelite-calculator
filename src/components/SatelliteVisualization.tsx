@@ -77,8 +77,8 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 6500; // Allow closer zooming
-    controls.maxDistance = 100000; // Allow zooming out much further
+    controls.minDistance = 100; // Allow much closer zooming
+    controls.maxDistance = 200000; // Allow zooming out much further
 
     // Create stars background
     const starGeometry = new THREE.BufferGeometry();
@@ -196,7 +196,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     // Properly orient the cone to expand outward toward Earth
     sensorField.rotation.x = Math.PI; // Rotate to point down
     
-    // Move sensor field origin to the satellite center
+    // Move sensor field origin to the satellite center (apex at satellite)
     satellite.add(sensorField);
     
     // Initial default sensor footprint on Earth (placeholder)
@@ -286,9 +286,13 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const earthRadius = 6371; // Earth radius in km
       const altitude = inputs.altitudeMax / 1000; // Convert to km
       
-      // Calculate FOV based on inputs
+      // Calculate FOV based on inputs - both horizontal and vertical
       const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
+      const sensorWidthV = inputs.pixelSize * inputs.pixelCountV / 1000; // in mm
       const fovH = 2 * Math.atan(sensorWidthH / (2 * inputs.focalLength));
+      const fovV = 2 * Math.atan(sensorWidthV / (2 * inputs.focalLength));
+      
+      console.log(`Calculated FOV - Horizontal: ${(fovH * 180 / Math.PI).toFixed(2)}°, Vertical: ${(fovV * 180 / Math.PI).toFixed(2)}°`);
       
       // Update satellite position
       sceneRef.current.satellite.position.y = earthRadius + altitude;
@@ -306,9 +310,13 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
       
       // Create sensor field cone
-      // The cone should point from satellite toward Earth with apex at satellite
+      // The cone should start from satellite center and expand toward Earth
       const coneHeight = altitude * 0.9; // Make it slightly shorter than the altitude
-      const coneRadius = coneHeight * Math.tan(fovH / 2); // Radius at the base of the cone
+      
+      // Use the larger of the two FOVs for the cone base radius calculation
+      // This ensures the sensor field fully encompasses both H and V fields of view
+      const maxFov = Math.max(fovH, fovV);
+      const coneRadius = coneHeight * Math.tan(maxFov / 2); // Radius at the base
       
       const sensorFieldGeometry = new THREE.ConeGeometry(
         coneRadius, // Base radius
@@ -330,8 +338,8 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       // 1. Rotate to point down (toward Earth)
       newSensorField.rotation.x = Math.PI;
       
-      // 2. Position so that the apex is at the satellite's center
-      newSensorField.position.y = -coneHeight/2; // Move up so apex is at the satellite
+      // 2. Position so apex is at satellite center (fixed as per request)
+      newSensorField.position.y = 0;
       
       // 3. Apply off-nadir angle if specified
       if (offNadirRad > 0) {
@@ -354,14 +362,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
         directionToNadir.applyMatrix4(rotationMatrix);
       }
       
-      // Calculate footprint radius based on FOV and altitude
-      let footprintRadius = altitude * Math.tan(fovH / 2); // Radius at Earth's distance
+      // Create elliptical footprint to represent both H and V fields of view
+      let footprintRadiusH = altitude * Math.tan(fovH / 2);
+      let footprintRadiusV = altitude * Math.tan(fovV / 2);
       
-      // Adjust for Earth's curvature - convert to arc length on Earth's surface
-      footprintRadius = earthRadius * Math.asin(footprintRadius / (earthRadius + altitude));
+      // Adjust for Earth's curvature
+      footprintRadiusH = earthRadius * Math.asin(footprintRadiusH / (earthRadius + altitude));
+      footprintRadiusV = earthRadius * Math.asin(footprintRadiusV / (earthRadius + altitude));
       
-      // Create footprint
-      const footprintGeometry = new THREE.CircleGeometry(footprintRadius, 32);
+      // Create elliptical footprint (using an ellipse geometry)
+      const footprintGeometry = new THREE.EllipseGeometry(footprintRadiusH, footprintRadiusV, 32);
       const footprintMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -372,17 +382,13 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const footprint = new THREE.Mesh(footprintGeometry, footprintMaterial);
       
       // Position the footprint at the calculated point on Earth's surface
-      // Scale by Earth radius to get the position on the surface
       footprint.position.copy(directionToNadir.clone().multiplyScalar(earthRadius));
       
       // Orient the footprint to be tangent to the Earth's surface
-      // Make footprint face the center of the Earth
       footprint.lookAt(new THREE.Vector3(0, 0, 0));
-      
-      // Rotate 90 degrees to lie flat on the surface
       footprint.rotateX(Math.PI / 2);
       
-      // If off-nadir angle is present, the footprint becomes elliptical
+      // If off-nadir angle is present, the footprint becomes more elliptical
       if (offNadirRad > 0) {
         // Stretch the footprint in the direction of off-nadir
         footprint.scale.z = 1 / Math.cos(offNadirRad);
@@ -416,9 +422,11 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const earthRadius = 6371; // Earth radius in km
       const altitude = inputs.altitudeMax / 1000; // Convert to km
       
-      // Calculate FOV based on inputs
+      // Calculate FOV based on inputs - both horizontal and vertical
       const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
+      const sensorWidthV = inputs.pixelSize * inputs.pixelCountV / 1000; // in mm
       const fovH = 2 * Math.atan(sensorWidthH / (2 * inputs.focalLength));
+      const fovV = 2 * Math.atan(sensorWidthV / (2 * inputs.focalLength));
       
       // Update satellite position
       sceneRef.current.satellite.position.y = earthRadius + altitude;
@@ -438,7 +446,10 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       // Create sensor field cone
       // The cone should start from satellite center and expand toward Earth
       const coneHeight = altitude * 0.9; // Make it slightly shorter than the altitude
-      const coneRadius = coneHeight * Math.tan(fovH / 2); // Radius at the base
+      
+      // Use the larger of the two FOVs for the cone visibility
+      const maxFov = Math.max(fovH, fovV);
+      const coneRadius = coneHeight * Math.tan(maxFov / 2); // Radius at the base
       
       const sensorFieldGeometry = new THREE.ConeGeometry(
         coneRadius, // Base radius
@@ -460,8 +471,8 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       // 1. Rotate to point down (toward Earth)
       newSensorField.rotation.x = Math.PI;
       
-      // 2. Position so apex is at satellite center
-      newSensorField.position.y = -coneHeight/2;
+      // 2. Position so apex is at satellite center (fixed at 0 as requested)
+      newSensorField.position.y = 0;
       
       // 3. Apply off-nadir angle if specified
       if (offNadirRad > 0) {
@@ -484,14 +495,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
         directionToNadir.applyMatrix4(rotationMatrix);
       }
       
-      // Calculate footprint radius based on FOV and altitude
-      let footprintRadius = altitude * Math.tan(fovH / 2); // Radius at Earth's distance
+      // Create elliptical footprint to represent both H and V fields of view
+      let footprintRadiusH = altitude * Math.tan(fovH / 2);
+      let footprintRadiusV = altitude * Math.tan(fovV / 2);
       
-      // Adjust for Earth's curvature - convert to arc length on Earth's surface
-      footprintRadius = earthRadius * Math.asin(footprintRadius / (earthRadius + altitude));
+      // Adjust for Earth's curvature
+      footprintRadiusH = earthRadius * Math.asin(footprintRadiusH / (earthRadius + altitude));
+      footprintRadiusV = earthRadius * Math.asin(footprintRadiusV / (earthRadius + altitude));
       
-      // Create footprint
-      const footprintGeometry = new THREE.CircleGeometry(footprintRadius, 32);
+      // Create elliptical footprint
+      const footprintGeometry = new THREE.EllipseGeometry(footprintRadiusH, footprintRadiusV, 32);
       const footprintMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -508,7 +521,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       footprint.lookAt(new THREE.Vector3(0, 0, 0));
       footprint.rotateX(Math.PI / 2);
       
-      // If off-nadir angle is present, the footprint becomes elliptical
+      // If off-nadir angle is present, the footprint becomes more elliptical
       if (offNadirRad > 0) {
         // Stretch the footprint in the direction of off-nadir
         footprint.scale.z = 1 / Math.cos(offNadirRad);
