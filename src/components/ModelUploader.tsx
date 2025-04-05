@@ -27,7 +27,6 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
           toast({
             title: "Blend file selected",
             description: "Blend files will be rendered as a default model. For best results, export to .glb or .gltf.",
-            // Fix: Change 'warning' to 'destructive' as the toast component only accepts 'default' or 'destructive'
             variant: "destructive",
             duration: 5000,
           });
@@ -72,12 +71,16 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
           className="flex items-center"
         >
           <Upload className="h-4 w-4 mr-2" />
-          {selectedFile ? 'Change Model' : 'Upload 3D Model'}
+          {selectedFile ? 'Change Model' : 'Upload Custom Model'}
         </Button>
       </div>
-      {selectedFile && (
+      {selectedFile ? (
         <span className="text-xs text-muted-foreground block truncate max-w-[230px]">
           {selectedFile.name}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground block truncate max-w-[230px]">
+          Using NASA satellite model
         </span>
       )}
     </div>

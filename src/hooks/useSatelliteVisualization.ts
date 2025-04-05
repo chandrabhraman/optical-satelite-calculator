@@ -86,7 +86,7 @@ export function useSatelliteVisualization({
     
     if (file.name.endsWith('.blend')) {
       console.log('Blend file detected, showing fallback model and notification');
-      createDefaultSatelliteModel(satelliteGroup);
+      loadDefaultSatelliteModel(satelliteGroup);
       
       URL.revokeObjectURL(objectUrl);
       return;
@@ -119,19 +119,50 @@ export function useSatelliteVisualization({
       (error) => {
         console.error('Error loading model:', error);
         URL.revokeObjectURL(objectUrl);
-        createDefaultSatelliteModel(satelliteGroup);
+        loadDefaultSatelliteModel(satelliteGroup);
       }
     );
   };
 
-  const createDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
+  // Updated function to load the NASA model from file
+  const loadDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
     if (!sceneRef.current) return;
     
-    // For default model, use the original sizing which is relative to container but not strictly 2%
+    // For default model, use the original sizing which is relative to container
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
     const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
+    
+    const loader = new GLTFLoader();
+    loader.load(
+      '/models/satellite-default.glb',
+      (gltf) => {
+        console.log('Default NASA model loaded successfully');
+        
+        // Scale model appropriately
+        gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
+        
+        // Center the model
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        gltf.scene.position.sub(center);
+        
+        satelliteGroup.add(gltf.scene);
+      },
+      (xhr) => {
+        console.log(`Default model: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+      },
+      (error) => {
+        console.error('Error loading default NASA model:', error);
+        createFallbackSatelliteModel(satelliteGroup, satelliteBaseSize);
+      }
+    );
+  };
+  
+  // Fallback to create a simple satellite model if the NASA model fails to load
+  const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
+    console.log('Creating fallback satellite model');
     
     const satelliteGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 1.5, 
@@ -363,11 +394,8 @@ export function useSatelliteVisualization({
       height: containerRef.current.clientHeight
     };
     
-    // Create the default satellite model with the original sizing
-    const minDimension = Math.min(containerSize.width, containerSize.height);
-    const satelliteBaseSize = minDimension * 0.02;
-    
-    createDefaultSatelliteModel(satellite);
+    // Initialize with the NASA model instead of creating a basic shape
+    loadDefaultSatelliteModel(satellite);
     
     const defaultSensorAngle = Math.PI / 12;
     const sensorHeight = 600;
@@ -494,4 +522,3 @@ export function useSatelliteVisualization({
 
   return { updateSatellitePosition, loadCustomModel };
 }
-
