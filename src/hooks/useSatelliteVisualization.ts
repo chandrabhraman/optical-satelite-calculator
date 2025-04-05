@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -36,51 +35,39 @@ export function useSatelliteVisualization({
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
 
-  // Update satellite position based on location data
   const updateSatellitePosition = (data: LocationData) => {
     if (!sceneRef.current || !data.location) return;
     
     const earthRadius = 6371; // Earth radius in km
     const altitude = data.altitude;
     
-    // Convert lat/lng to 3D position
     const lat = data.location.lat * Math.PI / 180;
     const lng = data.location.lng * Math.PI / 180;
     
-    // Calculate position on Earth's surface
     const surfaceX = earthRadius * Math.cos(lat) * Math.cos(lng);
     const surfaceY = earthRadius * Math.sin(lat);
     const surfaceZ = earthRadius * Math.cos(lat) * Math.sin(lng);
     
-    // Direction from Earth center to surface position
     const directionVector = new THREE.Vector3(surfaceX, surfaceY, surfaceZ).normalize();
     
-    // Position satellite at altitude above this point
     const satellitePosition = directionVector.clone().multiplyScalar(earthRadius + altitude);
     
-    // Update satellite position
     sceneRef.current.satellite.position.copy(satellitePosition);
     
-    // Rotate satellite to face Earth center
     sceneRef.current.satellite.lookAt(0, 0, 0);
     
-    // Adjust satellite orientation (the default orientation may need adjustment)
     sceneRef.current.satellite.rotateX(Math.PI / 2);
     
-    // Update controls target
     sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
     sceneRef.current.controls.update();
   };
 
-  // Function to update the visualization based on inputs
   const updateVisualization = (inputs: SensorInputs) => {
     if (!sceneRef.current) return;
     
-    // Calculate sensor field dimensions
     const earthRadius = 6371; // Earth radius in km
     const altitude = inputs.altitudeMax / 1000; // Convert to km
     
-    // Use new calculation utilities
     const calculatedParams = calculateSensorParameters({
       pixelSize: inputs.pixelSize,
       pixelCountH: inputs.pixelCountH,
@@ -93,18 +80,15 @@ export function useSatelliteVisualization({
       nominalOffNadirAngle: inputs.nominalOffNadirAngle
     });
     
-    // Calculate FOV based on calculated parameters
     const fovH = calculatedParams.hfovDeg * Math.PI / 180; // Convert to radians
     const fovV = calculatedParams.vfovDeg * Math.PI / 180; // Convert to radians
     
     console.log(`Calculated FOV - Horizontal: ${calculatedParams.hfovDeg.toFixed(2)}°, Vertical: ${calculatedParams.vfovDeg.toFixed(2)}°`);
     
-    // Update satellite position if no location is specified
     if (!locationData.location) {
       sceneRef.current.satellite.position.y = earthRadius + altitude;
     }
     
-    // Remove existing sensor field and footprint if they exist
     if (sceneRef.current.sensorField) {
       sceneRef.current.satellite.remove(sceneRef.current.sensorField);
     }
@@ -117,18 +101,13 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.remove(sceneRef.current.sensorFootprint);
     }
     
-    // Calculate off-nadir angle in radians
     const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
     
-    // Create sensor field pyramid
-    // The pyramid should start from satellite center and expand toward Earth
-    const pyramidHeight = altitude * 0.9; // Make it slightly shorter than the altitude
+    const pyramidHeight = altitude * 0.9;
     
-    // Calculate base width and height based on FOV angles
     const baseWidth = 2 * pyramidHeight * Math.tan(fovH / 2);
     const baseHeight = 2 * pyramidHeight * Math.tan(fovV / 2);
     
-    // Create a pyramid geometry
     const pyramidGeometry = createPyramidGeometry(baseWidth, baseHeight, pyramidHeight);
     
     const sensorFieldMaterial = new THREE.MeshBasicMaterial({
@@ -141,23 +120,16 @@ export function useSatelliteVisualization({
     
     const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    // Position and orient the pyramid correctly:
-    // 1. Rotate to point down (toward Earth)
-    newSensorField.rotation.x = -Math.PI; // Changed from Math.PI to -Math.PI to point down
-    
-    // 2. Position so apex is at satellite center
+    newSensorField.rotation.x = -Math.PI;
     newSensorField.position.y = 0;
     
-    // 3. Apply off-nadir angle if specified
     if (offNadirRad > 0) {
       newSensorField.rotation.z = offNadirRad;
     }
     
-    // Add sensor field to satellite
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
     
-    // Create and add FOV annotations
     const fovAnnotations = createFOVAnnotations(
       sceneRef.current.satellite.position,
       fovH,
@@ -166,11 +138,9 @@ export function useSatelliteVisualization({
       calculatedParams.vfovDeg
     );
     
-    // Add annotations to satellite group
     sceneRef.current.satellite.add(fovAnnotations);
     sceneRef.current.fovAnnotations = fovAnnotations;
     
-    // Create curved footprint on Earth's surface
     const footprint = createCurvedFootprint(
       earthRadius, 
       sceneRef.current.satellite.position, 
@@ -179,34 +149,27 @@ export function useSatelliteVisualization({
       inputs.nominalOffNadirAngle
     );
     
-    // Add footprint to scene
     sceneRef.current.scene.add(footprint);
     sceneRef.current.sensorFootprint = footprint;
     
-    // Update camera target
     sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
     sceneRef.current.controls.update();
   };
 
-  // Initialize scene and all objects
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Initialize the scene or clean up existing scene
     if (sceneRef.current) {
       sceneRef.current.renderer.dispose();
       sceneRef.current.scene.clear();
       cancelAnimationFrame(sceneRef.current.animationId);
     }
 
-    // Create scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A0F1A);
     
-    // Add subtle fog for depth
     scene.fog = new THREE.FogExp2(0x0A0F1A, 0.00005);
     
-    // Create camera
     const camera = new THREE.PerspectiveCamera(
       45, 
       containerRef.current.clientWidth / containerRef.current.clientHeight,
@@ -215,18 +178,15 @@ export function useSatelliteVisualization({
     );
     camera.position.set(0, 2000, 15000);
     
-    // Create renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
     
-    // Add ambient light
     const ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
     
-    // Add directional light for shadows
     const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1);
     directionalLight.position.set(5000, 3000, 5000);
     directionalLight.castShadow = true;
@@ -234,18 +194,15 @@ export function useSatelliteVisualization({
     directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
 
-    // Add hemisphere light for better global illumination
     const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.5);
     scene.add(hemisphereLight);
     
-    // Add controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 100; // Allow much closer zooming
-    controls.maxDistance = 200000; // Allow zooming out much further
-
-    // Create stars background
+    controls.minDistance = 100;
+    controls.maxDistance = 200000;
+    
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
     const positions = new Float32Array(starCount * 3);
@@ -259,16 +216,14 @@ export function useSatelliteVisualization({
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
-    // Create Earth
-    const earthRadius = 6371; // Earth radius in km
+    const earthRadius = 6371;
     const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
     const earthTextureLoader = new THREE.TextureLoader();
     
-    // Create Earth with realistic texture
     const earthMaterial = new THREE.MeshPhongMaterial({
-      map: null, // Will be set when texture loads
-      specularMap: null, // Will be set when texture loads
-      bumpMap: null, // Will be set when texture loads
+      map: null,
+      specularMap: null,
+      bumpMap: null,
       bumpScale: 10,
       specular: new THREE.Color(0x333333),
       shininess: 25,
@@ -278,7 +233,6 @@ export function useSatelliteVisualization({
     earth.receiveShadow = true;
     scene.add(earth);
     
-    // Load Earth textures
     earthTextureLoader.load(
       'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
       (texture) => {
@@ -303,11 +257,9 @@ export function useSatelliteVisualization({
       }
     );
     
-    // Create Satellite Group
     const satellite = new THREE.Group();
     scene.add(satellite);
     
-    // Satellite Body
     const satelliteGeometry = new THREE.BoxGeometry(300, 100, 200);
     const satelliteMaterial = new THREE.MeshPhongMaterial({
       color: 0xCCCCCC,
@@ -319,7 +271,6 @@ export function useSatelliteVisualization({
     satelliteBody.castShadow = true;
     satellite.add(satelliteBody);
     
-    // Solar Panels
     const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
     const panelMaterial = new THREE.MeshPhongMaterial({
       color: 0x2244AA,
@@ -337,13 +288,10 @@ export function useSatelliteVisualization({
     rightPanel.castShadow = true;
     satellite.add(rightPanel);
     
-    // Create default sensor field (pyramid shape)
-    // Default square-based pyramid pointing from satellite towards Earth
-    const defaultSensorAngle = Math.PI / 12; // 15 degrees
-    const sensorHeight = 600; // Height of the pyramid
-    const baseSize = Math.tan(defaultSensorAngle) * sensorHeight; // Base size based on height and angle
+    const defaultSensorAngle = Math.PI / 12;
+    const sensorHeight = 600;
+    const baseSize = Math.tan(defaultSensorAngle) * sensorHeight;
     
-    // Create a pyramid using a BufferGeometry
     const pyramidGeometry = createPyramidGeometry(baseSize, baseSize, sensorHeight);
     
     const sensorFieldMaterial = new THREE.MeshBasicMaterial({
@@ -356,14 +304,9 @@ export function useSatelliteVisualization({
     
     const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    // Position pyramid at satellite with apex at satellite center
-    // Properly orient the pyramid to expand outward toward Earth
-    sensorField.rotation.x = -Math.PI; // Rotate to point down
-    
-    // Move sensor field origin to the satellite center (apex at satellite)
+    sensorField.rotation.x = -Math.PI;
     satellite.add(sensorField);
     
-    // Initial default sensor footprint on Earth (placeholder)
     const defaultFootprintGeometry = new THREE.CircleGeometry(500, 32);
     const footprintMaterial = new THREE.MeshBasicMaterial({
       color: 0x4CAF50,
@@ -373,20 +316,17 @@ export function useSatelliteVisualization({
     });
     
     const sensorFootprint = new THREE.Mesh(defaultFootprintGeometry, footprintMaterial);
-    sensorFootprint.position.y = -earthRadius; // Position on Earth's surface
-    sensorFootprint.rotation.x = -Math.PI / 2; // Orient flat on the surface
+    sensorFootprint.position.y = -earthRadius;
+    sensorFootprint.rotation.x = -Math.PI / 2;
     scene.add(sensorFootprint);
     
-    // Position satellite
-    const defaultAltitude = 600; // Default altitude in km
+    const defaultAltitude = 600;
     satellite.position.y = earthRadius + defaultAltitude;
     
-    // If location data is available, update satellite position
     if (locationData.location) {
       updateSatellitePosition(locationData);
     }
-
-    // Camera positioning helpers
+    
     function focusOnSatellite() {
       const offset = satellite.position.clone().add(new THREE.Vector3(0, 0, 2000));
       camera.position.copy(offset);
@@ -394,10 +334,8 @@ export function useSatelliteVisualization({
       controls.update();
     }
     
-    // Initial camera position
     focusOnSatellite();
     
-    // Handle window resize
     const handleResize = () => {
       if (containerRef.current) {
         camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
@@ -408,15 +346,12 @@ export function useSatelliteVisualization({
     
     window.addEventListener('resize', handleResize);
     
-    // Animation loop
     const animate = () => {
       const animationId = requestAnimationFrame(animate);
       controls.update();
       
-      // Slow rotation of Earth
       earth.rotation.y += 0.0005;
       
-      // Make stars twinkle slightly
       stars.rotation.y += 0.0001;
       
       renderer.render(scene, camera);
@@ -428,7 +363,6 @@ export function useSatelliteVisualization({
     
     animate();
     
-    // Store references
     sceneRef.current = {
       scene,
       camera,
@@ -436,13 +370,13 @@ export function useSatelliteVisualization({
       controls,
       satellite,
       sensorField,
+      fovAnnotations: null,
       sensorFootprint,
       earth,
       stars,
       animationId: 0
     };
     
-    // Update visualization if inputs are provided
     if (inputs) {
       updateVisualization(inputs);
     }
@@ -459,7 +393,6 @@ export function useSatelliteVisualization({
     };
   }, []);
   
-  // Update visualization whenever inputs change
   useEffect(() => {
     if (inputs && sceneRef.current) {
       updateVisualization(inputs);
