@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -124,7 +123,6 @@ export function useSatelliteVisualization({
     );
   };
 
-  // Updated function to load the NASA model from file
   const loadDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
     if (!sceneRef.current) return;
     
@@ -159,8 +157,7 @@ export function useSatelliteVisualization({
       }
     );
   };
-  
-  // Fallback to create a simple satellite model if the NASA model fails to load
+
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
     console.log('Creating fallback satellite model');
     
@@ -394,7 +391,6 @@ export function useSatelliteVisualization({
       height: containerRef.current.clientHeight
     };
     
-    // Initialize with the NASA model instead of creating a basic shape
     loadDefaultSatelliteModel(satellite);
     
     const defaultSensorAngle = Math.PI / 12;
