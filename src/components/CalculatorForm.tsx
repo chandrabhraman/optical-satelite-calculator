@@ -16,8 +16,8 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     pixelCountH: 4096,
     pixelCountV: 3072,
     gsdRequirements: 0.5, // m
-    altitudeMin: 400000, // m
-    altitudeMax: 600000, // m
+    altitudeMin: 400, // km (changed from 400000 m)
+    altitudeMax: 600, // km (changed from 600000 m)
     focalLength: 1000, // mm
     aperture: 200, // mm
     attitudeAccuracy: 0.1, // degrees (3 sigma)
@@ -36,7 +36,13 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCalculate(inputs);
+    const submittedInputs = {
+      ...inputs,
+      // Convert km back to meters for calculations
+      altitudeMin: inputs.altitudeMin * 1000,
+      altitudeMax: inputs.altitudeMax * 1000,
+    };
+    onCalculate(submittedInputs);
   };
 
   return (
@@ -94,22 +100,24 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="altitudeMin">Altitude Minimum (m)</Label>
+              <Label htmlFor="altitudeMin">Altitude Minimum (km)</Label>
               <Input
                 id="altitudeMin"
                 name="altitudeMin"
                 type="number"
+                step="0.1"
                 value={inputs.altitudeMin}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="altitudeMax">Altitude Maximum (m)</Label>
+              <Label htmlFor="altitudeMax">Altitude Maximum (km)</Label>
               <Input
                 id="altitudeMax"
                 name="altitudeMax"
                 type="number"
+                step="0.1"
                 value={inputs.altitudeMax}
                 onChange={handleChange}
                 required

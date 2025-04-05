@@ -27,9 +27,14 @@ const ShareDialog = ({ open, onOpenChange, inputs, results }: ShareDialogProps) 
   const generateShareableUrl = () => {
     const params = new URLSearchParams();
     
-    // Add input parameters to URL
+    // Add input parameters to URL, converting altitude from meters to km
     Object.entries(inputs).forEach(([key, value]) => {
-      params.append(key, value.toString());
+      if (key === 'altitudeMin' || key === 'altitudeMax') {
+        // Convert from meters to km for URL
+        params.append(key, (value / 1000).toString());
+      } else {
+        params.append(key, value.toString());
+      }
     });
     
     const shareableUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
@@ -61,7 +66,7 @@ const ShareDialog = ({ open, onOpenChange, inputs, results }: ShareDialogProps) 
     text += `- Pixel Count (H): ${inputs.pixelCountH}\n`;
     text += `- Pixel Count (V): ${inputs.pixelCountV}\n`;
     text += `- GSD Requirements: ${inputs.gsdRequirements} m\n`;
-    text += `- Altitude Range: ${inputs.altitudeMin} - ${inputs.altitudeMax} m\n`;
+    text += `- Altitude Range: ${(inputs.altitudeMin / 1000).toFixed(1)} - ${(inputs.altitudeMax / 1000).toFixed(1)} km\n`;
     text += `- Focal Length: ${inputs.focalLength} mm\n`;
     text += `- Aperture: ${inputs.aperture} mm\n`;
     text += `- Attitude Accuracy: ${inputs.attitudeAccuracy}°\n`;
@@ -84,6 +89,9 @@ const ShareDialog = ({ open, onOpenChange, inputs, results }: ShareDialogProps) 
       const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
       text += `- ${formattedKey}: ${formatValue(key, value)}\n`;
     });
+    
+    text += "\nShareable Link:\n";
+    text += generateShareableUrl();
     
     return text;
   };

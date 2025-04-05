@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import SatelliteVisualization from "@/components/SatelliteVisualization";
@@ -16,7 +17,64 @@ const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
   const [results, setResults] = useState<CalculationResults | undefined>(undefined);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Load parameters from URL when component loads
+  useEffect(() => {
+    const paramsExist = Array.from(searchParams.keys()).length > 0;
+    
+    if (paramsExist) {
+      try {
+        const inputsFromUrl: Partial<SensorInputs> = {};
+        
+        // Extract parameters from URL
+        for (const [key, value] of searchParams.entries()) {
+          if (key in (inputs || {}) && !isNaN(Number(value))) {
+            inputsFromUrl[key as keyof SensorInputs] = Number(value);
+          }
+        }
+        
+        // Convert altitude values from km to meters if they're present in the URL
+        if (inputsFromUrl.altitudeMin !== undefined) {
+          inputsFromUrl.altitudeMin *= 1000;
+        }
+        
+        if (inputsFromUrl.altitudeMax !== undefined) {
+          inputsFromUrl.altitudeMax *= 1000;
+        }
+        
+        // Check if we have all required parameters
+        const requiredKeys: (keyof SensorInputs)[] = [
+          'pixelSize', 'pixelCountH', 'pixelCountV', 'gsdRequirements',
+          'altitudeMin', 'altitudeMax', 'focalLength', 'aperture',
+          'attitudeAccuracy', 'nominalOffNadirAngle', 'maxOffNadirAngle', 'gpsAccuracy'
+        ];
+        
+        const allParamsPresent = requiredKeys.every(key => inputsFromUrl[key] !== undefined);
+        
+        if (allParamsPresent) {
+          // Calculate results with URL parameters
+          const completeInputs = inputsFromUrl as SensorInputs;
+          setInputs(completeInputs);
+          const calculatedResults = calculateResults(completeInputs);
+          setResults(calculatedResults);
+          
+          toast({
+            title: "Parameters loaded",
+            description: "Calculation results have been loaded from the URL",
+          });
+        }
+      } catch (error) {
+        console.error("Error parsing URL parameters:", error);
+        toast({
+          title: "Error loading parameters",
+          description: "Could not load the calculation parameters from the URL",
+          variant: "destructive"
+        });
+      }
+    }
+  }, []);
 
   const handleCalculate = (formInputs: SensorInputs) => {
     setInputs(formInputs);
