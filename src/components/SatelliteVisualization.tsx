@@ -362,7 +362,8 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
         directionToNadir.applyMatrix4(rotationMatrix);
       }
       
-      // Create elliptical footprint to represent both H and V fields of view
+      // Create circular footprint that we'll scale to make elliptical
+      // Use the larger of the two radii for the circle
       let footprintRadiusH = altitude * Math.tan(fovH / 2);
       let footprintRadiusV = altitude * Math.tan(fovV / 2);
       
@@ -370,8 +371,10 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       footprintRadiusH = earthRadius * Math.asin(footprintRadiusH / (earthRadius + altitude));
       footprintRadiusV = earthRadius * Math.asin(footprintRadiusV / (earthRadius + altitude));
       
-      // Create elliptical footprint (using an ellipse geometry)
-      const footprintGeometry = new THREE.EllipseGeometry(footprintRadiusH, footprintRadiusV, 32);
+      // Use the larger radius for the circle geometry
+      const maxRadius = Math.max(footprintRadiusH, footprintRadiusV);
+      const footprintGeometry = new THREE.CircleGeometry(maxRadius, 32);
+      
       const footprintMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -388,10 +391,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       footprint.lookAt(new THREE.Vector3(0, 0, 0));
       footprint.rotateX(Math.PI / 2);
       
+      // Scale the circle to create an elliptical appearance
+      // Scale X axis by the ratio of horizontal to vertical radius
+      const scaleX = footprintRadiusH / maxRadius;
+      const scaleZ = footprintRadiusV / maxRadius;
+      footprint.scale.set(scaleX, 1, scaleZ);
+      
       // If off-nadir angle is present, the footprint becomes more elliptical
       if (offNadirRad > 0) {
         // Stretch the footprint in the direction of off-nadir
-        footprint.scale.z = 1 / Math.cos(offNadirRad);
+        footprint.scale.z *= 1 / Math.cos(offNadirRad);
       }
       
       // Add footprint to scene
@@ -495,7 +504,8 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
         directionToNadir.applyMatrix4(rotationMatrix);
       }
       
-      // Create elliptical footprint to represent both H and V fields of view
+      // Create circular footprint that we'll scale to make elliptical
+      // Use the larger of the two radii for the circle
       let footprintRadiusH = altitude * Math.tan(fovH / 2);
       let footprintRadiusV = altitude * Math.tan(fovV / 2);
       
@@ -503,8 +513,10 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       footprintRadiusH = earthRadius * Math.asin(footprintRadiusH / (earthRadius + altitude));
       footprintRadiusV = earthRadius * Math.asin(footprintRadiusV / (earthRadius + altitude));
       
-      // Create elliptical footprint
-      const footprintGeometry = new THREE.EllipseGeometry(footprintRadiusH, footprintRadiusV, 32);
+      // Use the larger radius for the circle geometry
+      const maxRadius = Math.max(footprintRadiusH, footprintRadiusV);
+      const footprintGeometry = new THREE.CircleGeometry(maxRadius, 32);
+      
       const footprintMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -521,10 +533,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       footprint.lookAt(new THREE.Vector3(0, 0, 0));
       footprint.rotateX(Math.PI / 2);
       
+      // Scale the circle to create an elliptical appearance
+      // Scale X axis by the ratio of horizontal to vertical radius
+      const scaleX = footprintRadiusH / maxRadius;
+      const scaleZ = footprintRadiusV / maxRadius;
+      footprint.scale.set(scaleX, 1, scaleZ);
+      
       // If off-nadir angle is present, the footprint becomes more elliptical
       if (offNadirRad > 0) {
         // Stretch the footprint in the direction of off-nadir
-        footprint.scale.z = 1 / Math.cos(offNadirRad);
+        footprint.scale.z *= 1 / Math.cos(offNadirRad);
       }
       
       // Add footprint to scene
