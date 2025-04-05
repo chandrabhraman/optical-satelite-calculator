@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -91,13 +90,10 @@ export function useSatelliteVisualization({
       return;
     }
     
-    // Get current altitude for better scaling
     const altitude = inputs ? inputs.altitudeMax / 1000 : 600; // Default to 600km if no inputs
     const earthRadius = 6371; // Earth radius in km
     
-    // Calculate scale based on a percentage of Earth radius rather than altitude
-    // Setting it to 1-3% of Earth radius for better visual proportion
-    const satelliteScale = earthRadius * 0.02; // 2% of Earth radius
+    const satelliteScale = earthRadius * 0.0002; // 0.02% of Earth radius
     
     const loader = new GLTFLoader();
     loader.load(
@@ -105,10 +101,8 @@ export function useSatelliteVisualization({
       (gltf) => {
         console.log('Model loaded successfully');
         
-        // Apply more appropriate scaling relative to Earth size
         gltf.scene.scale.set(satelliteScale, satelliteScale, satelliteScale);
         
-        // Optional: normalize the model position to center it
         const box = new THREE.Box3().setFromObject(gltf.scene);
         const center = box.getCenter(new THREE.Vector3());
         gltf.scene.position.sub(center);
@@ -264,9 +258,6 @@ export function useSatelliteVisualization({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A0F1A);
     
-    // Remove fog to prevent dimming when zooming out
-    // scene.fog = new THREE.FogExp2(0x0A0F1A, 0.00005);
-    
     const camera = new THREE.PerspectiveCamera(
       45, 
       containerRef.current.clientWidth / containerRef.current.clientHeight,
@@ -281,20 +272,17 @@ export function useSatelliteVisualization({
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
     
-    // Increase ambient light intensity to ensure scene is visible when zoomed out
-    const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Increased from default
+    const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
     scene.add(ambientLight);
     
-    // Increase directional light intensity for better visibility at distance
-    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.5); // Increased intensity
+    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.5);
     directionalLight.position.set(5000, 3000, 5000);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
     directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
-
-    // Increase hemisphere light for better ambient illumination
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.8); // Increased from 0.5
+    
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.8);
     scene.add(hemisphereLight);
     
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -424,7 +412,6 @@ export function useSatelliteVisualization({
     
     window.addEventListener('resize', handleResize);
     
-    // Create custom look at function that doesn't dim with distance
     const animate = () => {
       const animationId = requestAnimationFrame(animate);
       controls.update();
