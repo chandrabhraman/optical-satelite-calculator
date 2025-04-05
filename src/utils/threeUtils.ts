@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 
 /**
@@ -10,13 +9,13 @@ export function createPyramidGeometry(width: number, height: number, depth: numb
   // Define the 5 vertices of the pyramid (4 base corners + 1 apex)
   const vertices = new Float32Array([
     // Base vertices
-    -width/2, -depth/2, -height/2,  // bottom left
-    width/2, -depth/2, -height/2,   // bottom right
-    width/2, -depth/2, height/2,    // top right
-    -width/2, -depth/2, height/2,   // top left
+    -width/2, 0, -height/2,  // bottom left
+    width/2, 0, -height/2,   // bottom right
+    width/2, 0, height/2,    // top right
+    -width/2, 0, height/2,   // top left
     
     // Apex vertex
-    0, 0, 0                         // apex (center of satellite)
+    0, depth, 0             // apex (pointing away from satellite)
   ]);
   
   // Define the indices for the triangular faces
@@ -120,19 +119,19 @@ export function createFOVAnnotations(
   const horizontalColor = 0x00ff00;
   const verticalColor = 0xff0000;
   
-  // Calculate directional vectors
-  const forward = new THREE.Vector3(0, -1, 0); // Pointing down toward Earth
+  // Calculate directional vectors - modified for flipped orientation
+  const forward = new THREE.Vector3(0, 1, 0); // Pointing away from Earth
   
   // Create horizontal FOV annotations
   const hAngleHalf = fovH / 2;
   
   // Left horizontal edge
-  const leftDir = new THREE.Vector3(-Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
+  const leftDir = new THREE.Vector3(-Math.sin(hAngleHalf), Math.cos(hAngleHalf), 0);
   const leftArrow = createArrow(leftDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
   group.add(leftArrow);
   
   // Right horizontal edge
-  const rightDir = new THREE.Vector3(Math.sin(hAngleHalf), -Math.cos(hAngleHalf), 0);
+  const rightDir = new THREE.Vector3(Math.sin(hAngleHalf), Math.cos(hAngleHalf), 0);
   const rightArrow = createArrow(rightDir, new THREE.Vector3(0, 0, 0), arrowLength, horizontalColor);
   group.add(rightArrow);
   
@@ -142,19 +141,19 @@ export function createFOVAnnotations(
     textColor: { r: 0, g: 255, b: 0, a: 1.0 },
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
   });
-  hLabel.position.set(arrowLength * 0.7, -arrowLength * 0.3, 0);
+  hLabel.position.set(arrowLength * 0.7, arrowLength * 0.3, 0);
   group.add(hLabel);
   
   // Create vertical FOV annotations
   const vAngleHalf = fovV / 2;
   
   // Top vertical edge
-  const topDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), Math.sin(vAngleHalf));
+  const topDir = new THREE.Vector3(0, Math.cos(vAngleHalf), Math.sin(vAngleHalf));
   const topArrow = createArrow(topDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
   group.add(topArrow);
   
   // Bottom vertical edge
-  const bottomDir = new THREE.Vector3(0, -Math.cos(vAngleHalf), -Math.sin(vAngleHalf));
+  const bottomDir = new THREE.Vector3(0, Math.cos(vAngleHalf), -Math.sin(vAngleHalf));
   const bottomArrow = createArrow(bottomDir, new THREE.Vector3(0, 0, 0), arrowLength, verticalColor);
   group.add(bottomArrow);
   
@@ -164,7 +163,7 @@ export function createFOVAnnotations(
     textColor: { r: 255, g: 0, b: 0, a: 1.0 },
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.6 }
   });
-  vLabel.position.set(0, -arrowLength * 0.3, arrowLength * 0.7);
+  vLabel.position.set(0, arrowLength * 0.3, arrowLength * 0.7);
   group.add(vLabel);
   
   return group;

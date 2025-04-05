@@ -31,8 +31,9 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
   useEffect(() => {
     if (inputs.pixelSize && inputs.altitudeMin && inputs.gsdRequirements) {
       try {
-        // Calculate focal length based on provided formula
-        const calculatedFocalLength = (inputs.altitudeMin * 1000 * inputs.pixelSize) / inputs.gsdRequirements;
+        // Calculate focal length based on corrected formula
+        // focal length (mm) = Altitude minimum (in km) * Pixel size (in um) * (1/GSD Requirements (in m/px))
+        const calculatedFocalLength = (inputs.altitudeMin * inputs.pixelSize) / inputs.gsdRequirements;
         
         // Only update if it's significantly different (to prevent infinite loops)
         if (Math.abs(calculatedFocalLength - inputs.focalLength) > 1) {

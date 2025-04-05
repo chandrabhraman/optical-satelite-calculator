@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for sensor calculations
  */
@@ -19,9 +18,8 @@ export const calculateFocalLength = (
   pixelSize: number,   // in μm
   gsdRequirements: number // in m/px
 ): number => {
-  // Formula: focal length (mm) = Altitude minimum (km) * 10^6 * Pixel size (μm) * 10^(-6) / GSD Requirements (m/px)
-  // Simplified: focal length (mm) = Altitude minimum (km) * 1000 * Pixel size (μm) / GSD Requirements (m/px)
-  return (altitudeMin * 1000 * pixelSize) / gsdRequirements;
+  // Corrected Formula: focal length (mm) = Altitude minimum (km) * Pixel size (μm) / GSD Requirements (m/px)
+  return (altitudeMin * pixelSize) / gsdRequirements;
 };
 
 // Calculate F-number based on focal length and aperture
