@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -90,18 +91,28 @@ export function useSatelliteVisualization({
       return;
     }
     
-    // Get current altitude for scaling
+    // Get current altitude for better scaling
     const altitude = inputs ? inputs.altitudeMax / 1000 : 600; // Default to 600km if no inputs
-    // Calculate scale based on 30% of altitude
-    const satelliteScale = altitude * 0.3;
+    const earthRadius = 6371; // Earth radius in km
+    
+    // Calculate scale based on a percentage of Earth radius rather than altitude
+    // Setting it to 1-3% of Earth radius for better visual proportion
+    const satelliteScale = earthRadius * 0.02; // 2% of Earth radius
     
     const loader = new GLTFLoader();
     loader.load(
       objectUrl,
       (gltf) => {
         console.log('Model loaded successfully');
-        // Scale to 30% of the altitude instead of fixed 100
+        
+        // Apply more appropriate scaling relative to Earth size
         gltf.scene.scale.set(satelliteScale, satelliteScale, satelliteScale);
+        
+        // Optional: normalize the model position to center it
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        gltf.scene.position.sub(center);
+        
         satelliteGroup.add(gltf.scene);
         URL.revokeObjectURL(objectUrl);
       },
