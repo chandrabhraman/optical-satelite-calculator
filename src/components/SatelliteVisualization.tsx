@@ -33,14 +33,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
 
   return (
     <Card className="glassmorphism w-full h-full flex flex-col">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-primary">Satellite Sensor Field Visualization</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow p-4 space-y-4">
-        <LocationInput 
-          onLocationChange={handleLocationChange}
-          initialData={locationData}
-        />
+      <CardContent className="flex-grow p-4 relative">
+        <div className="absolute top-0 right-0 z-10 w-64 p-4">
+          <LocationInput 
+            onLocationChange={handleLocationChange}
+            initialData={locationData}
+          />
+        </div>
         <VisualizationContainer ref={containerRef} />
       </CardContent>
     </Card>

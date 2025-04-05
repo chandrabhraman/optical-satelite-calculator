@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -20,7 +19,6 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Load parameters from URL when component loads
   useEffect(() => {
     const paramsExist = Array.from(searchParams.keys()).length > 0;
     
@@ -28,14 +26,12 @@ const Index = () => {
       try {
         const inputsFromUrl: Partial<SensorInputs> = {};
         
-        // Extract parameters from URL
         for (const [key, value] of searchParams.entries()) {
           if (key in (inputs || {}) && !isNaN(Number(value))) {
             inputsFromUrl[key as keyof SensorInputs] = Number(value);
           }
         }
         
-        // Convert altitude values from km to meters if they're present in the URL
         if (inputsFromUrl.altitudeMin !== undefined) {
           inputsFromUrl.altitudeMin *= 1000;
         }
@@ -44,7 +40,6 @@ const Index = () => {
           inputsFromUrl.altitudeMax *= 1000;
         }
         
-        // Check if we have all required parameters
         const requiredKeys: (keyof SensorInputs)[] = [
           'pixelSize', 'pixelCountH', 'pixelCountV', 'gsdRequirements',
           'altitudeMin', 'altitudeMax', 'focalLength', 'aperture',
@@ -54,7 +49,6 @@ const Index = () => {
         const allParamsPresent = requiredKeys.every(key => inputsFromUrl[key] !== undefined);
         
         if (allParamsPresent) {
-          // Calculate results with URL parameters
           const completeInputs = inputsFromUrl as SensorInputs;
           setInputs(completeInputs);
           const calculatedResults = calculateResults(completeInputs);
@@ -108,23 +102,17 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
-              {results && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleShare}>
-                      <Share2 className="h-4 w-4 mr-1" /> Share Results
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Share your calculation results</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+            <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
             <CalculatorForm onCalculate={handleCalculate} />
             <ResultsDisplay results={results} />
+            
+            {results && (
+              <div className="flex justify-center mt-4">
+                <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Share2 className="h-4 w-4 mr-1" /> Share Results
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="h-full min-h-[80vh]">

@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -32,23 +31,18 @@ const LocationInput: React.FC<LocationInputProps> = ({ onLocationChange, initial
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md font-medium">Location Settings</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
+    <div className="bg-card/80 p-3 rounded-lg border border-border/50 shadow-sm">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        <div className="col-span-2">
+          <Label htmlFor="location" className="text-xs mb-1 block">Location</Label>
           <LocationSearch 
             onLocationSelected={handleLocationSelected} 
             initialLocation={location || undefined}
           />
         </div>
         
-        <Separator className="my-2" />
-        
-        <div className="space-y-2">
-          <Label htmlFor="altitude">Altitude (km)</Label>
+        <div>
+          <Label htmlFor="altitude" className="text-xs mb-1 block">Altitude (km)</Label>
           <Input
             id="altitude"
             type="number"
@@ -56,13 +50,17 @@ const LocationInput: React.FC<LocationInputProps> = ({ onLocationChange, initial
             max="36000"
             value={altitude}
             onChange={handleAltitudeChange}
+            className="h-8 text-sm"
           />
+        </div>
+        
+        <div className="flex items-end">
           <p className="text-xs text-muted-foreground">
-            Spacecraft altitude in kilometers above Earth's surface
+            {location && `${location.name.split(',')[0]}`}
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
