@@ -1,7 +1,7 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SensorInputs } from '@/utils/types';
 import { LocationData } from '@/components/LocationInput';
 import { createPyramidGeometry, createCurvedFootprint, createFOVAnnotations } from '@/utils/threeUtils';
@@ -61,6 +61,77 @@ export function useSatelliteVisualization({
     
     sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
     sceneRef.current.controls.update();
+  };
+
+  const loadCustomModel = (file: File) => {
+    if (!sceneRef.current) return;
+    
+    const objectUrl = URL.createObjectURL(file);
+    
+    const loader = new GLTFLoader();
+    
+    const satelliteGroup = sceneRef.current.satellite;
+    const sensorField = sceneRef.current.sensorField;
+    
+    const childrenToKeep = [];
+    if (sensorField) childrenToKeep.push(sensorField);
+    if (sceneRef.current.fovAnnotations) childrenToKeep.push(sceneRef.current.fovAnnotations);
+    
+    while (satelliteGroup.children.length > 0) {
+      const child = satelliteGroup.children[0];
+      satelliteGroup.remove(child);
+    }
+    
+    childrenToKeep.forEach(child => satelliteGroup.add(child));
+    
+    loader.load(
+      objectUrl,
+      (gltf) => {
+        console.log('Model loaded successfully');
+        gltf.scene.scale.set(100, 100, 100);
+        satelliteGroup.add(gltf.scene);
+        URL.revokeObjectURL(objectUrl);
+      },
+      (xhr) => {
+        console.log(`${(xhr.loaded / xhr.total * 100)}% loaded`);
+      },
+      (error) => {
+        console.error('Error loading model:', error);
+        URL.revokeObjectURL(objectUrl);
+        createDefaultSatelliteModel(satelliteGroup);
+      }
+    );
+  };
+
+  const createDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
+    const satelliteGeometry = new THREE.BoxGeometry(300, 100, 200);
+    const satelliteMaterial = new THREE.MeshPhongMaterial({
+      color: 0xCCCCCC,
+      emissive: 0x333333,
+      specular: 0x111111,
+      shininess: 50
+    });
+    const satelliteBody = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
+    satelliteBody.castShadow = true;
+    satelliteBody.rotation.x = 0;
+    satelliteGroup.add(satelliteBody);
+    
+    const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
+    const panelMaterial = new THREE.MeshPhongMaterial({
+      color: 0x2244AA,
+      emissive: 0x112233,
+      specular: 0x111122,
+      shininess: 80
+    });
+    const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+    leftPanel.position.x = -400;
+    leftPanel.castShadow = true;
+    satelliteGroup.add(leftPanel);
+    
+    const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+    rightPanel.position.x = 400;
+    rightPanel.castShadow = true;
+    satelliteGroup.add(rightPanel);
   };
 
   const updateVisualization = (inputs: SensorInputs) => {
@@ -131,7 +202,6 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
     
-    // Create FOV annotations with just the text labels (no arrows)
     const fovAnnotations = createFOVAnnotations(
       sceneRef.current.satellite.position,
       fovH,
@@ -262,34 +332,7 @@ export function useSatelliteVisualization({
     const satellite = new THREE.Group();
     scene.add(satellite);
     
-    const satelliteGeometry = new THREE.BoxGeometry(300, 100, 200);
-    const satelliteMaterial = new THREE.MeshPhongMaterial({
-      color: 0xCCCCCC,
-      emissive: 0x333333,
-      specular: 0x111111,
-      shininess: 50
-    });
-    const satelliteBody = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
-    satelliteBody.castShadow = true;
-    satelliteBody.rotation.x = 0; // Reset to 0 for proper orientation
-    satellite.add(satelliteBody);
-    
-    const panelGeometry = new THREE.BoxGeometry(500, 5, 200);
-    const panelMaterial = new THREE.MeshPhongMaterial({
-      color: 0x2244AA,
-      emissive: 0x112233,
-      specular: 0x111122,
-      shininess: 80
-    });
-    const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    leftPanel.position.x = -400;
-    leftPanel.castShadow = true;
-    satellite.add(leftPanel);
-    
-    const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    rightPanel.position.x = 400;
-    rightPanel.castShadow = true;
-    satellite.add(rightPanel);
+    createDefaultSatelliteModel(satellite);
     
     const defaultSensorAngle = Math.PI / 12;
     const sensorHeight = 600;
@@ -327,7 +370,6 @@ export function useSatelliteVisualization({
     const defaultAltitude = 600;
     satellite.position.y = earthRadius + defaultAltitude;
     
-    // Apply initial rotation to make satellite point at Earth
     satellite.lookAt(0, 0, 0);
     satellite.rotateX(Math.PI / 2);
     
@@ -407,5 +449,5 @@ export function useSatelliteVisualization({
     }
   }, [inputs]);
 
-  return { updateSatellitePosition };
+  return { updateSatellitePosition, loadCustomModel };
 }
