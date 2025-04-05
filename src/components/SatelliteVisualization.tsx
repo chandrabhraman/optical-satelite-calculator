@@ -18,6 +18,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     controls: OrbitControls;
     satellite: THREE.Group;
     sensorField: THREE.Mesh;
+    sensorFootprint: THREE.Mesh | null;
     earth: THREE.Mesh;
     stars: THREE.Points;
     animationId: number;
@@ -155,18 +156,27 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     rightPanel.castShadow = true;
     satellite.add(rightPanel);
     
-    // Create default sensor field
-    const sensorFieldGeometry = new THREE.ConeGeometry(2000, 4000, 32);
+    // Create default sensor field (will be updated when inputs change)
+    const defaultSensorAngle = Math.PI / 12; // 15 degrees
+    const sensorFieldGeometry = new THREE.ConeGeometry(
+      Math.tan(defaultSensorAngle) * 600, // Base radius based on height and angle
+      600, // Height
+      32 // Segments
+    );
     const sensorFieldMaterial = new THREE.MeshBasicMaterial({
       color: 0x4CAF50,
       transparent: true,
       opacity: 0.3,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: false
     });
     const sensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
     sensorField.rotation.x = Math.PI; // Point down toward Earth
-    sensorField.position.y = 0; // Centered on satellite
+    sensorField.position.y = -50; // Slightly below satellite center
     satellite.add(sensorField);
+    
+    // Create default sensor footprint on Earth (will be updated when inputs change)
+    const sensorFootprint = null; // Will be created when inputs are provided
     
     // Position satellite
     satellite.position.y = earthRadius + 600; // Earth radius + altitude in km
@@ -226,6 +236,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       controls,
       satellite,
       sensorField,
+      sensorFootprint,
       earth,
       stars,
       animationId: 0
@@ -236,22 +247,36 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       if (!sceneRef.current) return;
       
       // Calculate sensor field dimensions
+      const earthRadius = 6371; // Earth radius in km
       const altitude = inputs.altitudeMax / 1000; // Convert to km
       
       // Calculate FOV based on inputs
       const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
       const fovH = 2 * Math.atan(sensorWidthH / (2 * inputs.focalLength));
       
-      // Calculate field width at ground level
-      const fieldRadius = altitude * Math.tan(fovH / 2);
-      
       // Update satellite position
       sceneRef.current.satellite.position.y = earthRadius + altitude;
       
-      // Update sensor field
-      sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+      // Remove existing sensor field and footprint if they exist
+      if (sceneRef.current.sensorField) {
+        sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+      }
       
-      const newSensorFieldGeometry = new THREE.ConeGeometry(fieldRadius, altitude, 32);
+      if (sceneRef.current.sensorFootprint) {
+        sceneRef.current.scene.remove(sceneRef.current.sensorFootprint);
+      }
+      
+      // Calculate off-nadir angle in radians
+      const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
+      
+      // Calculate the height of the sensor field cone
+      const coneHeight = altitude;
+      
+      // Calculate sensor field cone base radius based on FOV and altitude
+      const coneRadius = altitude * Math.tan(fovH / 2);
+      
+      // Create sensor field cone
+      const sensorFieldGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
       const sensorFieldMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -259,22 +284,72 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
         side: THREE.DoubleSide,
         depthWrite: false
       });
-      const newSensorField = new THREE.Mesh(newSensorFieldGeometry, sensorFieldMaterial);
       
-      // Center the cone's base at the satellite's position
+      const newSensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
+      
+      // Position the cone so its apex is at the satellite and it points down
       newSensorField.rotation.x = Math.PI;
-      newSensorField.position.y = 0; // Center at satellite position
+      newSensorField.position.y = -coneHeight / 2;
       
-      // If off-nadir angle is present, rotate the sensor field
-      if (inputs.nominalOffNadirAngle > 0) {
-        const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
+      // Apply off-nadir rotation if specified
+      if (offNadirRad > 0) {
         newSensorField.rotation.z = offNadirRad;
       }
       
       sceneRef.current.satellite.add(newSensorField);
       sceneRef.current.sensorField = newSensorField;
       
-      // Reposition camera to focus on satellite
+      // Create sensor footprint on Earth
+      // Calculate where the sensor cone intersects with Earth's surface
+      
+      // Nadir point on Earth directly below satellite
+      const nadirPoint = new THREE.Vector3(0, -earthRadius, 0);
+      
+      // Create footprint as an ellipse on Earth's surface
+      // Calculate footprint size based on FOV and altitude
+      let footprintRadius = earthRadius * Math.sin(Math.atan(coneRadius / altitude));
+      if (footprintRadius > earthRadius) footprintRadius = earthRadius * 0.5; // Limit size for visualization
+      
+      // Create footprint geometry
+      const footprintGeometry = new THREE.CircleGeometry(footprintRadius, 32);
+      const footprintMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4CAF50,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      });
+      
+      const footprint = new THREE.Mesh(footprintGeometry, footprintMaterial);
+      
+      // Position footprint on Earth's surface
+      // Calculate the direction from Earth center to below satellite
+      const directionToNadir = new THREE.Vector3(0, -1, 0).normalize();
+      
+      // If there's off-nadir angle, adjust the footprint position
+      if (offNadirRad > 0) {
+        // Rotate the direction by off-nadir angle
+        const rotationAxis = new THREE.Vector3(0, 0, 1); // Z-axis for rotation
+        const rotationMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, offNadirRad);
+        directionToNadir.applyMatrix4(rotationMatrix);
+      }
+      
+      // Position the footprint at the calculated point on Earth's surface
+      footprint.position.copy(directionToNadir.multiplyScalar(earthRadius));
+      
+      // Rotate footprint to face outward from Earth center
+      footprint.lookAt(new THREE.Vector3(0, 0, 0));
+      footprint.rotateX(Math.PI / 2);
+      
+      // If off-nadir angle is present, the footprint becomes more elliptical
+      if (offNadirRad > 0) {
+        // Stretch the footprint in the direction of off-nadir
+        footprint.scale.z = 1 / Math.cos(offNadirRad);
+      }
+      
+      scene.add(footprint);
+      sceneRef.current.sensorFootprint = footprint;
+      
+      // Update camera to focus on satellite
       sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
       sceneRef.current.controls.update();
     }
@@ -302,37 +377,94 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const sensorWidthH = inputs.pixelSize * inputs.pixelCountH / 1000; // in mm
       const fovH = 2 * Math.atan(sensorWidthH / (2 * inputs.focalLength));
       
-      // Calculate field width at ground level
-      const fieldRadius = altitude * Math.tan(fovH / 2);
-      
       // Update satellite position
       sceneRef.current.satellite.position.y = earthRadius + altitude;
       
-      // Update sensor field
-      sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+      // Remove existing sensor field and footprint if they exist
+      if (sceneRef.current.sensorField) {
+        sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+      }
       
-      const newSensorFieldGeometry = new THREE.ConeGeometry(fieldRadius, altitude, 32);
+      if (sceneRef.current.sensorFootprint) {
+        sceneRef.current.scene.remove(sceneRef.current.sensorFootprint);
+      }
+      
+      // Calculate off-nadir angle in radians
+      const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
+      
+      // Calculate the height of the sensor field cone
+      const coneHeight = altitude;
+      
+      // Calculate sensor field cone base radius based on FOV and altitude
+      const coneRadius = altitude * Math.tan(fovH / 2);
+      
+      // Create sensor field cone
+      const sensorFieldGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
       const sensorFieldMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
         opacity: 0.3,
         side: THREE.DoubleSide,
-        depthWrite: false // Helps with transparency sorting
+        depthWrite: false
       });
-      const newSensorField = new THREE.Mesh(newSensorFieldGeometry, sensorFieldMaterial);
       
-      // Center the cone's base at the satellite's position
+      const newSensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
+      
+      // Position the cone so its apex is at the satellite and it points down
       newSensorField.rotation.x = Math.PI;
-      newSensorField.position.y = 0; // Center at satellite position
+      newSensorField.position.y = -coneHeight / 2;
       
-      // If off-nadir angle is present, rotate the sensor field
-      if (inputs.maxOffNadirAngle > 0) {
-        const offNadirRad = (inputs.maxOffNadirAngle * Math.PI) / 180;
+      // Apply off-nadir rotation if specified
+      if (offNadirRad > 0) {
         newSensorField.rotation.z = offNadirRad;
       }
       
       sceneRef.current.satellite.add(newSensorField);
       sceneRef.current.sensorField = newSensorField;
+      
+      // Create sensor footprint on Earth
+      // Calculate footprint size based on FOV and altitude
+      let footprintRadius = earthRadius * Math.sin(Math.atan(coneRadius / altitude));
+      if (footprintRadius > earthRadius) footprintRadius = earthRadius * 0.5; // Limit size for visualization
+      
+      // Create footprint geometry
+      const footprintGeometry = new THREE.CircleGeometry(footprintRadius, 32);
+      const footprintMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4CAF50,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      });
+      
+      const footprint = new THREE.Mesh(footprintGeometry, footprintMaterial);
+      
+      // Position footprint on Earth's surface
+      // Calculate the direction from Earth center to below satellite
+      const directionToNadir = new THREE.Vector3(0, -1, 0).normalize();
+      
+      // If there's off-nadir angle, adjust the footprint position
+      if (offNadirRad > 0) {
+        // Rotate the direction by off-nadir angle
+        const rotationAxis = new THREE.Vector3(0, 0, 1); // Z-axis for rotation
+        const rotationMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, offNadirRad);
+        directionToNadir.applyMatrix4(rotationMatrix);
+      }
+      
+      // Position the footprint at the calculated point on Earth's surface
+      footprint.position.copy(directionToNadir.multiplyScalar(earthRadius));
+      
+      // Rotate footprint to face outward from Earth center
+      footprint.lookAt(new THREE.Vector3(0, 0, 0));
+      footprint.rotateX(Math.PI / 2);
+      
+      // If off-nadir angle is present, the footprint becomes more elliptical
+      if (offNadirRad > 0) {
+        // Stretch the footprint in the direction of off-nadir
+        footprint.scale.z = 1 / Math.cos(offNadirRad);
+      }
+      
+      sceneRef.current.scene.add(footprint);
+      sceneRef.current.sensorFootprint = footprint;
       
       // Update camera to focus on satellite
       sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
