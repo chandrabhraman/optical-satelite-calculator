@@ -157,6 +157,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     satellite.add(rightPanel);
     
     // Create default sensor field (will be updated when inputs change)
+    // Default cone with apex at origin (satellite) pointing downward and expanding toward Earth
     const defaultSensorAngle = Math.PI / 12; // 15 degrees
     const sensorFieldGeometry = new THREE.ConeGeometry(
       Math.tan(defaultSensorAngle) * 600, // Base radius based on height and angle
@@ -171,8 +172,11 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       depthWrite: false
     });
     const sensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
-    sensorField.rotation.x = Math.PI; // Point down toward Earth
-    sensorField.position.y = -50; // Slightly below satellite center
+    
+    // Correctly orient the cone to expand outward toward Earth (point down)
+    // In Three.js, default cone has its apex at (0,h/2,0) and base at (0,-h/2,0), pointing along -Y axis
+    sensorField.rotation.x = Math.PI; // Rotate 180 degrees to point down
+    sensorField.position.y = -50; // Position slightly below satellite center
     satellite.add(sensorField);
     
     // Create default sensor footprint on Earth (will be updated when inputs change)
@@ -275,8 +279,15 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       // Calculate sensor field cone base radius based on FOV and altitude
       const coneRadius = altitude * Math.tan(fovH / 2);
       
-      // Create sensor field cone
-      const sensorFieldGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
+      // Create sensor field cone geometry
+      // In Three.js, the ConeGeometry constructor creates a cone with its base 
+      // at the origin and its apex pointing up along the positive y-axis
+      const sensorFieldGeometry = new THREE.ConeGeometry(
+        coneRadius, // Base radius 
+        coneHeight, // Height
+        32 // Segments
+      );
+      
       const sensorFieldMaterial = new THREE.MeshBasicMaterial({
         color: 0x4CAF50,
         transparent: true,
@@ -287,8 +298,16 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       
       const newSensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
       
-      // Position the cone so its apex is at the satellite and it points down
+      // We need to position and rotate the cone so that:
+      // 1. The apex is at the satellite
+      // 2. The cone points toward Earth
+      // 3. The cone expands outward from the satellite
+      
+      // First, rotate the cone so it points down (along -Y axis)
       newSensorField.rotation.x = Math.PI;
+      
+      // Now position it so the apex is at the satellite's center
+      // Shift it down by half the cone height
       newSensorField.position.y = -coneHeight / 2;
       
       // Apply off-nadir rotation if specified
@@ -300,12 +319,6 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       sceneRef.current.sensorField = newSensorField;
       
       // Create sensor footprint on Earth
-      // Calculate where the sensor cone intersects with Earth's surface
-      
-      // Nadir point on Earth directly below satellite
-      const nadirPoint = new THREE.Vector3(0, -earthRadius, 0);
-      
-      // Create footprint as an ellipse on Earth's surface
       // Calculate footprint size based on FOV and altitude
       let footprintRadius = earthRadius * Math.sin(Math.atan(coneRadius / altitude));
       if (footprintRadius > earthRadius) footprintRadius = earthRadius * 0.5; // Limit size for visualization
@@ -411,6 +424,7 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
       const newSensorField = new THREE.Mesh(sensorFieldGeometry, sensorFieldMaterial);
       
       // Position the cone so its apex is at the satellite and it points down
+      // While expanding outward toward Earth
       newSensorField.rotation.x = Math.PI;
       newSensorField.position.y = -coneHeight / 2;
       
