@@ -99,19 +99,19 @@ const FormulaeSection = () => {
               <h3 className="text-lg font-semibold">Edge Position Change (Roll)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to roll attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                {"$$ \\text{Roll Edge Change} = h \\times \\sec^2{(\\theta_{\\text{off}})} \\times \\sigma_{\\text{att}} $$"}
+                {"$$ \\text{Roll Edge Change} = h \\times \\tan(\\text{FOV}_H/2) \\times \\sigma_{\\text{att}} $$"}
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Pitch)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to pitch attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                {"$$ \\text{Pitch Edge Change} = h \\times \\sec{(\\theta_{\\text{off}})} \\times \\sigma_{\\text{att}} $$"}
+                {"$$ \\text{Pitch Edge Change} = h \\times \\sigma_{\\text{att}} $$"}
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Yaw)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to yaw attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                {"$$ \\text{Yaw Edge Change} = h \\times \\sec{(\\theta_{\\text{off}})} \\times \\sigma_{\\text{att}} $$"}
+                {"$$ \\text{Yaw Edge Change} = h \\times \\tan(\\text{FOV}_H/2) \\times \\sigma_{\\text{att}} $$"}
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Root Sum Square (RSS) Error</h3>
