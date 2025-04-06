@@ -27,7 +27,8 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   
   // Nominal calculations (nadir facing at max altitude)
   const nominalCenterPixelSize = calculateCenterPixelSize(ifov, altitudeMaxKm, 0);
-  const nominalEdgePixelSize = nominalCenterPixelSize / Math.cos(Math.atan((sensorWidthH / 2) / inputs.focalLength));
+  // Updated: Use calculateCenterPixelSize with fovH/2 in degrees
+  const nominalEdgePixelSize = calculateCenterPixelSize(ifov, altitudeMaxKm, toDegrees(fovH * 0.5));
   
   // Worst case calculations (off nadir at max altitude)
   const offNadirAngle = toRadians(inputs.maxOffNadirAngle);
