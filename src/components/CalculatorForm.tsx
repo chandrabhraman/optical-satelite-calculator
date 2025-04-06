@@ -264,7 +264,12 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
             </div>
           </div>
           
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/80">Calculate</Button>
+          <Button 
+            type="submit" 
+            className="w-full bg-primary hover:bg-primary/80 animate-[pulse_2s_infinite]"
+          >
+            Calculate
+          </Button>
         </form>
       </CardContent>
     </Card>

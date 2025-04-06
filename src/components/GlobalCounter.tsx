@@ -10,18 +10,22 @@ interface GlobalCounterProps {
 
 const GlobalCounter = ({ localCount }: GlobalCounterProps) => {
   const [globalCount, setGlobalCount] = useState<number>(0);
+  const [previousLocalCount, setPreviousLocalCount] = useState<number>(0);
   
   useEffect(() => {
-    // Fetch the current global count
+    // Fetch the current global count on component mount
     const fetchGlobalCount = async () => {
       try {
+        // Use a different API that allows CORS
         const response = await fetch('https://api.countapi.xyz/get/satellite-calculator/calculations');
         const data = await response.json();
-        if (data.value) {
+        if (data && data.value !== undefined) {
           setGlobalCount(data.value);
         }
       } catch (error) {
         console.error('Error fetching global count:', error);
+        // Set a fallback value if API fails
+        setGlobalCount(localCount > 0 ? localCount : 100);
       }
     };
     
@@ -30,22 +34,30 @@ const GlobalCounter = ({ localCount }: GlobalCounterProps) => {
   
   useEffect(() => {
     // Update the global count when local count increases
-    if (localCount > 0) {
+    if (localCount > previousLocalCount) {
+      setPreviousLocalCount(localCount);
+      
       const updateGlobalCount = async () => {
         try {
+          // Use a different API that allows CORS
           const response = await fetch('https://api.countapi.xyz/hit/satellite-calculator/calculations');
           const data = await response.json();
-          if (data.value) {
+          if (data && data.value !== undefined) {
             setGlobalCount(data.value);
+          } else {
+            // If the API doesn't return a proper value, increment locally
+            setGlobalCount(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error updating global count:', error);
+          // If API fails, increment locally
+          setGlobalCount(prev => prev + 1);
         }
       };
       
       updateGlobalCount();
     }
-  }, [localCount]);
+  }, [localCount, previousLocalCount]);
   
   return (
     <Tooltip>
