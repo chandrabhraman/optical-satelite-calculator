@@ -5,6 +5,7 @@ import { CalculationResults } from "@/utils/types";
 
 interface ResultsDisplayProps {
   results?: CalculationResults;
+  altitude?: number; // New prop to pass the altitude
 }
 
 const ResultsSection = ({ title, data }: { title: string; data: Record<string, number> }) => (
@@ -43,7 +44,7 @@ const formatValue = (key: string, value: number): string => {
   return value.toFixed(4).toString();
 };
 
-const ResultsDisplay = ({ results }: ResultsDisplayProps) => {
+const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
   if (!results) {
     return (
       <Card className="glassmorphism w-full h-full flex items-center justify-center">
@@ -54,6 +55,9 @@ const ResultsDisplay = ({ results }: ResultsDisplayProps) => {
     );
   }
 
+  // Format the altitude for display
+  const altitudeDisplay = `${altitude} km`;
+
   return (
     <Card className="glassmorphism w-full">
       <CardHeader>
@@ -62,20 +66,20 @@ const ResultsDisplay = ({ results }: ResultsDisplayProps) => {
       <CardContent>
         <Tabs defaultValue="nominal">
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="nominal">Nominal Scenario</TabsTrigger>
-            <TabsTrigger value="worstCase">Worst Case Scenario</TabsTrigger>
+            <TabsTrigger value="nominal">Nadir geometry</TabsTrigger>
+            <TabsTrigger value="worstCase">Off Nadir geometry</TabsTrigger>
           </TabsList>
           
           <TabsContent value="nominal" className="space-y-4">
             <ResultsSection 
-              title="Nadir Facing @ Max Altitude" 
+              title={`Nadir Facing @ ${altitudeDisplay}`}
               data={results.nominal} 
             />
           </TabsContent>
           
           <TabsContent value="worstCase" className="space-y-4">
             <ResultsSection 
-              title="Off-Nadir Facing @ Max Altitude" 
+              title={`Off-Nadir Facing @ ${altitudeDisplay}`}
               data={results.worstCase} 
             />
           </TabsContent>

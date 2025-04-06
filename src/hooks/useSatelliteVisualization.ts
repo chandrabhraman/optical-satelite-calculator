@@ -30,6 +30,7 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
+  'https://raw.githubusercontent.com/chandrabhraman/orb-eye-view-calc/main/public/models/satellite-default.glb',
   '/models/satellite-default.glb',
   'https://raw.githubusercontent.com/nasa-jpl/open-source-rover/master/mechanical/CameraMount/SonyA6000.STEP',
   'https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Spacecraft/TESS.glb'
@@ -136,6 +137,7 @@ export function useSatelliteVisualization({
     const minDimension = Math.min(containerWidth, containerHeight);
     const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
     
+    console.log('Loading default satellite model');
     const loader = new GLTFLoader();
     
     const tryLoadModel = (modelIndex: number = 0) => {
@@ -461,6 +463,19 @@ export function useSatelliteVisualization({
     
     focusOnSatellite();
     
+    const instructionsElement = document.createElement('div');
+    instructionsElement.style.position = 'absolute';
+    instructionsElement.style.top = '10px';
+    instructionsElement.style.left = '10px';
+    instructionsElement.style.color = 'white';
+    instructionsElement.style.padding = '5px';
+    instructionsElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    instructionsElement.style.borderRadius = '5px';
+    instructionsElement.style.fontSize = '12px';
+    instructionsElement.style.pointerEvents = 'none';
+    instructionsElement.innerText = 'Click and drag to rotate. Scroll to zoom.';
+    containerRef.current.appendChild(instructionsElement);
+    
     const handleResize = () => {
       if (containerRef.current) {
         if (sceneRef.current) {
@@ -522,6 +537,9 @@ export function useSatelliteVisualization({
           containerRef.current.removeChild(sceneRef.current.renderer.domElement);
         }
         sceneRef.current.renderer.dispose();
+      }
+      if (instructionsElement && instructionsElement.parentNode) {
+        instructionsElement.parentNode.removeChild(instructionsElement);
       }
     };
   }, []);

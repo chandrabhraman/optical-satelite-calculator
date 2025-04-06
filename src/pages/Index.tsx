@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -90,7 +91,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen space-gradient text-foreground">
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-8 pb-16"> {/* Added pb-16 for more bottom padding */}
         <header className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
             Satellite Optical Sensor Calculator
@@ -104,7 +105,10 @@ const Index = () => {
           <div className="space-y-8">
             <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
             <CalculatorForm onCalculate={handleCalculate} />
-            <ResultsDisplay results={results} />
+            <ResultsDisplay 
+              results={results} 
+              altitude={inputs?.altitudeMax}
+            />
             
             {results && (
               <div className="flex justify-center mt-4">

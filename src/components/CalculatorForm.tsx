@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     focalLength: 1000, // mm
     aperture: 200, // mm
     attitudeAccuracy: 0.1, // degrees (3 sigma)
-    nominalOffNadirAngle: 0, // degrees
+    nominalOffNadirAngle: 0, // degrees - frozen to 0
     maxOffNadirAngle: 30, // degrees
     gpsAccuracy: 10 // m
   });
@@ -218,11 +217,12 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 id="nominalOffNadirAngle"
                 name="nominalOffNadirAngle"
                 type="number"
-                step="0.1"
-                value={inputs.nominalOffNadirAngle}
-                onChange={handleChange}
-                required
+                value={0}
+                disabled
+                readOnly
+                className="bg-gray-100"
               />
+              <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="maxOffNadirAngle">Maximum Off-Nadir Angle (deg)</Label>
@@ -272,4 +272,3 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
 };
 
 export default CalculatorForm;
-
