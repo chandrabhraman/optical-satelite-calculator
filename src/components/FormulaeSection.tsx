@@ -42,11 +42,11 @@ const FormulaeSection = () => {
   };
 
   return (
-    <Card className="glassmorphism w-full">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-primary">Formulae</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="glassmorphism w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-col space-y-1.5 p-6">
+        <h3 className="text-2xl font-semibold leading-none tracking-tight text-primary">Formulae</h3>
+      </div>
+      <div className="p-6 pt-0">
         <Tabs defaultValue="basic" onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="basic">Basic Parameters</TabsTrigger>
@@ -153,8 +153,8 @@ const FormulaeSection = () => {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
