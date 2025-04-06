@@ -20,6 +20,7 @@ const Index = () => {
   const [results, setResults] = useState<CalculationResults | undefined>(undefined);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [calculationCount, setCalculationCount] = useState<number>(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +57,7 @@ const Index = () => {
           setInputs(completeInputs);
           const calculatedResults = calculateResults(completeInputs);
           setResults(calculatedResults);
+          setCalculationCount(prevCount => prevCount + 1);
           
           toast({
             title: "Parameters loaded",
@@ -77,6 +79,7 @@ const Index = () => {
     setInputs(formInputs);
     const calculatedResults = calculateResults(formInputs);
     setResults(calculatedResults);
+    setCalculationCount(prevCount => prevCount + 1);
   };
 
   const handleShare = () => {
@@ -147,7 +150,10 @@ const Index = () => {
             </section>
             
             <section className="h-full min-h-[70vh]">
-              <SatelliteVisualization inputs={inputs} />
+              <SatelliteVisualization 
+                inputs={inputs} 
+                calculationCount={calculationCount} 
+              />
             </section>
           </div>
           

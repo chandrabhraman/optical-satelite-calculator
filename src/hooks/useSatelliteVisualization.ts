@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -21,10 +20,10 @@ interface SceneRef {
   stars: THREE.Points;
   animationId: number;
   containerSize: { width: number; height: number };
-  orbitAngle: number; // New property to track orbit angle
-  orbitSpeed: number; // New property to track orbit speed
-  orbitPlane: THREE.Group | null; // New property to hold the orbit plane
-  orbitRadius: number; // New property to track orbit radius
+  orbitAngle: number;
+  orbitSpeed: number;
+  orbitPlane: THREE.Group | null;
+  orbitRadius: number;
 }
 
 interface UseSatelliteVisualizationProps {
@@ -35,7 +34,7 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
-  '/models/satellite-default.glb', // Local path as first priority
+  '/models/satellite-default.glb',
 ];
 
 export function useSatelliteVisualization({
@@ -49,13 +48,12 @@ export function useSatelliteVisualization({
   const updateSatellitePosition = (data: LocationData) => {
     if (!sceneRef.current || !data.location) return;
     
-    // When manually setting location, disable orbit animation
     if (sceneRef.current.orbitPlane) {
       sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
       sceneRef.current.orbitPlane = null;
     }
     
-    const earthRadius = 6371; // Earth radius in km
+    const earthRadius = 6371;
     const altitude = data.altitude;
     
     const lat = data.location.lat * Math.PI / 180;
@@ -80,36 +78,26 @@ export function useSatelliteVisualization({
   const startOrbitAnimation = (altitude: number) => {
     if (!sceneRef.current) return;
     
-    // Store the orbit radius (Earth radius + altitude)
-    const earthRadius = 6371; // km
+    const earthRadius = 6371;
     sceneRef.current.orbitRadius = earthRadius + altitude;
     
-    // Calculate orbital period using Kepler's third law for a circular orbit
-    // T^2 = (4π^2 / GM) * r^3, where T is period, GM is Earth's gravitational parameter, r is orbit radius
-    const GM = 398600.4418; // Earth's standard gravitational parameter in km^3/s^2
+    const GM = 398600.4418;
     const orbitCircumference = 2 * Math.PI * sceneRef.current.orbitRadius;
     const orbitPeriod = Math.sqrt((4 * Math.PI * Math.PI * Math.pow(sceneRef.current.orbitRadius, 3)) / GM);
     
-    // Convert period to animation speed (radians per frame)
-    // For a sun-synchronous orbit, we want to complete one orbit per day
-    // but for visualization, we'll make it much faster
-    sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 10); // 10x faster for visualization
+    sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 10);
     
     console.log(`Starting orbit animation at altitude ${altitude} km`);
     console.log(`Orbit radius: ${sceneRef.current.orbitRadius} km`);
     console.log(`Orbit period would be: ${orbitPeriod.toFixed(2)} seconds`);
     console.log(`Animation speed: ${sceneRef.current.orbitSpeed.toFixed(8)} rad/frame`);
     
-    // Create an orbit plane for sun-synchronous orbit (slightly inclined)
-    // Sun-synchronous orbits are typically retrograde and have inclinations of ~98 degrees
     const orbitPlane = new THREE.Group();
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // Rotate the orbit plane to create the sun-synchronous inclination
-    orbitPlane.rotation.x = (98 * Math.PI) / 180; // ~98 degrees inclination typical for sun-synchronous
+    orbitPlane.rotation.x = (98 * Math.PI) / 180;
     
-    // Visualize the orbit path with a dashed line
     const orbitGeometry = new THREE.BufferGeometry();
     const orbitPoints = [];
     
@@ -132,52 +120,43 @@ export function useSatelliteVisualization({
     });
     
     const orbitPath = new THREE.Line(orbitGeometry, orbitMaterial);
-    orbitPath.computeLineDistances(); // Required for dashed lines
+    orbitPath.computeLineDistances();
     orbitPlane.add(orbitPath);
     
-    // Reset the orbit angle
     sceneRef.current.orbitAngle = 0;
     
-    // Move the satellite to the orbit
     updateSatelliteOrbitPosition(0);
   };
 
   const updateSatelliteOrbitPosition = (deltaAngle: number) => {
     if (!sceneRef.current || !sceneRef.current.orbitPlane) return;
     
-    // Update angle
     sceneRef.current.orbitAngle += deltaAngle;
     
-    // Calculate new position on orbit
     const x = sceneRef.current.orbitRadius * Math.cos(sceneRef.current.orbitAngle);
     const z = sceneRef.current.orbitRadius * Math.sin(sceneRef.current.orbitAngle);
     
-    // Calculate world position by applying orbit plane rotation
-    const position = new THREE.Vector3(x, 0, z);
-    position.applyQuaternion(sceneRef.current.orbitPlane.quaternion);
+    const positionInPlane = new THREE.Vector3(x, 0, z);
     
-    // Update satellite position
-    sceneRef.current.satellite.position.copy(position);
+    const worldMatrix = sceneRef.current.orbitPlane.matrixWorld.clone();
+    positionInPlane.applyMatrix4(worldMatrix);
     
-    // Make satellite look toward Earth center with correct orientation
+    sceneRef.current.satellite.position.copy(positionInPlane);
+    
     sceneRef.current.satellite.lookAt(0, 0, 0);
     sceneRef.current.satellite.rotateX(Math.PI / 2);
     
-    // Update footprint position if it exists
     if (sceneRef.current.sensorFootprint) {
-      // Calculate the surface point directly below the satellite
       const dirToCenter = new THREE.Vector3().subVectors(
         new THREE.Vector3(0, 0, 0),
         sceneRef.current.satellite.position
       ).normalize();
       
-      const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+      const surfacePoint = dirToCenter.multiplyScalar(6371);
       
-      // Reposition footprint to be at this surface point
       if (sceneRef.current.sensorFootprint.parent === sceneRef.current.scene) {
         sceneRef.current.sensorFootprint.position.copy(surfacePoint);
         
-        // Rotate footprint to face outward from Earth center
         const normal = surfacePoint.clone().normalize();
         const up = new THREE.Vector3(0, 1, 0);
         const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
@@ -220,7 +199,7 @@ export function useSatelliteVisualization({
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
-    const satelliteScale = minDimension * 0.02; // 2% of viewport size for custom models
+    const satelliteScale = minDimension * 0.02;
     
     const loader = new GLTFLoader();
     loader.load(
@@ -254,7 +233,7 @@ export function useSatelliteVisualization({
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
-    const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
+    const satelliteBaseSize = minDimension * 0.02;
     
     console.log('Loading default satellite model from local path');
     const loader = new GLTFLoader();
@@ -286,7 +265,6 @@ export function useSatelliteVisualization({
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
     console.log('Creating fallback satellite model with size:', satelliteBaseSize);
     
-    // Main satellite body - box shape
     const satelliteGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 1.5, 
       satelliteBaseSize * 0.5, 
@@ -302,7 +280,6 @@ export function useSatelliteVisualization({
     satelliteBody.castShadow = true;
     satelliteGroup.add(satelliteBody);
     
-    // Left solar panel
     const panelGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 2.5, 
       satelliteBaseSize * 0.025, 
@@ -319,13 +296,11 @@ export function useSatelliteVisualization({
     leftPanel.castShadow = true;
     satelliteGroup.add(leftPanel);
     
-    // Right solar panel
     const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
     rightPanel.position.x = satelliteBaseSize * 2;
     rightPanel.castShadow = true;
     satelliteGroup.add(rightPanel);
     
-    // Add a small antenna on top
     const antennaGeometry = new THREE.CylinderGeometry(
       satelliteBaseSize * 0.02,
       satelliteBaseSize * 0.02,
@@ -339,7 +314,6 @@ export function useSatelliteVisualization({
     antenna.position.y = satelliteBaseSize * 0.5;
     satelliteGroup.add(antenna);
     
-    // Add some details to make it look more like a satellite
     const detailGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 0.2,
       satelliteBaseSize * 0.2,
@@ -350,7 +324,6 @@ export function useSatelliteVisualization({
       emissive: 0x222222
     });
     
-    // Add some details to the top of the satellite
     const detail1 = new THREE.Mesh(detailGeometry, detailMaterial);
     detail1.position.set(satelliteBaseSize * 0.4, satelliteBaseSize * 0.2, satelliteBaseSize * 0.3);
     satelliteGroup.add(detail1);
@@ -365,10 +338,9 @@ export function useSatelliteVisualization({
   const updateVisualization = (inputs: SensorInputs) => {
     if (!sceneRef.current) return;
     
-    const earthRadius = 6371; // Earth radius in km
-    const altitude = inputs.altitudeMax / 1000; // Convert to km
+    const earthRadius = 6371;
+    const altitude = inputs.altitudeMax / 1000;
     
-    // Start the orbital animation at the given altitude
     if (!locationData.location) {
       startOrbitAnimation(altitude);
     }
@@ -378,15 +350,15 @@ export function useSatelliteVisualization({
       pixelCountH: inputs.pixelCountH,
       pixelCountV: inputs.pixelCountV,
       gsdRequirements: inputs.gsdRequirements,
-      altitudeMin: inputs.altitudeMin / 1000, // Convert to km
-      altitudeMax: inputs.altitudeMax / 1000, // Convert to km
+      altitudeMin: inputs.altitudeMin / 1000,
+      altitudeMax: inputs.altitudeMax / 1000,
       focalLength: inputs.focalLength,
       aperture: inputs.aperture,
       nominalOffNadirAngle: inputs.nominalOffNadirAngle
     });
     
-    const fovH = calculatedParams.hfovDeg * Math.PI / 180; // Convert to radians
-    const fovV = calculatedParams.vfovDeg * Math.PI / 180; // Convert to radians
+    const fovH = calculatedParams.hfovDeg * Math.PI / 180;
+    const fovV = calculatedParams.vfovDeg * Math.PI / 180;
     
     console.log(`Calculated FOV - Horizontal: ${calculatedParams.hfovDeg.toFixed(2)}°, Vertical: ${calculatedParams.vfovDeg.toFixed(2)}°`);
     console.log(`Footprints - Horizontal: ${calculatedParams.horizontalFootprint.toFixed(2)} km, Vertical: ${calculatedParams.verticalFootprint.toFixed(2)} km`);
@@ -422,7 +394,7 @@ export function useSatelliteVisualization({
     
     const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    newSensorField.rotation.x = Math.PI; // Rotate 180 degrees to point toward Earth
+    newSensorField.rotation.x = Math.PI;
     newSensorField.position.y = 0;
     
     if (offNadirRad > 0) {
@@ -576,7 +548,7 @@ export function useSatelliteVisualization({
     
     const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
-    sensorField.rotation.x = Math.PI; // Rotate 180 degrees to point toward Earth
+    sensorField.rotation.x = Math.PI;
     sensorField.position.y = 0;
     satellite.add(sensorField);
     
@@ -595,7 +567,6 @@ export function useSatelliteVisualization({
     
     const defaultAltitude = 600;
     
-    // Initialize orbit animation variables
     let orbitAngle = 0;
     let orbitSpeed = 0;
     let orbitPlane: THREE.Group | null = null;
@@ -604,7 +575,6 @@ export function useSatelliteVisualization({
     if (locationData.location) {
       updateSatellitePosition(locationData);
     } else {
-      // Start default orbit animation if no specific location is set
       satellite.position.y = earthRadius + defaultAltitude;
       startOrbitAnimation(defaultAltitude);
     }
@@ -655,9 +625,8 @@ export function useSatelliteVisualization({
       earth.rotation.y += 0.0005;
       stars.rotation.y += 0.0001;
       
-      // Update orbit animation if active
-      if (orbitPlane) {
-        updateSatelliteOrbitPosition(orbitSpeed);
+      if (sceneRef.current && sceneRef.current.orbitPlane) {
+        updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed);
       }
       
       renderer.render(scene, camera);

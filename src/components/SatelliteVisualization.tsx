@@ -10,9 +10,10 @@ import ModelUploader from './ModelUploader';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
+  calculationCount?: number;
 }
 
-const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
+const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisualizationProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [locationData, setLocationData] = useState<LocationData>({
@@ -76,7 +77,14 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
   return (
     <Card className="glassmorphism w-full h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-primary">Satellite Sensor Field Visualization</CardTitle>
+        <CardTitle className="text-lg font-semibold text-primary">
+          Satellite Sensor Field Visualization
+          {calculationCount > 0 && (
+            <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+              {calculationCount} calculation{calculationCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">
         <div className="absolute top-0 right-0 z-10 w-64 space-y-4 p-4">
