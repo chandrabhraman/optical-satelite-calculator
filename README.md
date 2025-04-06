@@ -5,14 +5,13 @@
 
 ## Overview
 
-A comprehensive tool to calculate optical sensor parameters and visualize sensor field coverage for satellite applications. This calculator helps satellite engineers and designers optimize their optical sensor configurations based on mission requirements.
+A comprehensive tool designed specifically for satellite engineers and mission planners to calculate critical optical sensor parameters. This calculator helps optimize sensor configurations for earth observation satellites, remote sensing platforms, and other orbital imaging systems.
 
-### Key Features
-
-- Calculate Ground Sample Distance (GSD), field of view, and other critical sensor parameters
-- Interactive 3D visualization of satellite coverage and sensor field of view
-- Sharable calculation results via URL parameters
-- Real-time parameter updates and calculations
+The calculator addresses key challenges in satellite optical system design:
+- Computing optimal Ground Sample Distance (GSD) based on orbital parameters
+- Determining field of view coverage for different sensor configurations
+- Calculating swath width and imaging footprint dimensions 
+- Optimizing sensor resolution based on mission altitude and objectives
 
 ![Calculator Interface](https://source.unsplash.com/photo-1488590528505-98d2b5aba04b)
 
@@ -25,14 +24,14 @@ A comprehensive tool to calculate optical sensor parameters and visualize sensor
 
 ### Installation
 
-Clone the repository and install dependencies:
+Follow these steps:
 
 ```sh
 # Step 1: Clone the repository
-git clone https://github.com/chandrabhraman/orb-eye-view-calc.git
+git clone https://github.com/chandrabhraman/optical-satelite-calculator.git
 
 # Step 2: Navigate to the project directory
-cd orb-eye-view-calc
+cd optical-satelite-calculator
 
 # Step 3: Install the necessary dependencies
 npm install
@@ -52,6 +51,32 @@ The application will be available at `http://localhost:5173` by default.
 
 ![Visualization Example](https://source.unsplash.com/photo-1486312338219-ce68d2c6f44d)
 
+## Satellite Calculations Explained
+
+The calculator performs several important satellite-specific calculations:
+
+### Ground Sample Distance (GSD)
+GSD defines the distance between pixel centers as measured on the ground. For satellites, this is a crucial parameter that determines the spatial resolution of images:
+
+`GSD = (pixel size × height) ÷ focal length`
+
+### Field of View (FOV)
+The angular extent of the observable area:
+
+`FOV = 2 × arctan((sensor size) ÷ (2 × focal length))`
+
+### Swath Width
+The width of the area on Earth's surface that a satellite sensor can image in a single pass:
+
+`Swath Width = 2 × height × tan(FOV ÷ 2)`
+
+### Imaging Footprint
+The area covered by a single satellite image on Earth's surface.
+
+For understanding differences between pushbroom and frame sensors, the calculator includes specialized parameters for each sensor type.
+
+![Code Example](https://source.unsplash.com/photo-1461749280684-dccba630e2f6)
+
 ## Technologies Used
 
 This project is built with modern web technologies:
@@ -63,59 +88,6 @@ This project is built with modern web technologies:
 - **[shadcn/ui](https://ui.shadcn.com/)** - Beautifully designed components
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[React Query](https://tanstack.com/query/latest)** - Data fetching and state management
-
-## Development
-
-### Project Structure
-
-```
-satellite-optical-sensor-calculator/
-├── public/                  # Static assets and 3D models
-│   └── models/              # 3D satellite models
-├── src/
-│   ├── components/          # React components
-│   │   └── ui/              # UI component library
-│   ├── hooks/               # Custom React hooks
-│   ├── lib/                 # Utility libraries
-│   ├── pages/               # Page components
-│   └── utils/               # Helper functions
-│       ├── calculationUtils.ts  # Calculation utilities
-│       └── types.ts         # TypeScript type definitions
-└── ...
-```
-
-### Customization
-
-- Add custom satellite models by placing GLB files in `/public/models/`
-- Modify calculation parameters in `src/utils/calculationUtils.ts`
-- Customize visualization settings in `src/components/SatelliteVisualization.tsx`
-
-![Code Example](https://source.unsplash.com/photo-1461749280684-dccba630e2f6)
-
-## Deployment
-
-### Publishing Your Site
-
-This project can be deployed to any static site hosting service:
-
-1. Build the production version:
-   ```sh
-   npm run build
-   ```
-
-2. The output files will be in the `dist` directory, ready to deploy to Netlify, Vercel, GitHub Pages, or any other hosting service.
-
-### Custom Domain Setup
-
-To connect a custom domain:
-
-1. Configure DNS settings with your domain provider
-2. Set up the domain in your hosting provider's dashboard
-3. Update the `sitemap.xml` and `robots.txt` files with your domain
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
