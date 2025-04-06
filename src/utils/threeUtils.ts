@@ -1,3 +1,4 @@
+
 import * as THREE from 'three';
 
 /**
@@ -244,14 +245,19 @@ export function createFOVAnnotations(
 
 /**
  * Creates a curved polygon on the Earth surface to represent sensor footprint
+ * Now with added dimension labels
  */
 export function createCurvedFootprint(
   earthRadius: number, 
   satellitePosition: THREE.Vector3,
   fovH: number,
   fovV: number,
-  offNadirAngle: number
-): THREE.Mesh {
+  offNadirAngle: number,
+  horizontalFootprint: number = 0, // in km
+  verticalFootprint: number = 0 // in km
+): THREE.Group {
+  const group = new THREE.Group();
+
   // Calculate direction to Earth center
   const directionToEarthCenter = new THREE.Vector3().subVectors(
     new THREE.Vector3(0, 0, 0),
@@ -356,5 +362,47 @@ export function createCurvedFootprint(
     side: THREE.DoubleSide
   });
   
-  return new THREE.Mesh(geometry, material);
+  const footprintMesh = new THREE.Mesh(geometry, material);
+  group.add(footprintMesh);
+  
+  // Add dimension labels if footprint sizes are provided
+  if (horizontalFootprint > 0) {
+    // Create horizontal footprint label
+    const hLabel = createTextSprite(`Horizontal: ${horizontalFootprint.toFixed(1)} km`, {
+      fontsize: 24,
+      textColor: { r: 255, g: 255, b: 255, a: 1.0 },
+      backgroundColor: { r: 0, g: 0, b: 0, a: 0.7 }
+    });
+    
+    // Calculate position for horizontal label
+    // Position at the right edge of footprint
+    const rightEdgePosition = new THREE.Vector3();
+    rightEdgePosition.setFromMatrixPosition(footprintMesh.matrixWorld);
+    rightEdgePosition.x += footprintRadius * 0.7;
+    rightEdgePosition.y -= 20; // Small offset from the footprint
+    hLabel.position.copy(rightEdgePosition);
+    
+    group.add(hLabel);
+  }
+  
+  if (verticalFootprint > 0) {
+    // Create vertical footprint label
+    const vLabel = createTextSprite(`Vertical: ${verticalFootprint.toFixed(1)} km`, {
+      fontsize: 24,
+      textColor: { r: 255, g: 255, b: 255, a: 1.0 },
+      backgroundColor: { r: 0, g: 0, b: 0, a: 0.7 }
+    });
+    
+    // Calculate position for vertical label
+    // Position at the top edge of footprint
+    const topEdgePosition = new THREE.Vector3();
+    topEdgePosition.setFromMatrixPosition(footprintMesh.matrixWorld);
+    topEdgePosition.z += footprintRadius * 0.7;
+    topEdgePosition.y -= 20; // Small offset from the footprint
+    vLabel.position.copy(topEdgePosition);
+    
+    group.add(vLabel);
+  }
+  
+  return group;
 }

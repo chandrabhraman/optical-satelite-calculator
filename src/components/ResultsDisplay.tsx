@@ -29,7 +29,9 @@ const formatLabel = (key: string): string => {
     rollEdgeChange: "Edge Position Change (Roll)",
     pitchEdgeChange: "Edge Position Change (Pitch)",
     yawEdgeChange: "Edge Position Change (Yaw)",
-    rssError: "RSS Error in Y,P,R"
+    rssError: "RSS Error in Y,P,R",
+    horizontalFootprint: "Horizontal Footprint (Swath)",
+    verticalFootprint: "Vertical Footprint"
   };
   
   return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -38,6 +40,8 @@ const formatLabel = (key: string): string => {
 const formatValue = (key: string, value: number): string => {
   if (key.includes("Angle")) {
     return `${value.toFixed(4)}°`;
+  } else if (key.includes("Footprint")) {
+    return `${value.toFixed(2)} km`;
   } else if (key.includes("Size") || key.includes("Change") || key.includes("Error")) {
     return `${value.toFixed(2)} m`;
   }

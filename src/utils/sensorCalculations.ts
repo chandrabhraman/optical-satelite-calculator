@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for sensor calculations
  */
@@ -90,6 +91,38 @@ export const calculateEarthCenterAngle = (
   return Math.atan(altitudeMax * 1000 * Math.tan(toRadians(fovHDeg * 0.5)) / (earthRadius * 1000));
 };
 
+// Calculate horizontal footprint/swath in kilometers
+export const calculateHorizontalFootprint = (
+  earthRadius: number, // in km
+  altitudeMax: number, // in km
+  fovH: number,        // in degrees
+  offNadirAngle: number = 0 // in degrees
+): number => {
+  const offNadirRad = toRadians(offNadirAngle);
+  const halfFovRad = toRadians(fovH * 0.5);
+  
+  return earthRadius * (
+    (Math.asin(Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad - halfFovRad) -
+    (Math.asin(Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad + halfFovRad)
+  );
+};
+
+// Calculate vertical footprint/swath in kilometers
+export const calculateVerticalFootprint = (
+  earthRadius: number, // in km
+  altitudeMax: number, // in km
+  fovV: number,        // in degrees
+  offNadirAngle: number = 0 // in degrees
+): number => {
+  const offNadirRad = toRadians(offNadirAngle);
+  const halfFovRad = toRadians(fovV * 0.5);
+  
+  return earthRadius * (
+    (Math.asin(Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad - halfFovRad) -
+    (Math.asin(Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad + halfFovRad)
+  );
+};
+
 // Comprehensive calculation function that takes sensor inputs and returns calculated values
 export const calculateSensorParameters = (inputs: {
   pixelSize?: number,       // in μm
@@ -107,9 +140,12 @@ export const calculateSensorParameters = (inputs: {
   hfovDeg: number,
   vfovDeg: number,
   centerPixelSize: number,
-  earthCenterAngle: number
+  earthCenterAngle: number,
+  horizontalFootprint: number,
+  verticalFootprint: number
 } => {
   let focalLength = inputs.focalLength || 0;
+  const EARTH_RADIUS = 6378; // Earth radius in km
   
   // Calculate focal length if not provided but we have pixel size and GSD requirements
   if (!focalLength && inputs.pixelSize && inputs.gsdRequirements) {
@@ -132,12 +168,29 @@ export const calculateSensorParameters = (inputs: {
   // Calculate Earth center angle
   const earthCenterAngle = calculateEarthCenterAngle(inputs.altitudeMax, hfovDeg);
   
+  // Calculate footprints
+  const horizontalFootprint = calculateHorizontalFootprint(
+    EARTH_RADIUS,
+    inputs.altitudeMax,
+    hfovDeg,
+    inputs.nominalOffNadirAngle
+  );
+  
+  const verticalFootprint = calculateVerticalFootprint(
+    EARTH_RADIUS,
+    inputs.altitudeMax,
+    vfovDeg,
+    inputs.nominalOffNadirAngle
+  );
+  
   return {
     focalLength: inputs.focalLength || 0,
     ifov,
     hfovDeg,
     vfovDeg,
     centerPixelSize,
-    earthCenterAngle: toDegrees(earthCenterAngle) // Return in degrees
+    earthCenterAngle: toDegrees(earthCenterAngle), // Return in degrees
+    horizontalFootprint,
+    verticalFootprint
   };
 };

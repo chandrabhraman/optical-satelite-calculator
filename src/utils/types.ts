@@ -17,6 +17,8 @@ export interface SensorInputs {
 export interface NominalResults {
   centerPixelSize: number;
   edgePixelSize: number;
+  horizontalFootprint: number;
+  verticalFootprint: number;
   [key: string]: number;
 }
 
@@ -26,6 +28,8 @@ export interface WorstCaseResults {
   pitchEdgeChange: number;
   yawEdgeChange: number;
   rssError: number;
+  horizontalFootprint: number;
+  verticalFootprint: number;
   [key: string]: number;
 }
 

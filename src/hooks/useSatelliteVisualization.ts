@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -239,6 +240,7 @@ export function useSatelliteVisualization({
     const fovV = calculatedParams.vfovDeg * Math.PI / 180; // Convert to radians
     
     console.log(`Calculated FOV - Horizontal: ${calculatedParams.hfovDeg.toFixed(2)}°, Vertical: ${calculatedParams.vfovDeg.toFixed(2)}°`);
+    console.log(`Footprints - Horizontal: ${calculatedParams.horizontalFootprint.toFixed(2)} km, Vertical: ${calculatedParams.verticalFootprint.toFixed(2)} km`);
     
     if (!locationData.location) {
       sceneRef.current.satellite.position.y = earthRadius + altitude;
@@ -292,7 +294,9 @@ export function useSatelliteVisualization({
       sceneRef.current.satellite.position, 
       fovH, 
       fovV, 
-      inputs.nominalOffNadirAngle
+      inputs.nominalOffNadirAngle,
+      calculatedParams.horizontalFootprint,
+      calculatedParams.verticalFootprint
     );
     
     sceneRef.current.scene.add(footprint);
