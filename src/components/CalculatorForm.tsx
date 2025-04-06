@@ -220,7 +220,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 type="number"
                 value={0}
                 readOnly
-                className="cursor-not-allowed"
+                className="bg-transparent border border-input opacity-75 cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
             </div>
