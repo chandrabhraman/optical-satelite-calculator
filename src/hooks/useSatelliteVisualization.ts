@@ -162,8 +162,9 @@ export function useSatelliteVisualization({
   };
 
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
-    console.log('Creating fallback satellite model');
+    console.log('Creating fallback satellite model with size:', satelliteBaseSize);
     
+    // Main satellite body - box shape
     const satelliteGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 1.5, 
       satelliteBaseSize * 0.5, 
@@ -177,9 +178,9 @@ export function useSatelliteVisualization({
     });
     const satelliteBody = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
     satelliteBody.castShadow = true;
-    satelliteBody.rotation.x = 0;
     satelliteGroup.add(satelliteBody);
     
+    // Left solar panel
     const panelGeometry = new THREE.BoxGeometry(
       satelliteBaseSize * 2.5, 
       satelliteBaseSize * 0.025, 
@@ -196,10 +197,47 @@ export function useSatelliteVisualization({
     leftPanel.castShadow = true;
     satelliteGroup.add(leftPanel);
     
+    // Right solar panel
     const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
     rightPanel.position.x = satelliteBaseSize * 2;
     rightPanel.castShadow = true;
     satelliteGroup.add(rightPanel);
+    
+    // Add a small antenna on top
+    const antennaGeometry = new THREE.CylinderGeometry(
+      satelliteBaseSize * 0.02,
+      satelliteBaseSize * 0.02,
+      satelliteBaseSize * 0.8
+    );
+    const antennaMaterial = new THREE.MeshPhongMaterial({
+      color: 0x888888,
+      emissive: 0x222222
+    });
+    const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+    antenna.position.y = satelliteBaseSize * 0.5;
+    satelliteGroup.add(antenna);
+    
+    // Add some details to make it look more like a satellite
+    const detailGeometry = new THREE.BoxGeometry(
+      satelliteBaseSize * 0.2,
+      satelliteBaseSize * 0.2,
+      satelliteBaseSize * 0.2
+    );
+    const detailMaterial = new THREE.MeshPhongMaterial({
+      color: 0x444444,
+      emissive: 0x222222
+    });
+    
+    // Add some details to the top of the satellite
+    const detail1 = new THREE.Mesh(detailGeometry, detailMaterial);
+    detail1.position.set(satelliteBaseSize * 0.4, satelliteBaseSize * 0.2, satelliteBaseSize * 0.3);
+    satelliteGroup.add(detail1);
+    
+    const detail2 = new THREE.Mesh(detailGeometry, detailMaterial);
+    detail2.position.set(-satelliteBaseSize * 0.4, satelliteBaseSize * 0.2, -satelliteBaseSize * 0.3);
+    satelliteGroup.add(detail2);
+    
+    console.log('Fallback satellite model created with', satelliteGroup.children.length, 'parts');
   };
 
   const updateVisualization = (inputs: SensorInputs) => {
