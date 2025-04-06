@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for sensor calculations
  */
@@ -64,6 +63,7 @@ export const calculateVFOV = (
 };
 
 // Calculate Center Pixel Size for nadir facing geometry at max altitude
+// Fixed: altitudeMax is already in km, so no need to divide by 1000 in the calling function
 export const calculateCenterPixelSize = (
   ifov: number,        // in radians
   altitudeMax: number, // in km
@@ -127,8 +127,8 @@ export const calculateSensorParameters = (inputs: {
   
   // Calculate IFOV
   let ifov = 0;
-  if (inputs.pixelSize && focalLength) {
-    ifov = calculateIFOV(inputs.pixelSize, focalLength);
+  if (inputs.pixelSize && inputs.focalLength) {
+    ifov = calculateIFOV(inputs.pixelSize, inputs.focalLength);
   }
   
   // Calculate FOVs
@@ -142,8 +142,8 @@ export const calculateSensorParameters = (inputs: {
   const earthCenterAngle = calculateEarthCenterAngle(inputs.altitudeMax, hfovDeg);
   
   return {
-    focalLength,
-    fNumber,
+    focalLength: inputs.focalLength || 0,
+    fNumber: inputs.fNumber,
     ifov,
     hfovDeg,
     vfovDeg,
