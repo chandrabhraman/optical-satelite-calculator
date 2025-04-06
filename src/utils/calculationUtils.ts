@@ -12,7 +12,7 @@ import {
 
 export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   // Constants
-  const EARTH_RADIUS = 6371; // meters
+  const EARTH_RADIUS = 6371; // Earth radius in km
   
   // Calculate IFOV (Instantaneous Field of View)
   const ifov = calculateIFOV(inputs.pixelSize, inputs.focalLength);
@@ -28,11 +28,8 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   const fovVDeg = toDegrees(fovV);
   
   // Convert altitude from meters to kilometers for our calculations
-  // inputs.altitudeMax is already in meters
+  // Make sure inputs.altitudeMax is in kilometers to match Earth radius
   const altitudeMaxKm = inputs.altitudeMax / 1000;
-  
-  // Calculate Earth radius in kilometers
-  const earthRadiusKm = EARTH_RADIUS / 1000;
   
   // Nominal calculations (nadir facing at max altitude)
   const nominalCenterPixelSize = calculateCenterPixelSize(ifov, altitudeMaxKm, 0);
@@ -41,14 +38,14 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   
   // Calculate footprints for nominal case
   const nominalHorizontalFootprint = calculateHorizontalFootprint(
-    earthRadiusKm,
+    EARTH_RADIUS,
     altitudeMaxKm,
     fovHDeg,
     0 // nadir facing
   );
   
   const nominalVerticalFootprint = calculateVerticalFootprint(
-    earthRadiusKm,
+    EARTH_RADIUS,
     altitudeMaxKm,
     fovVDeg,
     0 // nadir facing
@@ -60,14 +57,14 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   
   // Calculate footprints for off-nadir case
   const worstCaseHorizontalFootprint = calculateHorizontalFootprint(
-    earthRadiusKm,
+    EARTH_RADIUS,
     altitudeMaxKm,
     fovHDeg,
     inputs.maxOffNadirAngle
   );
   
   const worstCaseVerticalFootprint = calculateVerticalFootprint(
-    earthRadiusKm,
+    EARTH_RADIUS,
     altitudeMaxKm,
     fovVDeg,
     inputs.maxOffNadirAngle

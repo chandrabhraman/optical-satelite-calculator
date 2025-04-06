@@ -38,6 +38,11 @@ const formatLabel = (key: string): string => {
 };
 
 const formatValue = (key: string, value: number): string => {
+  // Handle potential NaN values
+  if (isNaN(value)) {
+    return "N/A";
+  }
+  
   if (key.includes("Angle")) {
     return `${value.toFixed(4)}°`;
   } else if (key.includes("Footprint")) {
@@ -60,8 +65,8 @@ const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
   }
 
   // Format the altitude for display - divide by 1000 if it's in meters
-  const altitudeInKm = altitude > 1000 ? Math.round(altitude / 1000) : altitude;
-  const altitudeDisplay = `${altitudeInKm} km`;
+  const altitudeInKm = altitude >= 1000 ? (altitude / 1000) : altitude;
+  const altitudeDisplay = `${altitudeInKm.toFixed(0)} km`;
 
   return (
     <Card className="glassmorphism w-full">

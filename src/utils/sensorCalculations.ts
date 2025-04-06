@@ -101,10 +101,24 @@ export const calculateHorizontalFootprint = (
   const offNadirRad = toRadians(offNadirAngle);
   const halfFovRad = toRadians(fovH * 0.5);
   
-  return earthRadius * (
-    (Math.asin(Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad - halfFovRad) -
-    (Math.asin(Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad + halfFovRad)
-  );
+  try {
+    // Handle potential domain errors for Math.asin
+    const leftAngle = Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius);
+    const rightAngle = Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius);
+    
+    // Ensure values are within valid domain for Math.asin (-1 to 1)
+    const leftAsinArg = Math.max(-1, Math.min(1, leftAngle));
+    const rightAsinArg = Math.max(-1, Math.min(1, rightAngle));
+    
+    return earthRadius * (
+      (Math.asin(leftAsinArg) - offNadirRad - halfFovRad) -
+      (Math.asin(rightAsinArg) - offNadirRad + halfFovRad)
+    );
+  } catch (e) {
+    console.error("Error calculating horizontal footprint:", e);
+    // Fallback calculation if the main one fails
+    return 2 * earthRadius * Math.tan(halfFovRad);
+  }
 };
 
 // Calculate vertical footprint/swath in kilometers
@@ -117,10 +131,24 @@ export const calculateVerticalFootprint = (
   const offNadirRad = toRadians(offNadirAngle);
   const halfFovRad = toRadians(fovV * 0.5);
   
-  return earthRadius * (
-    (Math.asin(Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad - halfFovRad) -
-    (Math.asin(Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius)) - offNadirRad + halfFovRad)
-  );
+  try {
+    // Handle potential domain errors for Math.asin
+    const leftAngle = Math.sin(offNadirRad + halfFovRad) * (1 + altitudeMax / earthRadius);
+    const rightAngle = Math.sin(offNadirRad - halfFovRad) * (1 + altitudeMax / earthRadius);
+    
+    // Ensure values are within valid domain for Math.asin (-1 to 1)
+    const leftAsinArg = Math.max(-1, Math.min(1, leftAngle));
+    const rightAsinArg = Math.max(-1, Math.min(1, rightAngle));
+    
+    return earthRadius * (
+      (Math.asin(leftAsinArg) - offNadirRad - halfFovRad) -
+      (Math.asin(rightAsinArg) - offNadirRad + halfFovRad)
+    );
+  } catch (e) {
+    console.error("Error calculating vertical footprint:", e);
+    // Fallback calculation if the main one fails
+    return 2 * earthRadius * Math.tan(halfFovRad);
+  }
 };
 
 // Comprehensive calculation function that takes sensor inputs and returns calculated values
