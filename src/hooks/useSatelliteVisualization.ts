@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -31,10 +30,7 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
-  '/models/satellite-default.glb', // Updated to local path as first priority
-  'https://raw.githubusercontent.com/chandrabhraman/orb-eye-view-calc/main/public/models/satellite-default.glb',
-  'https://raw.githubusercontent.com/nasa-jpl/open-source-rover/master/mechanical/CameraMount/SonyA6000.STEP',
-  'https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Spacecraft/TESS.glb'
+  '/models/satellite-default.glb', // Local path as first priority
 ];
 
 export function useSatelliteVisualization({
@@ -138,43 +134,31 @@ export function useSatelliteVisualization({
     const minDimension = Math.min(containerWidth, containerHeight);
     const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
     
-    console.log('Loading default satellite model');
+    console.log('Loading default satellite model from local path');
     const loader = new GLTFLoader();
     
-    const tryLoadModel = (modelIndex: number = 0) => {
-      if (modelIndex >= MODEL_PATHS.length) {
-        console.error('Failed to load any model, creating fallback');
+    loader.load(
+      MODEL_PATHS[0],
+      (gltf) => {
+        console.log(`Model loaded successfully from ${MODEL_PATHS[0]}`);
+        
+        gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
+        
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        gltf.scene.position.sub(center);
+        
+        satelliteGroup.add(gltf.scene);
+      },
+      (xhr) => {
+        console.log(`Model loading progress: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
+      },
+      (error) => {
+        console.error(`Error loading model from ${MODEL_PATHS[0]}:`, error);
+        console.log('Creating fallback satellite model');
         createFallbackSatelliteModel(satelliteGroup, satelliteBaseSize);
-        return;
       }
-      
-      const modelPath = MODEL_PATHS[modelIndex];
-      console.log(`Attempting to load model from: ${modelPath}`);
-      
-      loader.load(
-        modelPath,
-        (gltf) => {
-          console.log(`Model loaded successfully from ${modelPath}`);
-          
-          gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
-          
-          const box = new THREE.Box3().setFromObject(gltf.scene);
-          const center = box.getCenter(new THREE.Vector3());
-          gltf.scene.position.sub(center);
-          
-          satelliteGroup.add(gltf.scene);
-        },
-        (xhr) => {
-          console.log(`Model ${modelPath}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`);
-        },
-        (error) => {
-          console.error(`Error loading model ${modelPath}:`, error);
-          tryLoadModel(modelIndex + 1);
-        }
-      );
-    };
-    
-    tryLoadModel();
+    );
   };
 
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
