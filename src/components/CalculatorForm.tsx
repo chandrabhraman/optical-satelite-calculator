@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,11 +28,14 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
 
   // Effect to update focal length when relevant parameters change
   useEffect(() => {
-    if (inputs.pixelSize && inputs.altitudeMin && inputs.gsdRequirements) {
+    if (inputs.pixelSize && inputs.altitudeMin && inputs.altitudeMax && inputs.gsdRequirements) {
       try {
+        // Calculate mean altitude
+        const altitudeMean = 0.5 * (inputs.altitudeMin + inputs.altitudeMax);
+        
         // Calculate focal length based on corrected formula
-        // focal length (mm) = Altitude minimum (in km) * Pixel size (in um) * (1/GSD Requirements (in m/px))
-        const calculatedFocalLength = (inputs.altitudeMin * inputs.pixelSize) / inputs.gsdRequirements;
+        // focal length (mm) = Altitude mean (in km) * Pixel size (in um) * (1/GSD Requirements (in m/px))
+        const calculatedFocalLength = (altitudeMean * inputs.pixelSize) / inputs.gsdRequirements;
         
         // Only update if it's significantly different (to prevent infinite loops)
         if (Math.abs(calculatedFocalLength - inputs.focalLength) > 1) {
@@ -46,7 +48,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
         console.error("Error calculating focal length:", error);
       }
     }
-  }, [inputs.pixelSize, inputs.altitudeMin, inputs.gsdRequirements]);
+  }, [inputs.pixelSize, inputs.altitudeMin, inputs.altitudeMax, inputs.gsdRequirements]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
