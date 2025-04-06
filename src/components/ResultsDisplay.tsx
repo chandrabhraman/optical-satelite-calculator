@@ -55,8 +55,9 @@ const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
     );
   }
 
-  // Format the altitude for display
-  const altitudeDisplay = `${altitude} km`;
+  // Format the altitude for display - divide by 1000 if it's in meters
+  const altitudeInKm = altitude > 1000 ? Math.round(altitude / 1000) : altitude;
+  const altitudeDisplay = `${altitudeInKm} km`;
 
   return (
     <Card className="glassmorphism w-full">
