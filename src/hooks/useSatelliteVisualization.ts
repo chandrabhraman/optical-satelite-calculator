@@ -31,8 +31,8 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
+  '/models/satellite-default.glb', // Updated to local path as first priority
   'https://raw.githubusercontent.com/chandrabhraman/orb-eye-view-calc/main/public/models/satellite-default.glb',
-  '/models/satellite-default.glb',
   'https://raw.githubusercontent.com/nasa-jpl/open-source-rover/master/mechanical/CameraMount/SonyA6000.STEP',
   'https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Spacecraft/TESS.glb'
 ];
