@@ -73,12 +73,11 @@ export const calculateCenterPixelSize = (
   const earthRadius = 6378; // Earth radius in km
   const offNadirRad = toRadians(offNadirAngle);
   
-  // Fixed: Don't multiply altitudeMax by 1000, as it will be handled in calculationUtils
   const earthRadiusMeters = earthRadius * 1000;
   
   // Formula: Center pixel size = IFOV * (Altitude maximum (m) + Earth radius (m) * (1-COS(offNadirRad))) * SEC(offNadirRad) * SEC(offNadirRad)
   const secOffNadir = 1 / Math.cos(offNadirRad);
-  // Fixed: We need the altitude in meters, so multiply by 1000 here
+  // We need the altitude in meters for the calculation
   return ifov * (altitudeMax * 1000 + earthRadiusMeters * (1 - Math.cos(offNadirRad))) * secOffNadir * secOffNadir;
 };
 
