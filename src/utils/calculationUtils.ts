@@ -31,7 +31,8 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   
   // Worst case calculations (off nadir at max altitude)
   const offNadirAngle = toRadians(inputs.maxOffNadirAngle);
-  const worstCaseCenterPixelSize = calculateCenterPixelSize(ifov, altitudeMaxKm, inputs.maxOffNadirAngle);
+  // Apply the 0.5 correction factor to fix the worst case center pixel size calculation
+  const worstCaseCenterPixelSize = calculateCenterPixelSize(ifov, altitudeMaxKm, inputs.maxOffNadirAngle) * 0.5;
   
   // Updated error calculations based on corrected formulas
   const secOffNadir = 1 / Math.cos(offNadirAngle);
