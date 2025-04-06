@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for sensor calculations
  */
@@ -12,14 +13,18 @@ export const toDegrees = (radians: number): number => {
   return radians * (180 / Math.PI);
 };
 
-// Calculate focal length based on altitude, pixel size, and GSD requirements
+// Calculate focal length based on mean altitude, pixel size, and GSD requirements
 export const calculateFocalLength = (
   altitudeMin: number, // in km
+  altitudeMax: number, // in km
   pixelSize: number,   // in μm
   gsdRequirements: number // in m/px
 ): number => {
-  // Corrected Formula: focal length (mm) = Altitude minimum (km) * Pixel size (μm) / GSD Requirements (m/px)
-  return (altitudeMin * pixelSize) / gsdRequirements;
+  // Calculate mean altitude
+  const altitudeMean = 0.5 * (altitudeMin + altitudeMax);
+  
+  // Updated Formula: focal length (mm) = Altitude mean (km) * Pixel size (μm) / GSD Requirements (m/px)
+  return (altitudeMean * pixelSize) / gsdRequirements;
 };
 
 // Calculate F-number based on focal length and aperture
@@ -112,7 +117,7 @@ export const calculateSensorParameters = (inputs: {
   
   // Calculate focal length if not provided but we have pixel size and GSD requirements
   if (!focalLength && inputs.pixelSize && inputs.gsdRequirements) {
-    focalLength = calculateFocalLength(inputs.altitudeMin, inputs.pixelSize, inputs.gsdRequirements);
+    focalLength = calculateFocalLength(inputs.altitudeMin, inputs.altitudeMax, inputs.pixelSize, inputs.gsdRequirements);
   }
   
   // Calculate F-number if we have focal length and aperture

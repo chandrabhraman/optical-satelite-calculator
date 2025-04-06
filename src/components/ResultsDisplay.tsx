@@ -24,12 +24,7 @@ const ResultsSection = ({ title, data }: { title: string; data: Record<string, n
 const formatLabel = (key: string): string => {
   const labels: Record<string, string> = {
     centerPixelSize: "Center Pixel Size",
-    edgePixelAngle: "Edge Pixel Angle from Nadir",
-    earthCenterAngle: "Angle Subtended at Earth Center",
     edgePixelSize: "Edge Pixel Size",
-    attitudeControlChange: "Coverage Change due to Attitude Control",
-    attitudeMeasurementChange: "Coverage Change due to Measurement",
-    gpsPositionChange: "Pixel Position Change due to GPS",
     rollEdgeChange: "Edge Position Change (Roll)",
     pitchEdgeChange: "Edge Position Change (Pitch)",
     yawEdgeChange: "Edge Position Change (Yaw)",

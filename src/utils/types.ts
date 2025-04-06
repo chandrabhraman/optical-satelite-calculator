@@ -16,23 +16,12 @@ export interface SensorInputs {
 
 export interface NominalResults {
   centerPixelSize: number;
-  edgePixelAngle: number;
-  earthCenterAngle: number;
   edgePixelSize: number;
-  attitudeControlChange: number;
-  attitudeMeasurementChange: number;
-  gpsPositionChange: number;
   [key: string]: number;
 }
 
 export interface WorstCaseResults {
-  edgePixelAngle: number;
-  earthCenterAngle: number;
-  edgePixelSize: number;
   centerPixelSize: number;
-  attitudeControlChange: number;
-  attitudeMeasurementChange: number;
-  gpsPositionChange: number;
   rollEdgeChange: number;
   pitchEdgeChange: number;
   yawEdgeChange: number;

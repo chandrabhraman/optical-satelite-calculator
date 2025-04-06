@@ -23,47 +23,34 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
   
   // Nominal calculations (nadir facing at max altitude)
   const nominalCenterPixelSize = calculateCenterPixelSize(ifov, inputs.altitudeMax/1000, 0);
-  const nominalEdgePixelAngle = Math.atan((sensorWidthH / 2) / inputs.focalLength);
-  const nominalEarthCenterAngle = calculateEarthCenterAngle(inputs.altitudeMax/1000, toDegrees(fovH));
-  const nominalEdgePixelSize = nominalCenterPixelSize / Math.cos(nominalEdgePixelAngle);
-  const nominalAttitudeControlChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
-  const nominalAttitudeMeasurementChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
-  const nominalGpsPositionChange = inputs.gpsAccuracy;
+  const nominalEdgePixelSize = nominalCenterPixelSize / Math.cos(Math.atan((sensorWidthH / 2) / inputs.focalLength));
   
   // Worst case calculations (off nadir at max altitude)
   const offNadirAngle = toRadians(inputs.maxOffNadirAngle);
-  const worstCaseEdgePixelAngle = nominalEdgePixelAngle + offNadirAngle;
-  const worstCaseEarthCenterAngle = Math.asin(inputs.altitudeMax * Math.sin(worstCaseEdgePixelAngle) / (EARTH_RADIUS + inputs.altitudeMax));
   const worstCaseCenterPixelSize = calculateCenterPixelSize(ifov, inputs.altitudeMax/1000, inputs.maxOffNadirAngle);
-  const worstCaseEdgePixelSize = worstCaseCenterPixelSize / Math.cos(nominalEdgePixelAngle);
-  const worstCaseAttitudeControlChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy) + offNadirAngle);
-  const worstCaseAttitudeMeasurementChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy) + offNadirAngle);
-  const worstCaseGpsPositionChange = inputs.gpsAccuracy;
   
-  // Error calculations
-  const rollEdgeChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
-  const pitchEdgeChange = inputs.altitudeMax * Math.tan(toRadians(inputs.attitudeAccuracy));
-  const yawEdgeChange = inputs.altitudeMax * Math.sin(nominalEdgePixelAngle) * toRadians(inputs.attitudeAccuracy);
+  // Updated error calculations based on new formulas
+  const secOffNadir = 1 / Math.cos(offNadirAngle);
+  
+  // Roll edge change formula: altitudeMax (km) * 1000 * SEC(maxOffNadirAngle*PI()/180) * SEC(maxOffNadirAngle*PI()/180) * attitudeAccuracy * PI()/180
+  const rollEdgeChange = inputs.altitudeMax * 1000 * secOffNadir * secOffNadir * toRadians(inputs.attitudeAccuracy);
+  
+  // Pitch edge change formula: altitudeMax (km) * 1000 * SEC(maxOffNadirAngle*PI()/180) * attitudeAccuracy * PI()/180
+  const pitchEdgeChange = inputs.altitudeMax * 1000 * secOffNadir * toRadians(inputs.attitudeAccuracy);
+  
+  // Yaw edge change formula: altitudeMax (km) * 1000 * SEC(maxOffNadirAngle*PI()/180) * attitudeAccuracy * PI()/180
+  const yawEdgeChange = inputs.altitudeMax * 1000 * secOffNadir * toRadians(inputs.attitudeAccuracy);
+  
+  // Calculate the RSS error
   const rssError = Math.sqrt(Math.pow(rollEdgeChange, 2) + Math.pow(pitchEdgeChange, 2) + Math.pow(yawEdgeChange, 2));
   
   return {
     nominal: {
       centerPixelSize: nominalCenterPixelSize,
-      edgePixelAngle: toDegrees(nominalEdgePixelAngle),
-      earthCenterAngle: toDegrees(nominalEarthCenterAngle),
-      edgePixelSize: nominalEdgePixelSize,
-      attitudeControlChange: nominalAttitudeControlChange,
-      attitudeMeasurementChange: nominalAttitudeMeasurementChange,
-      gpsPositionChange: nominalGpsPositionChange
+      edgePixelSize: nominalEdgePixelSize
     },
     worstCase: {
-      edgePixelAngle: toDegrees(worstCaseEdgePixelAngle),
-      earthCenterAngle: toDegrees(worstCaseEarthCenterAngle),
-      edgePixelSize: worstCaseEdgePixelSize,
       centerPixelSize: worstCaseCenterPixelSize,
-      attitudeControlChange: worstCaseAttitudeControlChange,
-      attitudeMeasurementChange: worstCaseAttitudeMeasurementChange,
-      gpsPositionChange: worstCaseGpsPositionChange,
       rollEdgeChange: rollEdgeChange,
       pitchEdgeChange: pitchEdgeChange,
       yawEdgeChange: yawEdgeChange,
