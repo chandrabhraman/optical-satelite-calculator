@@ -75,12 +75,6 @@ const FormulaeSection = () => {
                 {'$$ \\text{FOV}_V = 2 \\times \\arctan{\\left( \\frac{\\text{Sensor Width}_V}{2 \\times \\text{Focal Length}} \\right)} $$'}
                 {'$$ \\text{where } \\text{Sensor Width} = \\frac{\\text{Pixel Size } (\\mu m) \\times \\text{Pixel Count}}{1000} \\text{ mm} $$'}
               </div>
-              
-              <h3 className="text-lg font-semibold mt-6">Swath Width</h3>
-              <p className="text-muted-foreground mb-2">The width of the area on Earth's surface that the sensor can image in a single pass.</p>
-              <div className="bg-muted/50 p-4 rounded-md">
-                {'$$ \\text{Swath Width} = 2 \\times \\text{Altitude} \\times \\tan{\\left( \\frac{\\text{FOV}_H}{2} \\right)} $$'}
-              </div>
             </div>
           </TabsContent>
           
@@ -90,7 +84,6 @@ const FormulaeSection = () => {
               <p className="text-muted-foreground mb-2">Size of the pixel at the center of the image, accounting for Earth's curvature.</p>
               <div className="bg-muted/50 p-4 rounded-md">
                 {'$$ \\begin{align*} \\text{Center Pixel Size} = R_E \\times \\left[ \\left(\\arcsin\\left(\\sin\\left(\\theta_{\\text{off}} + \\text{IFOV}\\right) \\times \\left(1 + \\frac{h}{R_E}\\right)\\right) - \\theta_{\\text{off}} - \\text{IFOV}\\right) - \\\\ \\left(\\arcsin\\left(\\sin\\left(\\theta_{\\text{off}}\\right) \\times \\left(1 + \\frac{h}{R_E}\\right)\\right) - \\theta_{\\text{off}}\\right) \\right] \\end{align*} $$'}
-                {'$$ \\text{where } R_E \\text{ is Earth radius, } h \\text{ is altitude, and } \\theta_{\\text{off}} \\text{ is off-nadir angle} $$'}
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Pixel Size</h3>
@@ -104,13 +97,6 @@ const FormulaeSection = () => {
               <div className="bg-muted/50 p-4 rounded-md">
                 {'$$ \\text{Horizontal Footprint} = R_E \\times \\left[ \\left(\\arcsin\\left(\\sin\\left(\\theta_{\\text{off}} + \\frac{\\text{FOV}_H}{2}\\right) \\times \\left(1 + \\frac{h}{R_E}\\right)\\right) - \\theta_{\\text{off}} - \\frac{\\text{FOV}_H}{2}\\right) - \\\\ \\left(\\arcsin\\left(\\sin\\left(\\theta_{\\text{off}} - \\frac{\\text{FOV}_H}{2}\\right) \\times \\left(1 + \\frac{h}{R_E}\\right)\\right) - \\theta_{\\text{off}} + \\frac{\\text{FOV}_H}{2}\\right) \\right] $$'}
               </div>
-              
-              <h3 className="text-lg font-semibold mt-6">Earth Center Angle</h3>
-              <p className="text-muted-foreground mb-2">Angle subtended at Earth's center by the satellite's field of view.</p>
-              <div className="bg-muted/50 p-4 rounded-md">
-                {'$$ \\text{Earth Center Angle} = \\arctan{\\left( \\frac{h \\times \\tan{\\left( \\frac{\\text{FOV}_H}{2} \\right)}}{R_E} \\right)} $$'}
-                {'$$ \\text{where } h \\text{ is altitude and } R_E \\text{ is Earth radius} $$'}
-              </div>
             </div>
           </TabsContent>
           
@@ -120,7 +106,6 @@ const FormulaeSection = () => {
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to roll attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
                 {'$$ \\text{Roll Edge Change} = h \\times \\sec^2{(\\theta_{\\text{off}})} \\times \\sigma_{\\text{att}} $$'}
-                {'$$ \\text{where } \\sigma_{\\text{att}} \\text{ is the attitude accuracy in radians} $$'}
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Pitch)</h3>
@@ -143,6 +128,37 @@ const FormulaeSection = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Common variable definitions */}
+        <div className="mt-8 p-4 bg-muted/30 rounded-lg">
+          <h3 className="text-md font-medium mb-2 text-primary">Variable Definitions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="flex gap-2">
+              <span className="font-bold">$R_E$:</span>
+              <span className="text-muted-foreground">Earth radius (km)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">$h$:</span>
+              <span className="text-muted-foreground">Altitude (km)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">$\\theta_{\\text{off}}$:</span>
+              <span className="text-muted-foreground">Off-nadir angle (radians)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">$\\sigma_{\\text{att}}$:</span>
+              <span className="text-muted-foreground">Attitude accuracy (radians)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">$\\text{IFOV}$:</span>
+              <span className="text-muted-foreground">Instantaneous Field of View (radians)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">$\\text{FOV}$:</span>
+              <span className="text-muted-foreground">Field of View (radians)</span>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

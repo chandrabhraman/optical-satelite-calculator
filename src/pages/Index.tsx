@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -20,7 +21,11 @@ const Index = () => {
   const [results, setResults] = useState<CalculationResults | undefined>(undefined);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [calculationCount, setCalculationCount] = useState<number>(0);
+  const [calculationCount, setCalculationCount] = useState<number>(() => {
+    // Try to get the count from localStorage first
+    const savedCount = localStorage.getItem('local-calculation-count');
+    return savedCount ? parseInt(savedCount, 10) : 0;
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,7 +62,9 @@ const Index = () => {
           setInputs(completeInputs);
           const calculatedResults = calculateResults(completeInputs);
           setResults(calculatedResults);
-          setCalculationCount(prevCount => prevCount + 1);
+          const newCount = calculationCount + 1;
+          setCalculationCount(newCount);
+          localStorage.setItem('local-calculation-count', newCount.toString());
           
           toast({
             title: "Parameters loaded",
@@ -79,7 +86,9 @@ const Index = () => {
     setInputs(formInputs);
     const calculatedResults = calculateResults(formInputs);
     setResults(calculatedResults);
-    setCalculationCount(prevCount => prevCount + 1);
+    const newCount = calculationCount + 1;
+    setCalculationCount(newCount);
+    localStorage.setItem('local-calculation-count', newCount.toString());
   };
 
   const handleShare = () => {
@@ -117,6 +126,18 @@ const Index = () => {
         <script type="application/ld+json">
           {JSON.stringify(structuredData)}
         </script>
+        <style>
+          {`
+            @keyframes shake {
+              0% { transform: translateX(0); }
+              20% { transform: translateX(-5px); }
+              40% { transform: translateX(5px); }
+              60% { transform: translateX(-3px); }
+              80% { transform: translateX(3px); }
+              100% { transform: translateX(0); }
+            }
+          `}
+        </style>
       </Helmet>
 
       <main className="min-h-screen space-gradient text-foreground">

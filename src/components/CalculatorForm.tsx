@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,18 +26,11 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     gpsAccuracy: 10 // m
   });
 
-  // Effect to update focal length when relevant parameters change
   useEffect(() => {
     if (inputs.pixelSize && inputs.altitudeMin && inputs.altitudeMax && inputs.gsdRequirements) {
       try {
-        // Calculate mean altitude
         const altitudeMean = 0.5 * (inputs.altitudeMin + inputs.altitudeMax);
-        
-        // Calculate focal length based on corrected formula
-        // focal length (mm) = Altitude mean (in km) * Pixel size (in um) * (1/GSD Requirements (in m/px))
         const calculatedFocalLength = (altitudeMean * inputs.pixelSize) / inputs.gsdRequirements;
-        
-        // Only update if it's significantly different (to prevent infinite loops)
         if (Math.abs(calculatedFocalLength - inputs.focalLength) > 1) {
           setInputs(prev => ({
             ...prev,
@@ -63,14 +55,12 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     e.preventDefault();
     const submittedInputs = {
       ...inputs,
-      // Convert km back to meters for calculations
       altitudeMin: inputs.altitudeMin * 1000,
       altitudeMax: inputs.altitudeMax * 1000,
     };
     onCalculate(submittedInputs);
   };
 
-  // Calculate fields of view for display
   const getFovValues = () => {
     try {
       if (inputs.pixelSize && inputs.focalLength) {
@@ -100,12 +90,9 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
   const { hfov, vfov } = getFovValues();
 
   return (
-    <Card className="glassmorphism w-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold text-primary">Sensor Parameters</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Card className="glassmorphism">
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pixelSize">Pixel Size (μm)</Label>
@@ -266,7 +253,8 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           
           <Button 
             type="submit" 
-            className="w-full bg-primary hover:bg-primary/80 animate-[pulse_2s_infinite]"
+            className="w-full bg-primary hover:bg-primary/80"
+            shake={true}
           >
             Calculate
           </Button>

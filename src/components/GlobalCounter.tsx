@@ -9,55 +9,64 @@ interface GlobalCounterProps {
 }
 
 const GlobalCounter = ({ localCount }: GlobalCounterProps) => {
-  const [globalCount, setGlobalCount] = useState<number>(0);
+  const [globalCount, setGlobalCount] = useState<number>(() => {
+    // Try to get the count from localStorage first
+    const savedCount = localStorage.getItem('satellite-calculator-count');
+    return savedCount ? parseInt(savedCount, 10) : 0;
+  });
   const [previousLocalCount, setPreviousLocalCount] = useState<number>(0);
   
+  // Fetch the global count on component mount
   useEffect(() => {
-    // Fetch the current global count on component mount
     const fetchGlobalCount = async () => {
       try {
-        // Use a different API that allows CORS
         const response = await fetch('https://api.countapi.xyz/get/satellite-calculator/calculations');
         const data = await response.json();
         if (data && data.value !== undefined) {
-          setGlobalCount(data.value);
+          const fetchedCount = data.value;
+          setGlobalCount(fetchedCount);
+          localStorage.setItem('satellite-calculator-count', fetchedCount.toString());
         }
       } catch (error) {
         console.error('Error fetching global count:', error);
-        // Set a fallback value if API fails
-        setGlobalCount(localCount > 0 ? localCount : 100);
+        // Don't override with fallback if we have localStorage value
       }
     };
     
     fetchGlobalCount();
   }, []);
   
+  // Update the global count when local count increases
   useEffect(() => {
-    // Update the global count when local count increases
     if (localCount > previousLocalCount) {
       setPreviousLocalCount(localCount);
       
       const updateGlobalCount = async () => {
         try {
-          // Use a different API that allows CORS
           const response = await fetch('https://api.countapi.xyz/hit/satellite-calculator/calculations');
           const data = await response.json();
           if (data && data.value !== undefined) {
-            setGlobalCount(data.value);
+            const newCount = data.value;
+            setGlobalCount(newCount);
+            localStorage.setItem('satellite-calculator-count', newCount.toString());
           } else {
-            // If the API doesn't return a proper value, increment locally
-            setGlobalCount(prev => prev + 1);
+            // If API doesn't return proper value, increment locally
+            const newCount = globalCount + 1;
+            setGlobalCount(newCount);
+            localStorage.setItem('satellite-calculator-count', newCount.toString());
           }
         } catch (error) {
           console.error('Error updating global count:', error);
           // If API fails, increment locally
-          setGlobalCount(prev => prev + 1);
+          const newCount = globalCount + 1;
+          setGlobalCount(newCount);
+          localStorage.setItem('satellite-calculator-count', newCount.toString());
         }
       };
       
       updateGlobalCount();
     }
-  }, [localCount, previousLocalCount]);
+  }, [localCount, previousLocalCount, globalCount]);
   
   return (
     <Tooltip>
