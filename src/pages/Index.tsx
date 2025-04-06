@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -14,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
 import { Helmet } from "react-helmet-async";
+import GlobalCounter from "@/components/GlobalCounter";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
@@ -94,7 +94,6 @@ const Index = () => {
     setShareDialogOpen(true);
   };
 
-  // Structured data for SEO
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -122,7 +121,10 @@ const Index = () => {
 
       <main className="min-h-screen space-gradient text-foreground">
         <div className="container mx-auto py-8 pb-24">
-          <header className="text-center mb-12">
+          <header className="text-center mb-12 relative">
+            <div className="absolute top-0 right-0 pt-2">
+              <GlobalCounter localCount={calculationCount} />
+            </div>
             <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
               Satellite Optical Sensor Calculator
             </h1>
@@ -157,7 +159,6 @@ const Index = () => {
             </section>
           </div>
           
-          {/* New Formulae Section */}
           <section className="mt-16">
             <FormulaeSection />
           </section>

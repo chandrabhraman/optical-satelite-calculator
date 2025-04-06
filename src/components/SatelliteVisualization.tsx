@@ -79,11 +79,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-primary">
           Satellite Sensor Field Visualization
-          {calculationCount > 0 && (
-            <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
-              {calculationCount} calculation{calculationCount !== 1 ? 's' : ''}
-            </span>
-          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">
