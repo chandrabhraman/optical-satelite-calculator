@@ -29,6 +29,19 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
     setLocationData
   });
 
+  // Update the location altitude when inputs change
+  useEffect(() => {
+    if (inputs && !locationData.location) {
+      const newAltitude = inputs.altitudeMax / 1000; // Convert to km
+      if (newAltitude !== locationData.altitude) {
+        setLocationData(prev => ({
+          ...prev,
+          altitude: newAltitude
+        }));
+      }
+    }
+  }, [inputs]);
+  
   // Handle location change
   const handleLocationChange = (data: LocationData) => {
     setLocationData(data);
