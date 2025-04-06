@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
+import { Helmet } from "react-helmet-async";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
@@ -89,53 +90,79 @@ const Index = () => {
     setShareDialogOpen(true);
   };
 
-  return (
-    <div className="min-h-screen space-gradient text-foreground">
-      <div className="container mx-auto py-8 pb-24"> {/* Increased bottom padding */}
-        <header className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
-            Satellite Optical Sensor Calculator
-          </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.
-          </p>
-        </header>
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Satellite Optical Sensor Calculator",
+    "applicationCategory": "ScientificApplication",
+    "operatingSystem": "Web",
+    "description": "Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  };
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6"> {/* Reduced vertical spacing */}
-            <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
-            <CalculatorForm onCalculate={handleCalculate} />
-            <ResultsDisplay 
-              results={results} 
-              altitude={inputs?.altitudeMax}
-            />
+  return (
+    <>
+      <Helmet>
+        <title>Satellite Optical Sensor Calculator | Precision Engineering Tools</title>
+        <meta name="description" content="Calculate optical sensor parameters and visualize sensor field coverage for satellite applications with our professional calculator tool." />
+        <meta name="keywords" content="satellite, optical sensor, GSD, focal length, sensor calculator, satellite visualization" />
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
+      <main className="min-h-screen space-gradient text-foreground">
+        <div className="container mx-auto py-8 pb-24">
+          <header className="text-center mb-12">
+            <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
+              Satellite Optical Sensor Calculator
+            </h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.
+            </p>
+          </header>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section className="space-y-6">
+              <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
+              <CalculatorForm onCalculate={handleCalculate} />
+              <ResultsDisplay 
+                results={results} 
+                altitude={inputs?.altitudeMax}
+              />
+              
+              {results && (
+                <div className="flex justify-center mt-2 mb-4">
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    <Share2 className="h-4 w-4 mr-1" /> Share Results
+                  </Button>
+                </div>
+              )}
+            </section>
             
-            {results && (
-              <div className="flex justify-center mt-2 mb-4">
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-1" /> Share Results
-                </Button>
-              </div>
-            )}
+            <section className="h-full min-h-[70vh]">
+              <SatelliteVisualization inputs={inputs} />
+            </section>
           </div>
           
-          <div className="h-full min-h-[70vh]"> {/* Reduced min-height */}
-            <SatelliteVisualization inputs={inputs} />
-          </div>
+          <footer className="mt-16 text-center text-xs text-muted-foreground">
+            <Separator className="mb-4" />
+            <p>Satellite Optical Sensor Calculator &copy; {new Date().getFullYear()}</p>
+          </footer>
         </div>
-        
-        <footer className="mt-16 text-center text-xs text-muted-foreground"> {/* Increased top margin */}
-          <Separator className="mb-4" />
-          <p>Satellite Optical Sensor Calculator &copy; {new Date().getFullYear()}</p>
-        </footer>
-      </div>
-      <ShareDialog 
-        open={shareDialogOpen} 
-        onOpenChange={setShareDialogOpen} 
-        inputs={inputs} 
-        results={results} 
-      />
-    </div>
+        <ShareDialog 
+          open={shareDialogOpen} 
+          onOpenChange={setShareDialogOpen} 
+          inputs={inputs} 
+          results={results} 
+        />
+      </main>
+    </>
   );
 };
 
