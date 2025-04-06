@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for sensor calculations
  */
@@ -63,7 +64,7 @@ export const calculateVFOV = (
 };
 
 // Calculate Center Pixel Size for nadir facing geometry at max altitude
-// Fixed: altitudeMax is already in km, so no need to divide by 1000 in the calling function
+// Fixed: altitudeMax is already in km, convert to meters here in one consistent place
 export const calculateCenterPixelSize = (
   ifov: number,        // in radians
   altitudeMax: number, // in km
@@ -72,13 +73,13 @@ export const calculateCenterPixelSize = (
   const earthRadius = 6378; // Earth radius in km
   const offNadirRad = toRadians(offNadirAngle);
   
-  // Formula: Center pixel size = IFOV * (Altitude maximum (km) * 1000 + 6378000 * (1-COS(0))) * SEC(0) * SEC(0)
-  // For nadir pointing (offNadirAngle = 0), this simplifies to:
-  // Center pixel size = IFOV * Altitude maximum (km) * 1000
-  // For off-nadir, we need to include the secant terms
+  // Convert altitudeMax from km to meters
+  const altitudeMaxMeters = altitudeMax * 1000; 
+  const earthRadiusMeters = earthRadius * 1000;
   
+  // Formula: Center pixel size = IFOV * (Altitude maximum (m) + Earth radius (m) * (1-COS(offNadirRad))) * SEC(offNadirRad) * SEC(offNadirRad)
   const secOffNadir = 1 / Math.cos(offNadirRad);
-  return ifov * (altitudeMax * 1000 + earthRadius * 1000 * (1 - Math.cos(offNadirRad))) * secOffNadir * secOffNadir;
+  return ifov * (altitudeMaxMeters + earthRadiusMeters * (1 - Math.cos(offNadirRad))) * secOffNadir * secOffNadir;
 };
 
 // Calculate Angle subtended at earth center
@@ -105,7 +106,6 @@ export const calculateSensorParameters = (inputs: {
   nominalOffNadirAngle: number // in degrees
 }): {
   focalLength: number,
-  fNumber?: number,
   ifov: number,
   hfovDeg: number,
   vfovDeg: number,
@@ -113,16 +113,10 @@ export const calculateSensorParameters = (inputs: {
   earthCenterAngle: number
 } => {
   let focalLength = inputs.focalLength || 0;
-  let fNumber;
   
   // Calculate focal length if not provided but we have pixel size and GSD requirements
   if (!focalLength && inputs.pixelSize && inputs.gsdRequirements) {
     focalLength = calculateFocalLength(inputs.altitudeMin, inputs.altitudeMax, inputs.pixelSize, inputs.gsdRequirements);
-  }
-  
-  // Calculate F-number if we have focal length and aperture
-  if (focalLength && inputs.aperture) {
-    fNumber = calculateFNumber(focalLength, inputs.aperture);
   }
   
   // Calculate IFOV
@@ -143,7 +137,6 @@ export const calculateSensorParameters = (inputs: {
   
   return {
     focalLength: inputs.focalLength || 0,
-    fNumber: inputs.fNumber,
     ifov,
     hfovDeg,
     vfovDeg,
