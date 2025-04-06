@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,7 +147,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 id="gsdRequirements"
                 name="gsdRequirements"
                 type="number"
-                step="0.1"
+                step="0.01"
                 value={inputs.gsdRequirements}
                 onChange={handleChange}
                 required
@@ -271,3 +272,4 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
 };
 
 export default CalculatorForm;
+
