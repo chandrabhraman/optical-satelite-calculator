@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import SatelliteVisualization from "@/components/SatelliteVisualization";
+import FormulaeSection from "@/components/FormulaeSection";
 import { SensorInputs, CalculationResults } from "@/utils/types";
 import { calculateResults } from "@/utils/calculationUtils";
 import { Separator } from "@/components/ui/separator";
@@ -149,6 +150,11 @@ const Index = () => {
               <SatelliteVisualization inputs={inputs} />
             </section>
           </div>
+          
+          {/* New Formulae Section */}
+          <section className="mt-16">
+            <FormulaeSection />
+          </section>
           
           <footer className="mt-16 text-center text-xs text-muted-foreground">
             <Separator className="mb-4" />
