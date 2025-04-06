@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for sensor calculations
  */
@@ -63,8 +62,7 @@ export const calculateVFOV = (
   return pixelCountV * ifov * (180 / Math.PI);
 };
 
-// Calculate Center Pixel Size for nadir facing geometry at max altitude
-// Fixed: altitudeMax is in km, but we need meters for the calculation
+// Calculate Center Pixel Size with updated formula
 export const calculateCenterPixelSize = (
   ifov: number,        // in radians
   altitudeMax: number, // in km
@@ -73,12 +71,12 @@ export const calculateCenterPixelSize = (
   const earthRadius = 6378; // Earth radius in km
   const offNadirRad = toRadians(offNadirAngle);
   
-  const earthRadiusMeters = earthRadius * 1000;
-  
-  // Formula: Center pixel size = IFOV * (Altitude maximum (m) + Earth radius (m) * (1-COS(offNadirRad))) * SEC(offNadirRad) * SEC(offNadirRad)
-  const secOffNadir = 1 / Math.cos(offNadirRad);
-  // We need the altitude in meters for the calculation
-  return ifov * (altitudeMax * 1000 + earthRadiusMeters * (1 - Math.cos(offNadirRad))) * secOffNadir * secOffNadir;
+  // New formula: 
+  // earthRadius*1000*((ARCSIN(SIN(offNadirRad+ifov)*(1+altitudeMax/earthRadius))-offNadirRad-ifov)-(ARCSIN(SIN(offNadirRad)*(1+altitudeMax/earthRadius))-offNadirRad))
+  return earthRadius * 1000 * (
+    (Math.asin(Math.sin(offNadirRad + ifov) * (1 + altitudeMax / earthRadius)) - offNadirRad - ifov) -
+    (Math.asin(Math.sin(offNadirRad) * (1 + altitudeMax / earthRadius)) - offNadirRad)
+  );
 };
 
 // Calculate Angle subtended at earth center
