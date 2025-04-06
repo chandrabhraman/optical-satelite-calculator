@@ -91,7 +91,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen space-gradient text-foreground">
-      <div className="container mx-auto py-8 pb-16"> {/* Added pb-16 for more bottom padding */}
+      <div className="container mx-auto py-8 pb-24"> {/* Increased bottom padding */}
         <header className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
             Satellite Optical Sensor Calculator
@@ -102,7 +102,7 @@ const Index = () => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-8">
+          <div className="space-y-6"> {/* Reduced vertical spacing */}
             <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
             <CalculatorForm onCalculate={handleCalculate} />
             <ResultsDisplay 
@@ -111,7 +111,7 @@ const Index = () => {
             />
             
             {results && (
-              <div className="flex justify-center mt-4">
+              <div className="flex justify-center mt-2 mb-4">
                 <Button variant="outline" size="sm" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-1" /> Share Results
                 </Button>
@@ -119,12 +119,12 @@ const Index = () => {
             )}
           </div>
           
-          <div className="h-full min-h-[80vh]">
+          <div className="h-full min-h-[70vh]"> {/* Reduced min-height */}
             <SatelliteVisualization inputs={inputs} />
           </div>
         </div>
         
-        <footer className="mt-12 text-center text-xs text-muted-foreground">
+        <footer className="mt-16 text-center text-xs text-muted-foreground"> {/* Increased top margin */}
           <Separator className="mb-4" />
           <p>Satellite Optical Sensor Calculator &copy; {new Date().getFullYear()}</p>
         </footer>

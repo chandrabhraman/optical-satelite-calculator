@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,9 +219,8 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 name="nominalOffNadirAngle"
                 type="number"
                 value={0}
-                disabled
                 readOnly
-                className="bg-gray-100"
+                className="bg-transparent border border-input opacity-75 cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
             </div>

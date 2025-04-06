@@ -13,10 +13,10 @@ const VisualizationContainerComponent: ForwardRefRenderFunction<HTMLDivElement, 
   ref
 ) => {
   return (
-    <div ref={ref} className={`w-full h-full min-h-[500px] ${className}`}>
+    <div ref={ref} className={`w-full h-full min-h-[450px] relative ${className}`}>
       {children}
       {showInstructions && (
-        <div className="text-xs text-muted-foreground absolute bottom-2 left-2">
+        <div className="text-xs text-muted-foreground absolute bottom-4 left-4 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md z-10">
           <p>Click and drag to rotate. Scroll to zoom.</p>
         </div>
       )}
