@@ -22,20 +22,7 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
         setSelectedFile(file);
         onModelUpload(file);
         
-        // Show specific message for .blend files
-        if (file.name.endsWith('.blend')) {
-          toast({
-            title: "Blend file selected",
-            description: "Blend files will be rendered as a default model. For best results, export to .glb or .gltf.",
-            variant: "destructive",
-            duration: 5000,
-          });
-        } else {
-          toast({
-            title: "Model selected",
-            description: `${file.name} will be used for visualization.`,
-          });
-        }
+        // Toast messages are now handled in the parent component
       } else {
         toast({
           title: "Unsupported file format",
@@ -80,7 +67,7 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
         </span>
       ) : (
         <span className="text-xs text-muted-foreground block truncate max-w-[230px]">
-          Using NASA satellite model
+          Using default satellite model
         </span>
       )}
     </div>

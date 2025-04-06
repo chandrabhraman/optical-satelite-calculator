@@ -39,14 +39,23 @@ const SatelliteVisualization = ({ inputs }: SatelliteVisualizationProps) => {
   const handleModelUpload = (file: File) => {
     setCustomModel(file);
     if (file) {
-      // Show special message for .blend files
-      if (file.name.endsWith('.blend')) {
+      // Show message based on file type
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'blend') {
         toast({
           title: "Blend file detected",
           description: "Converting .blend files to WebGL format. This may take a moment and might not preserve all features.",
           duration: 5000,
         });
+      } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
+        toast({
+          title: "3D Model selected",
+          description: `Loading ${file.name} for visualization...`,
+          duration: 3000,
+        });
       }
+      
       loadCustomModel(file);
     }
   };

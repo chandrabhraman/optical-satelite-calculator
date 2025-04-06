@@ -29,6 +29,12 @@ interface UseSatelliteVisualizationProps {
   setLocationData: (data: LocationData) => void;
 }
 
+const MODEL_PATHS = [
+  '/models/satellite-default.glb',
+  'https://raw.githubusercontent.com/nasa-jpl/open-source-rover/master/mechanical/CameraMount/SonyA6000.STEP',
+  'https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Spacecraft/TESS.glb'
+];
+
 export function useSatelliteVisualization({
   containerRef,
   inputs,
@@ -91,7 +97,6 @@ export function useSatelliteVisualization({
       return;
     }
     
-    // For uploaded models, use 2% of viewport size
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
@@ -126,36 +131,47 @@ export function useSatelliteVisualization({
   const loadDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
     if (!sceneRef.current) return;
     
-    // For default model, use the original sizing which is relative to container
     const containerWidth = sceneRef.current.containerSize.width;
     const containerHeight = sceneRef.current.containerSize.height;
     const minDimension = Math.min(containerWidth, containerHeight);
     const satelliteBaseSize = minDimension * 0.02; // Original sizing formula
     
     const loader = new GLTFLoader();
-    loader.load(
-      '/models/satellite-default.glb',
-      (gltf) => {
-        console.log('Default NASA model loaded successfully');
-        
-        // Scale model appropriately
-        gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
-        
-        // Center the model
-        const box = new THREE.Box3().setFromObject(gltf.scene);
-        const center = box.getCenter(new THREE.Vector3());
-        gltf.scene.position.sub(center);
-        
-        satelliteGroup.add(gltf.scene);
-      },
-      (xhr) => {
-        console.log(`Default model: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-      },
-      (error) => {
-        console.error('Error loading default NASA model:', error);
+    
+    const tryLoadModel = (modelIndex: number = 0) => {
+      if (modelIndex >= MODEL_PATHS.length) {
+        console.error('Failed to load any model, creating fallback');
         createFallbackSatelliteModel(satelliteGroup, satelliteBaseSize);
+        return;
       }
-    );
+      
+      const modelPath = MODEL_PATHS[modelIndex];
+      console.log(`Attempting to load model from: ${modelPath}`);
+      
+      loader.load(
+        modelPath,
+        (gltf) => {
+          console.log(`Model loaded successfully from ${modelPath}`);
+          
+          gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
+          
+          const box = new THREE.Box3().setFromObject(gltf.scene);
+          const center = box.getCenter(new THREE.Vector3());
+          gltf.scene.position.sub(center);
+          
+          satelliteGroup.add(gltf.scene);
+        },
+        (xhr) => {
+          console.log(`Model ${modelPath}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`);
+        },
+        (error) => {
+          console.error(`Error loading model ${modelPath}:`, error);
+          tryLoadModel(modelIndex + 1);
+        }
+      );
+    };
+    
+    tryLoadModel();
   };
 
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
