@@ -70,7 +70,7 @@ export const calculateResults = (inputs: SensorInputs): CalculationResults => {
     inputs.maxOffNadirAngle
   );
   
-  // Updated error calculations based on corrected formulas
+  // Corrected error calculations based on proper secant formulas
   const secOffNadir = 1 / Math.cos(offNadirAngle);
   
   // Formulas use altitude in meters

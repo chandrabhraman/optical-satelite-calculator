@@ -101,19 +101,19 @@ const FormulaeSection = () => {
               <h3 className="text-lg font-semibold">Edge Position Change (Roll)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to roll attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p className="font-mono">Roll Edge Change = h × tan(FOV_H/2) × σ_att</p>
+                <p className="font-mono">Roll Edge Change = h × sec(θ_off)² × σ_att</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Pitch)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to pitch attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p className="font-mono">Pitch Edge Change = h × σ_att</p>
+                <p className="font-mono">Pitch Edge Change = h × sec(θ_off) × σ_att</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Yaw)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to yaw attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p className="font-mono">Yaw Edge Change = h × tan(FOV_H/2) × σ_att</p>
+                <p className="font-mono">Yaw Edge Change = h × sec(θ_off) × σ_att</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Root Sum Square (RSS) Error</h3>
@@ -152,6 +152,10 @@ const FormulaeSection = () => {
             <div className="flex gap-2">
               <span className="font-bold">FOV:</span>
               <span className="text-muted-foreground">Field of View (radians)</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-bold">sec(θ):</span>
+              <span className="text-muted-foreground">Secant function (1/cos(θ))</span>
             </div>
           </div>
         </div>
