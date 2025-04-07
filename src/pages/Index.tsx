@@ -194,47 +194,6 @@ const Index = () => {
             </section>
           </div>
           
-          <section className="my-16 prose prose-invert mx-auto w-full max-w-4xl">
-            <h2 className="text-primary">Key Concepts in Satellite Imaging</h2>
-            
-            <h3>Ground Sample Distance (GSD)</h3>
-            <p>
-              Ground Sample Distance is a critical parameter that defines the spatial resolution of a satellite image. 
-              It represents the linear distance on the ground corresponding to a single pixel in the image. A smaller 
-              GSD means higher spatial resolution and more detailed imagery.
-            </p>
-            <p>
-              The GSD is influenced by several factors:
-            </p>
-            <ul>
-              <li>The altitude of the satellite (higher altitude increases GSD)</li>
-              <li>The focal length of the optical system (longer focal length decreases GSD)</li>
-              <li>The pixel size of the sensor (smaller pixels decrease GSD)</li>
-            </ul>
-            
-            <h3>Field of View (FOV)</h3>
-            <p>
-              The Field of View determines how much area on Earth's surface the sensor can observe at once. A wider FOV 
-              captures more terrain but might sacrifice resolution. FOV is directly related to the sensor's physical 
-              dimensions and the focal length of the optics.
-            </p>
-            
-            <h3>Off-Nadir Imaging</h3>
-            <p>
-              When a satellite points its sensors directly down (perpendicular to Earth's surface), it is imaging at nadir. 
-              Off-nadir imaging occurs when the sensor is angled to capture areas not directly beneath the satellite. 
-              This capability is essential for increasing imaging opportunities and revisit rates, but it introduces 
-              geometric distortions and resolution degradation that must be calculated and accounted for.
-            </p>
-            
-            <h3>Attitude Accuracy</h3>
-            <p>
-              The precision with which a satellite can determine and control its orientation in space is known as 
-              attitude accuracy. This directly affects the geometric accuracy of the collected imagery. Higher attitude 
-              accuracy means more precise georeferencing of the resulting images.
-            </p>
-          </section>
-          
           <section className="mt-16">
             <FormulaeSection />
           </section>
@@ -246,31 +205,6 @@ const Index = () => {
               Our calculator enables engineers and researchers to rapidly prototype optical systems,
               compare different sensor configurations, optimize parameters for specific missions, 
               and visualize coverage capabilities—all essential for effective satellite design and analysis.
-            </p>
-            
-            <h3>Environmental Monitoring</h3>
-            <p>
-              Satellite imagery provides valuable data for monitoring deforestation, ice cap melting, pollution, and other 
-              environmental changes over time. The resolution requirements vary based on the specific monitoring objectives.
-            </p>
-            
-            <h3>Urban Planning</h3>
-            <p>
-              High-resolution satellite imagery helps urban planners monitor urban sprawl, infrastructure development, 
-              and land use changes. Typically, sub-meter resolution (GSD &lt; 1m) is preferred for detailed urban studies.
-            </p>
-            
-            <h3>Agriculture</h3>
-            <p>
-              Precision agriculture uses satellite imagery to monitor crop health, estimate yields, and optimize resource 
-              use. Different applications require different resolutions: broad crop classification might use 10-30m GSD, 
-              while precise crop monitoring might need 1-5m GSD.
-            </p>
-            
-            <h3>Disaster Management</h3>
-            <p>
-              During natural disasters, satellite imagery provides crucial situational awareness. The ability to quickly 
-              task satellites for off-nadir imaging of affected areas can save lives and direct resources effectively.
             </p>
           </section>
         </div>
