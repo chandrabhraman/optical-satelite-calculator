@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { SensorInputs } from "@/utils/types";
 import { calculateSensorParameters } from "@/utils/sensorCalculations";
+import ParameterTooltip from "@/components/ParameterTooltip";
 
 interface CalculatorFormProps {
   onCalculate: (inputs: SensorInputs) => void;
@@ -95,7 +97,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="pixelSize">Pixel Size (μm)</Label>
+              <Label htmlFor="pixelSize" className="flex items-center">
+                Pixel Size (μm)
+                <ParameterTooltip description="The physical size of an individual pixel on the image sensor, measured in micrometers. Smaller pixels generally allow for higher resolution imaging." />
+              </Label>
               <Input
                 id="pixelSize"
                 name="pixelSize"
@@ -107,7 +112,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pixelCountH">Pixel Count (H)</Label>
+              <Label htmlFor="pixelCountH" className="flex items-center">
+                Pixel Count (H)
+                <ParameterTooltip description="The number of pixels along the horizontal axis of the sensor. Higher pixel counts allow for more detailed images across a wider field of view." />
+              </Label>
               <Input
                 id="pixelCountH"
                 name="pixelCountH"
@@ -118,7 +126,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pixelCountV">Pixel Count (V)</Label>
+              <Label htmlFor="pixelCountV" className="flex items-center">
+                Pixel Count (V)
+                <ParameterTooltip description="The number of pixels along the vertical axis of the sensor. Together with horizontal pixel count, determines the total resolution of the imaging system." />
+              </Label>
               <Input
                 id="pixelCountV"
                 name="pixelCountV"
@@ -129,7 +140,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gsdRequirements">GSD Requirements (m)</Label>
+              <Label htmlFor="gsdRequirements" className="flex items-center">
+                GSD Requirements (m)
+                <ParameterTooltip description="Ground Sample Distance requirement specifies the desired resolution on the ground per pixel. Lower values provide higher detail imagery of Earth's surface." />
+              </Label>
               <Input
                 id="gsdRequirements"
                 name="gsdRequirements"
@@ -141,7 +155,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="altitudeMin">Altitude Minimum (km)</Label>
+              <Label htmlFor="altitudeMin" className="flex items-center">
+                Altitude Minimum (km)
+                <ParameterTooltip description="The lowest orbital altitude at which the satellite will operate. Lower altitudes generally provide better resolution but with a smaller field of view." />
+              </Label>
               <Input
                 id="altitudeMin"
                 name="altitudeMin"
@@ -153,7 +170,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="altitudeMax">Altitude Maximum (km)</Label>
+              <Label htmlFor="altitudeMax" className="flex items-center">
+                Altitude Maximum (km)
+                <ParameterTooltip description="The highest orbital altitude at which the satellite will operate. Higher altitudes provide wider coverage but with reduced resolution." />
+              </Label>
               <Input
                 id="altitudeMax"
                 name="altitudeMax"
@@ -165,7 +185,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="focalLength">Focal Length (mm)</Label>
+              <Label htmlFor="focalLength" className="flex items-center">
+                Focal Length (mm)
+                <ParameterTooltip description="The distance between the optical center of the lens and the sensor. Longer focal lengths provide higher magnification and narrower fields of view." />
+              </Label>
               <Input
                 id="focalLength"
                 name="focalLength"
@@ -177,7 +200,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               <p className="text-xs text-muted-foreground">Auto-calculated from GSD, Altitude and Pixel Size</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="aperture">Aperture (mm)</Label>
+              <Label htmlFor="aperture" className="flex items-center">
+                Aperture (mm)
+                <ParameterTooltip description="The diameter of the optical system's entrance pupil. Larger apertures collect more light, improving performance in low-light conditions." />
+              </Label>
               <Input
                 id="aperture"
                 name="aperture"
@@ -188,7 +214,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="attitudeAccuracy">Attitude Measurement Accuracy (3σ, deg)</Label>
+              <Label htmlFor="attitudeAccuracy" className="flex items-center">
+                Attitude Measurement Accuracy (3σ, deg)
+                <ParameterTooltip description="The precision with which the satellite can determine its orientation. Lower values indicate better pointing accuracy, which improves geolocation precision." />
+              </Label>
               <Input
                 id="attitudeAccuracy"
                 name="attitudeAccuracy"
@@ -200,7 +229,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nominalOffNadirAngle">Nominal Off-Nadir Angle (deg)</Label>
+              <Label htmlFor="nominalOffNadirAngle" className="flex items-center">
+                Nominal Off-Nadir Angle (deg)
+                <ParameterTooltip description="The default pointing angle away from the nadir (directly below the satellite). Fixed at 0 degrees for this calculator." />
+              </Label>
               <Input
                 id="nominalOffNadirAngle"
                 name="nominalOffNadirAngle"
@@ -212,7 +244,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="maxOffNadirAngle">Maximum Off-Nadir Angle (deg)</Label>
+              <Label htmlFor="maxOffNadirAngle" className="flex items-center">
+                Maximum Off-Nadir Angle (deg)
+                <ParameterTooltip description="The maximum angle at which the satellite can point its sensors away from nadir. Higher values allow for more flexible imaging opportunities." />
+              </Label>
               <Input
                 id="maxOffNadirAngle"
                 name="maxOffNadirAngle"
@@ -224,7 +259,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gpsAccuracy">GPS Accuracy (m)</Label>
+              <Label htmlFor="gpsAccuracy" className="flex items-center">
+                GPS Accuracy (m)
+                <ParameterTooltip description="The precision of the satellite's position determination. Lower values indicate better positional knowledge, improving geolocation accuracy." />
+              </Label>
               <Input
                 id="gpsAccuracy"
                 name="gpsAccuracy"
@@ -238,7 +276,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           </div>
 
           <div className="p-3 bg-muted/50 rounded-md mt-2">
-            <p className="text-sm font-medium mb-2">Calculated Fields of View</p>
+            <p className="text-sm font-medium mb-2 flex items-center">
+              Calculated Fields of View
+              <ParameterTooltip description="The angular extent of the observable area. Horizontal FOV represents the width, while Vertical FOV represents the height of the viewable area." />
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Horizontal FOV</p>

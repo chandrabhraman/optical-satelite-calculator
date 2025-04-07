@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Share2, HelpCircle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -16,8 +15,11 @@ import ShareDialog from "@/components/ShareDialog";
 import { Helmet } from "react-helmet-async";
 import GlobalCounter from "@/components/GlobalCounter";
 import Footer from "@/components/Footer";
-import ParameterHelp from "@/components/ParameterHelp";
-import ResultsHelp from "@/components/ResultsHelp";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent
+} from "@/components/ui/hover-card";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
@@ -27,7 +29,6 @@ const Index = () => {
   const [resultsHelpOpen, setResultsHelpOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [calculationCount, setCalculationCount] = useState<number>(() => {
-    // Try to get the count from localStorage first
     const savedCount = localStorage.getItem('local-calculation-count');
     return savedCount ? parseInt(savedCount, 10) : 0;
   });
@@ -160,16 +161,11 @@ const Index = () => {
           </header>
 
           <section className="prose prose-invert max-w-3xl mx-auto mb-12">
-            <h2 className="text-primary">Understanding Satellite Optical Sensors</h2>
+            <h2 className="text-primary">How to Use Satellite Optical Sensor Calculator</h2>
             <p>
-              Satellite optical sensors are sophisticated instruments designed to capture high-resolution imagery of Earth from space. 
-              These sensors are critical components in Earth observation satellites used for a wide range of applications including 
-              environmental monitoring, urban planning, agriculture, defense, and disaster management.
-            </p>
-            <p>
-              The design and specification of these sensors involve complex calculations to ensure they meet mission requirements. 
-              Our calculator helps engineers, researchers, and students determine the appropriate optical parameters needed for 
-              specific remote sensing objectives.
+              This calculator simplifies complex satellite sensor design by providing accurate calculations 
+              for optical parameters. Enter your specifications, click calculate, and instantly visualize results
+              for Earth observation systems with professional precision.
             </p>
           </section>
 
@@ -177,43 +173,11 @@ const Index = () => {
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => setParameterHelpOpen(true)}
-                    >
-                      <HelpCircle className="h-4 w-4" />
-                      <span className="text-xs">Parameter Help</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Learn about these parameters</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
               <CalculatorForm onCalculate={handleCalculate} />
               
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-primary">Calculation Results</h2>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => setResultsHelpOpen(true)}
-                    >
-                      <HelpCircle className="h-4 w-4" />
-                      <span className="text-xs">Results Help</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Learn about the calculation results</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
               <ResultsDisplay 
                 results={results} 
@@ -283,7 +247,13 @@ const Index = () => {
           </section>
           
           <section className="my-16 prose prose-invert max-w-3xl mx-auto">
-            <h2 className="text-primary">Applications of Satellite Optical Sensors</h2>
+            <h2 className="text-primary">Applications of Satellite Optical Sensor Calculator</h2>
+            
+            <p>
+              Our calculator enables engineers and researchers to rapidly prototype optical systems,
+              compare different sensor configurations, optimize parameters for specific missions, 
+              and visualize coverage capabilities—all essential for effective satellite design and analysis.
+            </p>
             
             <h3>Environmental Monitoring</h3>
             <p>
@@ -319,16 +289,6 @@ const Index = () => {
           onOpenChange={setShareDialogOpen} 
           inputs={inputs} 
           results={results} 
-        />
-        
-        <ParameterHelp
-          open={parameterHelpOpen}
-          onOpenChange={setParameterHelpOpen}
-        />
-        
-        <ResultsHelp
-          open={resultsHelpOpen}
-          onOpenChange={setResultsHelpOpen}
         />
       </main>
     </>

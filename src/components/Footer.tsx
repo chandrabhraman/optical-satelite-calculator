@@ -6,17 +6,17 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="w-full py-6 mt-12">
+    <footer className="w-full py-8 mt-12 bg-muted/10 backdrop-blur-sm">
       <Separator className="mb-6" />
-      <div className="container mx-auto">
+      <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
+          <div className="mb-6 md:mb-0">
             <p className="text-sm text-muted-foreground">
               &copy; {currentYear} Satellite Optical Sensor Calculator. All rights reserved.
             </p>
           </div>
           
-          <nav className="flex space-x-6">
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
