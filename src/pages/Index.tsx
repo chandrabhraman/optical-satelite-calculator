@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Share2, HelpCircle } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
@@ -7,19 +7,12 @@ import SatelliteVisualization from "@/components/SatelliteVisualization";
 import FormulaeSection from "@/components/FormulaeSection";
 import { SensorInputs, CalculationResults } from "@/utils/types";
 import { calculateResults } from "@/utils/calculationUtils";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
 import { Helmet } from "react-helmet-async";
 import GlobalCounter from "@/components/GlobalCounter";
 import Footer from "@/components/Footer";
-import {
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent
-} from "@/components/ui/hover-card";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
@@ -160,7 +153,7 @@ const Index = () => {
             </p>
           </header>
 
-          <section className="prose prose-invert max-w-3xl mx-auto mb-12">
+          <section className="prose prose-invert mx-auto mb-12 w-full max-w-4xl">
             <h2 className="text-primary">How to Use Satellite Optical Sensor Calculator</h2>
             <p>
               This calculator simplifies complex satellite sensor design by providing accurate calculations 
@@ -201,7 +194,7 @@ const Index = () => {
             </section>
           </div>
           
-          <section className="my-16 prose prose-invert max-w-3xl mx-auto">
+          <section className="my-16 prose prose-invert mx-auto w-full max-w-4xl">
             <h2 className="text-primary">Key Concepts in Satellite Imaging</h2>
             
             <h3>Ground Sample Distance (GSD)</h3>
@@ -246,7 +239,7 @@ const Index = () => {
             <FormulaeSection />
           </section>
           
-          <section className="my-16 prose prose-invert max-w-3xl mx-auto">
+          <section className="my-16 prose prose-invert mx-auto w-full max-w-4xl">
             <h2 className="text-primary">Applications of Satellite Optical Sensor Calculator</h2>
             
             <p>

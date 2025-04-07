@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculationResults } from "@/utils/types";
@@ -38,7 +37,6 @@ const formatLabel = (key: string): string => {
 };
 
 const formatValue = (key: string, value: number): string => {
-  // Handle potential NaN values
   if (isNaN(value)) {
     return "N/A";
   }
@@ -55,25 +53,15 @@ const formatValue = (key: string, value: number): string => {
 
 const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
   if (!results) {
-    return (
-      <Card className="glassmorphism w-full h-full flex items-center justify-center">
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground text-center">Enter parameters and click Calculate to see results</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
-  // Format the altitude for display - divide by 1000 if it's in meters
   const altitudeInKm = altitude >= 1000 ? (altitude / 1000) : altitude;
   const altitudeDisplay = `${altitudeInKm.toFixed(0)} km`;
 
   return (
     <Card className="glassmorphism w-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold text-primary">Calculation Results</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <Tabs defaultValue="nominal">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="nominal">Nadir geometry</TabsTrigger>
