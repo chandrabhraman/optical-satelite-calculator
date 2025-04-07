@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Share2 } from "lucide-react";
+import { Share2, HelpCircle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
@@ -15,11 +15,16 @@ import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
 import { Helmet } from "react-helmet-async";
 import GlobalCounter from "@/components/GlobalCounter";
+import Footer from "@/components/Footer";
+import ParameterHelp from "@/components/ParameterHelp";
+import ResultsHelp from "@/components/ResultsHelp";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
   const [results, setResults] = useState<CalculationResults | undefined>(undefined);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [parameterHelpOpen, setParameterHelpOpen] = useState(false);
+  const [resultsHelpOpen, setResultsHelpOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [calculationCount, setCalculationCount] = useState<number>(() => {
     // Try to get the count from localStorage first
@@ -141,7 +146,7 @@ const Index = () => {
       </Helmet>
 
       <main className="min-h-screen space-gradient text-foreground">
-        <div className="container mx-auto py-8 pb-24">
+        <div className="container mx-auto py-8 pb-12">
           <header className="text-center mb-12 relative">
             <div className="absolute top-0 right-0 pt-2">
               <GlobalCounter localCount={calculationCount} />
@@ -154,10 +159,62 @@ const Index = () => {
             </p>
           </header>
 
+          <section className="prose prose-invert max-w-3xl mx-auto mb-12">
+            <h2 className="text-primary">Understanding Satellite Optical Sensors</h2>
+            <p>
+              Satellite optical sensors are sophisticated instruments designed to capture high-resolution imagery of Earth from space. 
+              These sensors are critical components in Earth observation satellites used for a wide range of applications including 
+              environmental monitoring, urban planning, agriculture, defense, and disaster management.
+            </p>
+            <p>
+              The design and specification of these sensors involve complex calculations to ensure they meet mission requirements. 
+              Our calculator helps engineers, researchers, and students determine the appropriate optical parameters needed for 
+              specific remote sensing objectives.
+            </p>
+          </section>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <section className="space-y-6">
-              <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={() => setParameterHelpOpen(true)}
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                      <span className="text-xs">Parameter Help</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Learn about these parameters</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <CalculatorForm onCalculate={handleCalculate} />
+              
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-primary">Calculation Results</h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={() => setResultsHelpOpen(true)}
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                      <span className="text-xs">Results Help</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Learn about the calculation results</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <ResultsDisplay 
                 results={results} 
                 altitude={inputs?.altitudeMax}
@@ -180,20 +237,98 @@ const Index = () => {
             </section>
           </div>
           
+          <section className="my-16 prose prose-invert max-w-3xl mx-auto">
+            <h2 className="text-primary">Key Concepts in Satellite Imaging</h2>
+            
+            <h3>Ground Sample Distance (GSD)</h3>
+            <p>
+              Ground Sample Distance is a critical parameter that defines the spatial resolution of a satellite image. 
+              It represents the linear distance on the ground corresponding to a single pixel in the image. A smaller 
+              GSD means higher spatial resolution and more detailed imagery.
+            </p>
+            <p>
+              The GSD is influenced by several factors:
+            </p>
+            <ul>
+              <li>The altitude of the satellite (higher altitude increases GSD)</li>
+              <li>The focal length of the optical system (longer focal length decreases GSD)</li>
+              <li>The pixel size of the sensor (smaller pixels decrease GSD)</li>
+            </ul>
+            
+            <h3>Field of View (FOV)</h3>
+            <p>
+              The Field of View determines how much area on Earth's surface the sensor can observe at once. A wider FOV 
+              captures more terrain but might sacrifice resolution. FOV is directly related to the sensor's physical 
+              dimensions and the focal length of the optics.
+            </p>
+            
+            <h3>Off-Nadir Imaging</h3>
+            <p>
+              When a satellite points its sensors directly down (perpendicular to Earth's surface), it is imaging at nadir. 
+              Off-nadir imaging occurs when the sensor is angled to capture areas not directly beneath the satellite. 
+              This capability is essential for increasing imaging opportunities and revisit rates, but it introduces 
+              geometric distortions and resolution degradation that must be calculated and accounted for.
+            </p>
+            
+            <h3>Attitude Accuracy</h3>
+            <p>
+              The precision with which a satellite can determine and control its orientation in space is known as 
+              attitude accuracy. This directly affects the geometric accuracy of the collected imagery. Higher attitude 
+              accuracy means more precise georeferencing of the resulting images.
+            </p>
+          </section>
+          
           <section className="mt-16">
             <FormulaeSection />
           </section>
           
-          <footer className="mt-16 text-center text-xs text-muted-foreground">
-            <Separator className="mb-4" />
-            <p>Satellite Optical Sensor Calculator &copy; {new Date().getFullYear()}</p>
-          </footer>
+          <section className="my-16 prose prose-invert max-w-3xl mx-auto">
+            <h2 className="text-primary">Applications of Satellite Optical Sensors</h2>
+            
+            <h3>Environmental Monitoring</h3>
+            <p>
+              Satellite imagery provides valuable data for monitoring deforestation, ice cap melting, pollution, and other 
+              environmental changes over time. The resolution requirements vary based on the specific monitoring objectives.
+            </p>
+            
+            <h3>Urban Planning</h3>
+            <p>
+              High-resolution satellite imagery helps urban planners monitor urban sprawl, infrastructure development, 
+              and land use changes. Typically, sub-meter resolution (GSD &lt; 1m) is preferred for detailed urban studies.
+            </p>
+            
+            <h3>Agriculture</h3>
+            <p>
+              Precision agriculture uses satellite imagery to monitor crop health, estimate yields, and optimize resource 
+              use. Different applications require different resolutions: broad crop classification might use 10-30m GSD, 
+              while precise crop monitoring might need 1-5m GSD.
+            </p>
+            
+            <h3>Disaster Management</h3>
+            <p>
+              During natural disasters, satellite imagery provides crucial situational awareness. The ability to quickly 
+              task satellites for off-nadir imaging of affected areas can save lives and direct resources effectively.
+            </p>
+          </section>
         </div>
+        
+        <Footer />
+        
         <ShareDialog 
           open={shareDialogOpen} 
           onOpenChange={setShareDialogOpen} 
           inputs={inputs} 
           results={results} 
+        />
+        
+        <ParameterHelp
+          open={parameterHelpOpen}
+          onOpenChange={setParameterHelpOpen}
+        />
+        
+        <ResultsHelp
+          open={resultsHelpOpen}
+          onOpenChange={setResultsHelpOpen}
         />
       </main>
     </>

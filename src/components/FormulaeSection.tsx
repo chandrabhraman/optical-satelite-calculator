@@ -59,21 +59,21 @@ const FormulaeSection = () => {
               <h3 className="text-lg font-semibold">Instantaneous Field of View (IFOV)</h3>
               <p className="text-muted-foreground mb-2">The angular measurement of a single detector element's view.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{IFOV} = \frac{\text{Pixel Size } (\mu m)}{1000 \times \text{Focal Length } (mm)} \text{ radians}$$</p>
+                <p>{"$$\\text{IFOV} = \\frac{\\text{Pixel Size } (\\mu m)}{1000 \\times \\text{Focal Length } (mm)} \\text{ radians}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Ground Sample Distance (GSD)</h3>
               <p className="text-muted-foreground mb-2">The distance between pixel centers measured on the ground.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{GSD} = \frac{\text{Pixel Size } (\mu m) \times \text{Altitude } (km)}{1000 \times \text{Focal Length } (mm)} \text{ meters}$$</p>
+                <p>{"$$\\text{GSD} = \\frac{\\text{Pixel Size } (\\mu m) \\times \\text{Altitude } (km)}{1000 \\times \\text{Focal Length } (mm)} \\text{ meters}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Field of View (FOV)</h3>
               <p className="text-muted-foreground mb-2">The angular extent of the observable area.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{FOV}_H = 2 \times \arctan{\left( \frac{\text{Sensor Width}_H}{2 \times \text{Focal Length}} \right)}$$</p>
-                <p>$$\text{FOV}_V = 2 \times \arctan{\left( \frac{\text{Sensor Width}_V}{2 \times \text{Focal Length}} \right)}$$</p>
-                <p>$$\text{where } \text{Sensor Width} = \frac{\text{Pixel Size } (\mu m) \times \text{Pixel Count}}{1000} \text{ mm}$$</p>
+                <p>{"$$\\text{FOV}_H = 2 \\times \\arctan{\\left( \\frac{\\text{Sensor Width}_H}{2 \\times \\text{Focal Length}} \\right)}$$"}</p>
+                <p>{"$$\\text{FOV}_V = 2 \\times \\arctan{\\left( \\frac{\\text{Sensor Width}_V}{2 \\times \\text{Focal Length}} \\right)}$$"}</p>
+                <p>{"$$\\text{where } \\text{Sensor Width} = \\frac{\\text{Pixel Size } (\\mu m) \\times \\text{Pixel Count}}{1000} \\text{ mm}$$"}</p>
               </div>
             </div>
           </TabsContent>
@@ -83,15 +83,13 @@ const FormulaeSection = () => {
               <h3 className="text-lg font-semibold">Center Pixel Size</h3>
               <p className="text-muted-foreground mb-2">Size of the pixel at the center of the image, accounting for Earth's curvature.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\begin{align} \text{Center Pixel Size} = R_E \times [ &(\arcsin(\sin(\theta_{\text{off}} + \text{IFOV}) \times (1 + \frac{h}{R_E})) - \theta_{\text{off}} - \text{IFOV}) - \\
-                &(\arcsin(\sin(\theta_{\text{off}}) \times (1 + \frac{h}{R_E})) - \theta_{\text{off}}) ] \end{align}$$</p>
+                <p>{"$$\\begin{align} \\text{Center Pixel Size} = R_E \\times [ &(\\arcsin(\\sin(\\theta_{\\text{off}} + \\text{IFOV}) \\times (1 + \\frac{h}{R_E})) - \\theta_{\\text{off}} - \\text{IFOV}) - \\\\&(\\arcsin(\\sin(\\theta_{\\text{off}}) \\times (1 + \\frac{h}{R_E})) - \\theta_{\\text{off}}) ] \\end{align}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Pixel Size</h3>
               <p className="text-muted-foreground mb-2">Size of pixels at the edge of the sensor's field of view.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\begin{align} \text{Edge Pixel Size} = R_E \times [ &(\arcsin(\sin(\theta_{\text{off}} + \frac{\text{FOV}_H}{2} + \text{IFOV}) \times (1 + \frac{h}{R_E})) - \theta_{\text{off}} - \frac{\text{FOV}_H}{2} - \text{IFOV}) - \\
-                &(\arcsin(\sin(\theta_{\text{off}} + \frac{\text{FOV}_H}{2}) \times (1 + \frac{h}{R_E})) - \theta_{\text{off}} - \frac{\text{FOV}_H}{2}) ] \end{align}$$</p>
+                <p>{"$$\\begin{align} \\text{Edge Pixel Size} = R_E \\times [ &(\\arcsin(\\sin(\\theta_{\\text{off}} + \\frac{\\text{FOV}_H}{2} + \\text{IFOV}) \\times (1 + \\frac{h}{R_E})) - \\theta_{\\text{off}} - \\frac{\\text{FOV}_H}{2} - \\text{IFOV}) - \\\\&(\\arcsin(\\sin(\\theta_{\\text{off}} + \\frac{\\text{FOV}_H}{2}) \\times (1 + \\frac{h}{R_E})) - \\theta_{\\text{off}} - \\frac{\\text{FOV}_H}{2}) ] \\end{align}$$"}</p>
               </div>
             </div>
           </TabsContent>
@@ -101,25 +99,25 @@ const FormulaeSection = () => {
               <h3 className="text-lg font-semibold">Edge Position Change (Roll)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to roll attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{Roll Edge Change} = h \times \sec^2(\theta_{\text{off}}) \times \sigma_{\text{att}}$$</p>
+                <p>{"$$\\text{Roll Edge Change} = h \\times \\sec^2(\\theta_{\\text{off}}) \\times \\sigma_{\\text{att}}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Pitch)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to pitch attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{Pitch Edge Change} = h \times \sec(\theta_{\text{off}}) \times \sigma_{\text{att}}$$</p>
+                <p>{"$$\\text{Pitch Edge Change} = h \\times \\sec(\\theta_{\\text{off}}) \\times \\sigma_{\\text{att}}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Edge Position Change (Yaw)</h3>
               <p className="text-muted-foreground mb-2">Change in edge pixel position due to yaw attitude error.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{Yaw Edge Change} = h \times \sec(\theta_{\text{off}}) \times \sigma_{\text{att}}$$</p>
+                <p>{"$$\\text{Yaw Edge Change} = h \\times \\sec(\\theta_{\\text{off}}) \\times \\sigma_{\\text{att}}$$"}</p>
               </div>
               
               <h3 className="text-lg font-semibold mt-6">Root Sum Square (RSS) Error</h3>
               <p className="text-muted-foreground mb-2">Combined error from all three attitude components.</p>
               <div className="bg-muted/50 p-4 rounded-md">
-                <p>$$\text{RSS Error} = \sqrt{(\text{Roll Edge Change})^2 + (\text{Pitch Edge Change})^2 + (\text{Yaw Edge Change})^2}$$</p>
+                <p>{"$$\\text{RSS Error} = \\sqrt{(\\text{Roll Edge Change})^2 + (\\text{Pitch Edge Change})^2 + (\\text{Yaw Edge Change})^2}$$"}</p>
               </div>
             </div>
           </TabsContent>
@@ -130,32 +128,32 @@ const FormulaeSection = () => {
           <h3 className="text-md font-medium mb-2 text-primary">Variable Definitions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             <div className="flex gap-2">
-              <span className="font-bold">$R_E$:</span>
+              <span className="font-bold">{"$R_E$:"}</span>
               <span className="text-muted-foreground">Earth radius (km)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$h$:</span>
+              <span className="font-bold">{"$h$:"}</span>
               <span className="text-muted-foreground">Altitude (km)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$\theta_{\text{off}}$:</span>
+              <span className="font-bold">{"$\\theta_{\\text{off}}$:"}</span>
               <span className="text-muted-foreground">Off-nadir angle (radians)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$\sigma_{\text{att}}$:</span>
+              <span className="font-bold">{"$\\sigma_{\\text{att}}$:"}</span>
               <span className="text-muted-foreground">Attitude accuracy (radians)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$\text{IFOV}$:</span>
+              <span className="font-bold">{"$\\text{IFOV}$:"}</span>
               <span className="text-muted-foreground">Instantaneous Field of View (radians)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$\text{FOV}$:</span>
+              <span className="font-bold">{"$\\text{FOV}$:"}</span>
               <span className="text-muted-foreground">Field of View (radians)</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold">$\sec(\theta)$:</span>
-              <span className="text-muted-foreground">Secant function (1/cos($\theta$))</span>
+              <span className="font-bold">{"$\\sec(\\theta)$:"}</span>
+              <span className="text-muted-foreground">Secant function (1/cos($\\theta$))</span>
             </div>
           </div>
         </div>
