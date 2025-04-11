@@ -213,65 +213,72 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="attitudeAccuracy" className="flex items-center">
-                Attitude Measurement Accuracy (3σ, deg)
-                <ParameterTooltip description="The precision with which the satellite can determine its orientation. Lower values indicate better pointing accuracy, which improves geolocation precision." />
-              </Label>
-              <Input
-                id="attitudeAccuracy"
-                name="attitudeAccuracy"
-                type="number"
-                step="0.01"
-                value={inputs.attitudeAccuracy}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nominalOffNadirAngle" className="flex items-center">
-                Nominal Off-Nadir Angle (deg)
-                <ParameterTooltip description="The default pointing angle away from the nadir (directly below the satellite). Fixed at 0 degrees for this calculator." />
-              </Label>
-              <Input
-                id="nominalOffNadirAngle"
-                name="nominalOffNadirAngle"
-                type="number"
-                value={0}
-                readOnly
-                className="bg-transparent border border-input opacity-75 cursor-not-allowed"
-              />
-              <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxOffNadirAngle" className="flex items-center">
-                Maximum Off-Nadir Angle (deg)
-                <ParameterTooltip description="The maximum angle at which the satellite can point its sensors away from nadir. Higher values allow for more flexible imaging opportunities." />
-              </Label>
-              <Input
-                id="maxOffNadirAngle"
-                name="maxOffNadirAngle"
-                type="number"
-                step="0.1"
-                value={inputs.maxOffNadirAngle}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gpsAccuracy" className="flex items-center">
-                GPS Accuracy (m)
-                <ParameterTooltip description="The precision of the satellite's position determination. Lower values indicate better positional knowledge, improving geolocation accuracy." />
-              </Label>
-              <Input
-                id="gpsAccuracy"
-                name="gpsAccuracy"
-                type="number"
-                step="0.1"
-                value={inputs.gpsAccuracy}
-                onChange={handleChange}
-                required
-              />
+          </div>
+          
+          {/* Georeferencing Error Analysis Inputs Group */}
+          <div>
+            <h3 className="text-sm font-medium mb-2 text-primary">Georeferencing Error Analysis Inputs</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-border/50 rounded-md p-4">
+              <div className="space-y-2">
+                <Label htmlFor="attitudeAccuracy" className="flex items-center">
+                  Attitude Measurement Accuracy (3σ, deg)
+                  <ParameterTooltip description="The precision with which the satellite can determine its orientation. Lower values indicate better pointing accuracy, which improves geolocation precision." />
+                </Label>
+                <Input
+                  id="attitudeAccuracy"
+                  name="attitudeAccuracy"
+                  type="number"
+                  step="0.01"
+                  value={inputs.attitudeAccuracy}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nominalOffNadirAngle" className="flex items-center">
+                  Nominal Off-Nadir Angle (deg)
+                  <ParameterTooltip description="The default pointing angle away from the nadir (directly below the satellite). Fixed at 0 degrees for this calculator." />
+                </Label>
+                <Input
+                  id="nominalOffNadirAngle"
+                  name="nominalOffNadirAngle"
+                  type="number"
+                  value={0}
+                  readOnly
+                  className="bg-transparent border border-input opacity-75 cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground">Fixed at 0 degrees (nadir)</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxOffNadirAngle" className="flex items-center">
+                  Maximum Off-Nadir Angle (deg)
+                  <ParameterTooltip description="The maximum angle at which the satellite can point its sensors away from nadir. Higher values allow for more flexible imaging opportunities." />
+                </Label>
+                <Input
+                  id="maxOffNadirAngle"
+                  name="maxOffNadirAngle"
+                  type="number"
+                  step="0.1"
+                  value={inputs.maxOffNadirAngle}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gpsAccuracy" className="flex items-center">
+                  GPS Accuracy (m)
+                  <ParameterTooltip description="The precision of the satellite's position determination. Lower values indicate better positional knowledge, improving geolocation accuracy." />
+                </Label>
+                <Input
+                  id="gpsAccuracy"
+                  name="gpsAccuracy"
+                  type="number"
+                  step="0.1"
+                  value={inputs.gpsAccuracy}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
           </div>
 

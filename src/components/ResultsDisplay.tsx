@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculationResults } from "@/utils/types";
@@ -7,19 +8,54 @@ interface ResultsDisplayProps {
   altitude?: number; // New prop to pass the altitude
 }
 
-const ResultsSection = ({ title, data }: { title: string; data: Record<string, number> }) => (
-  <div className="space-y-3">
-    <h3 className="text-sm font-medium text-primary">{title}</h3>
-    <div className="space-y-2">
-      {Object.entries(data).map(([key, value]) => (
-        <div key={key} className="grid grid-cols-2 gap-2 text-sm">
-          <div className="text-muted-foreground">{formatLabel(key)}</div>
-          <div className="text-right font-mono">{formatValue(key, value)}</div>
+const ResultsSection = ({ title, data, showGeoreferencingErrors = false }: { 
+  title: string; 
+  data: Record<string, number>;
+  showGeoreferencingErrors?: boolean;
+}) => {
+  // Separate the data into general results and georeferencing errors
+  const generalResults: Record<string, number> = {};
+  const georeferencingErrors: Record<string, number> = {};
+  
+  Object.entries(data).forEach(([key, value]) => {
+    if (['rollEdgeChange', 'pitchEdgeChange', 'yawEdgeChange', 'rssError'].includes(key)) {
+      georeferencingErrors[key] = value;
+    } else {
+      generalResults[key] = value;
+    }
+  });
+  
+  return (
+    <div className="space-y-5">
+      <h3 className="text-sm font-medium text-primary">{title}</h3>
+      
+      {/* General Results */}
+      <div className="space-y-2">
+        {Object.entries(generalResults).map(([key, value]) => (
+          <div key={key} className="grid grid-cols-2 gap-2 text-sm">
+            <div className="text-muted-foreground">{formatLabel(key)}</div>
+            <div className="text-right font-mono">{formatValue(key, value)}</div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Georeferencing Errors Section - Only displayed in worstCase tab */}
+      {showGeoreferencingErrors && Object.keys(georeferencingErrors).length > 0 && (
+        <div className="mt-4 border-t border-border/50 pt-4">
+          <h4 className="text-sm font-medium text-primary mb-2">Georeferencing Errors</h4>
+          <div className="space-y-2">
+            {Object.entries(georeferencingErrors).map(([key, value]) => (
+              <div key={key} className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">{formatLabel(key)}</div>
+                <div className="text-right font-mono">{formatValue(key, value)}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const formatLabel = (key: string): string => {
   const labels: Record<string, string> = {
@@ -72,6 +108,7 @@ const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
             <ResultsSection 
               title={`Nadir Facing @ ${altitudeDisplay}`}
               data={results.nominal} 
+              showGeoreferencingErrors={false}
             />
           </TabsContent>
           
@@ -79,6 +116,7 @@ const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
             <ResultsSection 
               title={`Off-Nadir Facing @ ${altitudeDisplay}`}
               data={results.worstCase} 
+              showGeoreferencingErrors={true}
             />
           </TabsContent>
         </Tabs>
