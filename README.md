@@ -1,6 +1,8 @@
 
 # Satellite Optical Sensor Calculator
 
+Website: [opticalsatellitetools.space](opticalsatellitetools.space)
+
 ![Alt Text](flow.gif)
 
 ## Overview
@@ -10,9 +12,9 @@ A comprehensive tool designed specifically for satellite engineers and mission p
 The calculator addresses key challenges in satellite optical system design:
 - Computing optimal Ground Sample Distance (GSD) based on orbital parameters
 - Determining field of view coverage for different sensor configurations
-- Calculating swath width and imaging footprint dimensions 
+- Calculating swath width and imaging footprint dimensions
 - Optimizing sensor resolution based on mission altitude and objectives
-
+- Analysis of geo-position errors due to attitude knowledge errors and position errors
 
 ## Getting Started
 
