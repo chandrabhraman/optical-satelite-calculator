@@ -1,4 +1,3 @@
-
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -150,7 +149,7 @@ const PrivacyPolicy = () => {
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
             <p className="mt-4">
-              <a href="mailto:contact@satellitecalculator.com" className="text-primary hover:underline">contact@satellitecalculator.com</a>
+              <a href="mailto:chandrabhraman@gmail.com" className="text-primary hover:underline">chandrabhraman@gmail.com</a>
             </p>
           </section>
           

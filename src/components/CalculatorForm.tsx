@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +14,13 @@ interface CalculatorFormProps {
 const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
   const [inputs, setInputs] = useState<SensorInputs>({
     pixelSize: 5.5, // μm
-    pixelCountH: 4096,
+    pixelCountH: 4000, // Updated from 4096
     pixelCountV: 3072,
-    gsdRequirements: 0.5, // m
+    gsdRequirements: 5, // Updated from 0.5 m
     altitudeMin: 400, // km (changed from 400000 m)
     altitudeMax: 600, // km (changed from 600000 m)
     focalLength: 1000, // mm
-    aperture: 200, // mm
+    aperture: 100, // Updated from 200 mm
     attitudeAccuracy: 0.1, // degrees (3 sigma)
     nominalOffNadirAngle: 0, // degrees - frozen to 0
     maxOffNadirAngle: 30, // degrees

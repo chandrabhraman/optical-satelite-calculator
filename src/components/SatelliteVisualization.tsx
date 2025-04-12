@@ -81,8 +81,9 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   return (
     <Card className="glassmorphism w-full h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-primary">
-          Satellite Sensor Field Visualization
+        <CardTitle className="text-lg font-semibold text-primary flex justify-between items-center">
+          <span>Satellite Sensor Field Visualization</span>
+          {!hasCalculated && <span className="text-sm font-normal text-muted-foreground">Click Calculate to activate</span>}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">

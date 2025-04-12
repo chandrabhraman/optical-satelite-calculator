@@ -1,41 +1,12 @@
-
-import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ChevronLeft, Send } from "lucide-react";
+import { ChevronLeft, Github, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import Footer from "@/components/Footer";
 
 const AboutContact = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const { toast } = useToast();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSending(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      toast({
-        title: "Message sent!",
-        description: "Thank you for your message. We will get back to you soon.",
-      });
-      setName("");
-      setEmail("");
-      setMessage("");
-      setIsSending(false);
-    }, 1000);
-  };
-
   return (
     <div className="min-h-screen space-gradient text-foreground">
       <Helmet>
@@ -115,90 +86,50 @@ const AboutContact = () => {
           
           <h1 className="text-4xl font-bold mb-8 text-primary">Contact Us</h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="prose prose-invert max-w-none">
-              <p>
-                Have questions, suggestions, or feedback about the Satellite Optical Sensor Calculator? We'd love to hear from you!
-              </p>
-              
-              <section className="mt-8">
-                <h3 className="text-xl font-medium mb-4">Get In Touch</h3>
-                <p>
-                  You can reach us by email at:
-                  <br />
-                  <a href="mailto:contact@satellitecalculator.com" className="text-primary hover:underline">contact@satellitecalculator.com</a>
-                </p>
-              </section>
-              
-              <section className="mt-8">
-                <h3 className="text-xl font-medium mb-4">Technical Support</h3>
-                <p>
-                  For technical issues or questions about calculations, please include:
-                </p>
-                <ul className="list-disc pl-6 space-y-2 mt-4">
-                  <li>A detailed description of your issue</li>
-                  <li>The parameters you were using</li>
-                  <li>Your browser and device information</li>
-                </ul>
-              </section>
-              
-              <section className="mt-8">
-                <h3 className="text-xl font-medium mb-4">Research Collaboration</h3>
-                <p>
-                  We're open to collaboration with academic and research institutions. Please contact us with your proposal or research needs.
-                </p>
-              </section>
-            </div>
+          <div className="prose prose-invert max-w-none">
+            <p>
+              Have questions, suggestions, or feedback about the Satellite Optical Sensor Calculator? We'd love to hear from you!
+            </p>
             
-            <Card className="glassmorphism">
-              <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Your email address"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea
-                      id="message"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Your message or question"
-                      rows={5}
-                      required
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isSending}
-                  >
-                    {isSending ? "Sending..." : "Send Message"}
-                    {!isSending && <Send className="ml-2 h-4 w-4" />}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+            <section className="mt-8">
+              <h3 className="text-xl font-medium mb-4">Get In Touch</h3>
+              <p>
+                You can reach us by email at:
+                <br />
+                <a href="mailto:chandrabhraman@gmail.com" className="text-primary hover:underline">chandrabhraman@gmail.com</a>
+              </p>
+            </section>
+            
+            <section className="mt-8">
+              <h3 className="text-xl font-medium mb-4">Technical Support</h3>
+              <p>
+                For technical issues or questions about calculations, please include:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 mt-4">
+                <li>A detailed description of your issue</li>
+                <li>The parameters you were using</li>
+                <li>Your browser and device information</li>
+              </ul>
+            </section>
+            
+            <section className="mt-8">
+              <h3 className="text-xl font-medium mb-4">GitHub Issues</h3>
+              <p>
+                For bug reports, feature requests, or other technical issues, please open an issue on our GitHub repository:
+              </p>
+              <div className="flex items-center mt-4">
+                <Github className="mr-2 h-5 w-5" />
+                <a 
+                  href="https://github.com/chandrabhraman/optical-satelite-calculator" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center"
+                >
+                  chandrabhraman/optical-satelite-calculator
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </div>
+            </section>
           </div>
         </div>
       </div>
