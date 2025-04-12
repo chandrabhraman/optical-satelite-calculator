@@ -1,7 +1,7 @@
 
 # Satellite Optical Sensor Calculator
 
-Website: [opticalsatellitetools.space](opticalsatellitetools.space)
+Website: [opticalsatellitetools.space](https://opticalsatellitetools.space/?forceHideBadge=true)
 
 ![Alt Text](flow.gif)
 
