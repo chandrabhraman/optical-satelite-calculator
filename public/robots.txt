@@ -35,4 +35,4 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://opticalsatellitetools.space/sitemap.xml

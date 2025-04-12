@@ -17,7 +17,7 @@ const VisualizationContainerComponent: ForwardRefRenderFunction<HTMLDivElement, 
       {children}
       {showInstructions && (
         <div className="text-xs text-muted-foreground absolute bottom-4 left-4 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md z-10">
-          <p>Click and drag to rotate. Scroll to zoom.</p>
+          <p>Click and drag to rotate. Scroll to zoom. Right click + drag to pan</p>
         </div>
       )}
     </div>

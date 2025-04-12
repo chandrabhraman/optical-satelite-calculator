@@ -16,6 +16,15 @@ The calculator addresses key challenges in satellite optical system design:
 - Optimizing sensor resolution based on mission altitude and objectives
 - Analysis of geo-position errors due to attitude knowledge errors and position errors
 
+## Features
+
+- Interactive 3D visualization of satellite sensor field coverage
+- Real-time calculation of optical parameters
+- Georeferencing error analysis
+- Customizable satellite model upload
+- Location-based visualization
+- Shareable calculation results
+
 ## Getting Started
 
 ### Prerequisites
@@ -48,5 +57,8 @@ The application will be available at `http://localhost:5173` by default.
 1. Enter your satellite sensor specifications in the form
 2. Click "Calculate" to generate results
 3. View the interactive 3D visualization to understand sensor coverage
-4. Use the "Share Results" button to generate.
+4. Use the "Share Results" button to generate a shareable link
 
+## Keywords
+
+satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization
