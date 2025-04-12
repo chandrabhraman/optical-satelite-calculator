@@ -1,7 +1,7 @@
 
 # Satellite Optical Sensor Calculator
 
-![flow.gif]
+![Alt Text](flow.gif)
 
 ## Overview
 
