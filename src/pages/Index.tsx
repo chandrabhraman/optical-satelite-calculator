@@ -123,10 +123,14 @@ const Index = () => {
         <title>Satellite Optical Sensor Calculator | Precision Satellite Tools</title>
         <meta name="description" content="Professional tool to calculate optical sensor parameters, ground sample distance (GSD), and visualize satellite sensor field coverage with precision engineering." />
         <meta name="keywords" content="satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization" />
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" 
+          crossOrigin="anonymous" 
+        />
         <script type="application/ld+json">
           {JSON.stringify(structuredData)}
         </script>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" crossorigin="anonymous"></script>
         <style>
           {`
             @keyframes shake {

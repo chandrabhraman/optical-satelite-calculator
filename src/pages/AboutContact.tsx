@@ -14,7 +14,11 @@ const AboutContact = () => {
         <title>About & Contact | Satellite Optical Sensor Calculator</title>
         <meta name="description" content="Learn about the Satellite Optical Sensor Calculator tool, our mission, and how to contact us for support and collaboration." />
         <meta name="keywords" content="satellite sensor calculator, earth observation, remote sensing, satellite engineering support, contact satellite tools" />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" crossorigin="anonymous"></script>
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" 
+          crossOrigin="anonymous" 
+        />
       </Helmet>
       
       <div className="container mx-auto py-8 pb-24">
