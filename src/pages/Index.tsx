@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import SatelliteVisualization from "@/components/SatelliteVisualization";
@@ -10,7 +11,6 @@ import { calculateResults } from "@/utils/calculationUtils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
-import { Helmet } from "react-helmet-async";
 import GlobalCounter from "@/components/GlobalCounter";
 import Footer from "@/components/Footer";
 
@@ -109,6 +109,7 @@ const Index = () => {
     "applicationCategory": "ScientificApplication",
     "operatingSystem": "Web",
     "description": "Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.",
+    "keywords": "satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -119,12 +120,13 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>Satellite Optical Sensor Calculator | Precision Engineering Tools</title>
-        <meta name="description" content="Calculate optical sensor parameters and visualize sensor field coverage for satellite applications with our professional calculator tool." />
-        <meta name="keywords" content="satellite, optical sensor, GSD, focal length, sensor calculator, satellite visualization" />
+        <title>Satellite Optical Sensor Calculator | Precision Satellite Tools</title>
+        <meta name="description" content="Professional tool to calculate optical sensor parameters, ground sample distance (GSD), and visualize satellite sensor field coverage with precision engineering." />
+        <meta name="keywords" content="satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization" />
         <script type="application/ld+json">
           {JSON.stringify(structuredData)}
         </script>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" crossorigin="anonymous"></script>
         <style>
           {`
             @keyframes shake {

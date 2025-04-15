@@ -11,7 +11,9 @@ const TermsOfService = () => {
     <div className="min-h-screen space-gradient text-foreground">
       <Helmet>
         <title>Terms of Service | Satellite Optical Sensor Calculator</title>
-        <meta name="description" content="Terms of Service for the Satellite Optical Sensor Calculator tool" />
+        <meta name="description" content="Terms of service for the Satellite Optical Sensor Calculator. Review our usage guidelines, legal terms, and conditions for using our professional satellite engineering tool." />
+        <meta name="keywords" content="terms of service, satellite tool usage, legal terms, satellite sensor calculator conditions" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" crossorigin="anonymous"></script>
       </Helmet>
       
       <div className="container mx-auto py-8 pb-24">

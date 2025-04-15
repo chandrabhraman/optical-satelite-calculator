@@ -1,3 +1,4 @@
+
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -10,7 +11,9 @@ const PrivacyPolicy = () => {
     <div className="min-h-screen space-gradient text-foreground">
       <Helmet>
         <title>Privacy Policy | Satellite Optical Sensor Calculator</title>
-        <meta name="description" content="Privacy Policy for the Satellite Optical Sensor Calculator tool" />
+        <meta name="description" content="Privacy policy for the Satellite Optical Sensor Calculator. Learn how we protect your data and ensure your privacy while using our professional satellite engineering tool." />
+        <meta name="keywords" content="privacy policy, satellite tool privacy, data protection, satellite sensor calculator terms" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" crossorigin="anonymous"></script>
       </Helmet>
       
       <div className="container mx-auto py-8 pb-24">
