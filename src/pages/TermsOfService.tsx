@@ -122,7 +122,7 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">8. Governing Law</h2>
             <p>
               These Terms of Service and any separate agreements whereby we provide you services shall be governed by and 
-              construed in accordance with the laws of the applicable jurisdiction.
+              construed in accordance with the laws of India.
             </p>
           </section>
           
@@ -130,9 +130,8 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">9. Intellectual Property</h2>
             <p>
               The Service and its original content, features, and functionality are and will remain the exclusive property 
-              of the Service operator. The Service is protected by copyright, trademark, and other laws of both the applicable 
-              country and foreign countries. Our trademarks and trade dress may not be used in connection with any product or 
-              service without the prior written consent of the operator.
+              of the Service operator. The Service is protected by copyright, trademark, and other laws of both India and foreign countries. 
+              Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of the operator.
             </p>
           </section>
           
@@ -142,7 +141,7 @@ const TermsOfService = () => {
               If you have any questions about these Terms of Service, please contact us at:
             </p>
             <p className="mt-4 mb-10">
-              <a href="mailto:contact@satellitecalculator.com" className="text-primary hover:underline">contact@satellitecalculator.com</a>
+              <a href="mailto:contact@opticalsatellitetools.space" className="text-primary hover:underline">contact@opticalsatellitetools.space</a>
             </p>
           </section>
           

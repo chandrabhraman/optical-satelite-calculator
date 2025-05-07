@@ -151,12 +151,19 @@ const PrivacyPolicy = () => {
           </section>
           
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. Jurisdiction</h2>
+            <p>
+              This Privacy Policy is governed by the laws of India. Any disputes relating to this policy shall be subject to the exclusive jurisdiction of the courts in India.
+            </p>
+          </section>
+          
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">9. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
             <p className="mt-4">
-              <a href="mailto:chandrabhraman@gmail.com" className="text-primary hover:underline">chandrabhraman@gmail.com</a>
+              <a href="mailto:contact@opticalsatellitetools.space" className="text-primary hover:underline">contact@opticalsatellitetools.space</a>
             </p>
           </section>
           

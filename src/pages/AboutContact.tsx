@@ -103,7 +103,7 @@ const AboutContact = () => {
               <p>
                 You can reach us by email at:
                 <br />
-                <a href="mailto:chandrabhraman@gmail.com" className="text-primary hover:underline">chandrabhraman@gmail.com</a>
+                <a href="mailto:contact@opticalsatellitetools.space" className="text-primary hover:underline">contact@opticalsatellitetools.space</a>
               </p>
             </section>
             
