@@ -116,7 +116,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
             </div>
           </div>
           
-          <h3 className="text-sm font-medium text-primary">Input Parameters</h3>
+          <h3 className="text-sm font-medium text-primary">Sensor Parameters</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pixelSize" className="flex items-center">

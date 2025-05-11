@@ -162,7 +162,7 @@ const Index = () => {
           <section className="prose prose-invert mx-auto mb-12 w-full max-w-4xl">
             <h2 className="text-primary">How to Use Satellite Optical Sensor Calculator</h2>
             <p>
-              This calculator simplifies complex satellite sensor design by providing accurate calculations 
+              This calculator simplifies complex satellite sensor design by providing approximate calculations 
               for optical parameters. Enter your specifications, click calculate, and instantly visualize results
               for Earth observation systems with professional precision.
             </p>
@@ -208,7 +208,7 @@ const Index = () => {
             <h2 className="text-primary">Applications of Satellite Optical Sensor Calculator</h2>
             
             <p>
-              Our calculator enables engineers and researchers to rapidly prototype optical systems,
+              Our calculator enables engineers and researchers to rapidly prototype some aspects of optical systems,
               compare different sensor configurations, optimize parameters for specific missions, 
               and visualize coverage capabilities—all essential for effective satellite design and analysis.
             </p>
