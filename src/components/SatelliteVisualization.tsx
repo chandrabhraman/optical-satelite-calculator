@@ -7,8 +7,6 @@ import LocationInput, { LocationData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
-import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -93,18 +91,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
             initialData={locationData}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
-          <div className="text-xs p-2 bg-background/40 backdrop-blur-sm rounded-md text-muted-foreground">
-            <a 
-              href="https://github.com/chandrabhraman/optical-satelite-calculator/blob/main/public/models/satellite-default.glb" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center text-primary hover:underline"
-            >
-              Try uploading this NASA CubeSat model
-              <ExternalLink className="ml-1 h-3 w-3" />
-            </a>
-            <p className="mt-1">Download and upload locally for best experience</p>
-          </div>
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />

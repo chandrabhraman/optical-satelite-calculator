@@ -1,7 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ModelHelpTooltip from './ModelHelpTooltip';
 
@@ -70,6 +70,18 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
           Using default satellite model
         </span>
       )}
+      <div className="text-xs p-2 bg-background/40 backdrop-blur-sm rounded-md text-muted-foreground">
+        <a 
+          href="https://nasa3d.arc.nasa.gov/detail/cubesat-1RU" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center text-primary hover:underline"
+        >
+          Try uploading this NASA CubeSat model (.glb supported)
+          <ExternalLink className="ml-1 h-3 w-3" />
+        </a>
+        <p className="mt-1">Download and upload locally for best experience</p>
+      </div>
     </div>
   );
 };

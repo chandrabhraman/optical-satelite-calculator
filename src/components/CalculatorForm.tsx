@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +95,28 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     <Card className="glassmorphism">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* GSD Requirements Field - Moved to the top and separated */}
+          <div className="p-3 bg-primary/10 rounded-md border border-primary/30">
+            <div className="space-y-2">
+              <Label htmlFor="gsdRequirements" className="flex items-center text-primary font-medium">
+                GSD Requirements (m)
+                <ParameterTooltip description="Ground Sample Distance requirement specifies the desired resolution on the ground per pixel. Lower values provide higher detail imagery of Earth's surface." />
+              </Label>
+              <Input
+                id="gsdRequirements"
+                name="gsdRequirements"
+                type="number"
+                step="0.01"
+                value={inputs.gsdRequirements}
+                onChange={handleChange}
+                required
+                className="border-primary/30 focus:border-primary"
+              />
+              <p className="text-xs text-primary/70">This parameter determines the spatial resolution of your satellite sensor</p>
+            </div>
+          </div>
+          
+          <h3 className="text-sm font-medium text-primary">Input Parameters</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pixelSize" className="flex items-center">
@@ -134,21 +157,6 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 name="pixelCountV"
                 type="number"
                 value={inputs.pixelCountV}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gsdRequirements" className="flex items-center">
-                GSD Requirements (m)
-                <ParameterTooltip description="Ground Sample Distance requirement specifies the desired resolution on the ground per pixel. Lower values provide higher detail imagery of Earth's surface." />
-              </Label>
-              <Input
-                id="gsdRequirements"
-                name="gsdRequirements"
-                type="number"
-                step="0.01"
-                value={inputs.gsdRequirements}
                 onChange={handleChange}
                 required
               />
