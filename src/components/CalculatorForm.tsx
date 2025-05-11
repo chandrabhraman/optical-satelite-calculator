@@ -116,7 +116,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
             </div>
           </div>
           
-          <h3 className="text-sm font-medium text-primary">Sensor Parameters</h3>
+          <h3 className="text-sm font-medium text-primary">Input Parameters</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pixelSize" className="flex items-center">
@@ -224,7 +224,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           
           {/* Georeferencing Error Analysis Inputs Group */}
           <div>
-            <h3 className="text-sm font-medium mb-2 text-primary">Input Parameters</h3>
+            <h3 className="text-sm font-medium mb-2 text-primary">Georeferencing Parameters</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-border/50 rounded-md p-4">
               <div className="space-y-2">
                 <Label htmlFor="attitudeAccuracy" className="flex items-center">

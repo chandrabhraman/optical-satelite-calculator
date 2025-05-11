@@ -16,8 +16,9 @@ const VisualizationContainerComponent: ForwardRefRenderFunction<HTMLDivElement, 
     <div ref={ref} className={`w-full h-full min-h-[450px] relative ${className}`}>
       {children}
       {showInstructions && (
-        <div className="text-xs text-muted-foreground absolute bottom-4 left-4 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md z-10">
+        <div className="text-xs text-muted-foreground absolute bottom-4 left-4 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md z-10 flex flex-col gap-1">
           <p>Click and drag to rotate. Scroll to zoom. Right click + drag to pan</p>
+          <p className="italic">Note: the earth rotation speed is exaggerated.</p>
         </div>
       )}
     </div>
