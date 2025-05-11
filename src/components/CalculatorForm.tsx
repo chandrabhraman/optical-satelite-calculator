@@ -95,7 +95,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     <Card className="glassmorphism">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* GSD Requirements Field - Moved to the top and separated */}
+          {/* GSD Requirements Field - Top and separated */}
           <div className="p-3 bg-primary/10 rounded-md border border-primary/30">
             <div className="space-y-2">
               <Label htmlFor="gsdRequirements" className="flex items-center text-primary font-medium">
@@ -116,7 +116,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
             </div>
           </div>
           
-          <h3 className="text-sm font-medium text-primary">Input Parameters</h3>
+          <h3 className="text-sm font-medium text-primary">Sensor Parameters</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pixelSize" className="flex items-center">
@@ -224,7 +224,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           
           {/* Georeferencing Error Analysis Inputs Group */}
           <div>
-            <h3 className="text-sm font-medium mb-2 text-primary">Georeferencing Error Analysis Inputs</h3>
+            <h3 className="text-sm font-medium mb-2 text-primary">Input Parameters</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-border/50 rounded-md p-4">
               <div className="space-y-2">
                 <Label htmlFor="attitudeAccuracy" className="flex items-center">
