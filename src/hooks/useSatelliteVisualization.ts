@@ -24,8 +24,6 @@ interface SceneRef {
   orbitSpeed: number;
   orbitPlane: THREE.Group | null;
   orbitRadius: number;
-  raan: number; // Right ascension of ascending node
-  trueAnomaly: number; // True anomaly
 }
 
 interface UseSatelliteVisualizationProps {
@@ -43,29 +41,6 @@ const MODEL_PATHS = [
 // For 2x faster than real Earth: 0.0042 * 2 = 0.0084 degrees per second
 // Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
 const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real Earth)
-
-// Function to convert lat/long to 3D position
-function latLongToCartesian(lat: number, lng: number, radius: number): THREE.Vector3 {
-  const phi = (90 - lat) * Math.PI / 180;
-  const theta = (lng + 180) * Math.PI / 180;
-  
-  const x = -radius * Math.sin(phi) * Math.cos(theta);
-  const y = radius * Math.cos(phi);
-  const z = radius * Math.sin(phi) * Math.sin(theta);
-  
-  return new THREE.Vector3(x, y, z);
-}
-
-// Function to convert cartesian coordinates to lat/long
-function cartesianToLatLong(position: THREE.Vector3, radius: number): { lat: number, lng: number } {
-  const phi = Math.acos(position.y / radius);
-  const theta = Math.atan2(position.z, position.x);
-  
-  const lat = 90 - (phi * 180 / Math.PI);
-  const lng = (theta * 180 / Math.PI) - 180;
-  
-  return { lat, lng };
-}
 
 export function useSatelliteVisualization({
   containerRef,
@@ -106,20 +81,18 @@ export function useSatelliteVisualization({
   };
 
   const startOrbitAnimation = (altitude: number, inclination: number = 98) => {
-    if (!sceneRef.current || !locationData.location) return;
-    
-    console.log(`Starting orbit animation at altitude ${altitude} km with inclination ${inclination}°`);
+    if (!sceneRef.current) return;
     
     const earthRadius = 6371;
     sceneRef.current.orbitRadius = earthRadius + altitude;
     
-    // Calculate orbital parameters
     const GM = 398600.4418;
     const orbitCircumference = 2 * Math.PI * sceneRef.current.orbitRadius;
     const orbitPeriod = Math.sqrt((4 * Math.PI * Math.PI * Math.pow(sceneRef.current.orbitRadius, 3)) / GM);
     
     sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 10);
     
+    console.log(`Starting orbit animation at altitude ${altitude} km with inclination ${inclination}°`);
     console.log(`Orbit radius: ${sceneRef.current.orbitRadius} km`);
     console.log(`Orbit period would be: ${orbitPeriod.toFixed(2)} seconds`);
     console.log(`Animation speed: ${sceneRef.current.orbitSpeed.toFixed(8)} rad/frame`);
@@ -132,34 +105,7 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // Set the inclination of the orbit
     orbitPlane.rotation.x = (inclination * Math.PI) / 180;
-    
-    // Calculate RAAN (Right Ascension of Ascending Node) to match target location
-    const lat = locationData.location.lat * Math.PI / 180;
-    const lng = locationData.location.lng * Math.PI / 180;
-    
-    // RAAN calculation to place the orbit plane passing through the target location
-    // For a given inclination, we need to find the RAAN that allows the orbit to pass over the target
-    let raan = Math.atan2(
-      Math.cos(lat) * Math.sin(lng),
-      Math.cos(lat) * Math.cos(lng) * Math.cos(inclination * Math.PI / 180) -
-      Math.sin(lat) * Math.sin(inclination * Math.PI / 180)
-    );
-    
-    // Store RAAN for later use
-    sceneRef.current.raan = raan;
-    orbitPlane.rotation.y = raan;
-    
-    // Calculate true anomaly to position satellite directly over the location
-    // This simplified approach positions the satellite at the closest point to the target location
-    const trueAnomaly = Math.asin(
-      Math.sin(lat) / Math.sin(inclination * Math.PI / 180)
-    );
-    
-    // Store true anomaly
-    sceneRef.current.trueAnomaly = trueAnomaly;
-    sceneRef.current.orbitAngle = trueAnomaly;
     
     const orbitGeometry = new THREE.BufferGeometry();
     const orbitPoints = [];
@@ -186,7 +132,8 @@ export function useSatelliteVisualization({
     orbitPath.computeLineDistances();
     orbitPlane.add(orbitPath);
     
-    // Position the satellite based on the calculated true anomaly
+    sceneRef.current.orbitAngle = 0;
+    
     updateSatelliteOrbitPosition(0);
   };
 
@@ -205,11 +152,9 @@ export function useSatelliteVisualization({
     
     sceneRef.current.satellite.position.copy(positionInPlane);
     
-    // Point the satellite toward Earth center
     sceneRef.current.satellite.lookAt(0, 0, 0);
     sceneRef.current.satellite.rotateX(Math.PI / 2);
     
-    // Update footprint if exists
     if (sceneRef.current.sensorFootprint) {
       const dirToCenter = new THREE.Vector3().subVectors(
         new THREE.Vector3(0, 0, 0),
@@ -230,14 +175,6 @@ export function useSatelliteVisualization({
           sceneRef.current.sensorFootprint.quaternion.setFromAxisAngle(axis, angle);
         }
       }
-    }
-    
-    // Calculate and log the current lat/long position for debugging
-    if (sceneRef.current.orbitAngle % 0.1 < 0.001) {  // Log every ~0.1 radians
-      const pos = sceneRef.current.satellite.position.clone();
-      const r = pos.length();
-      const latLong = cartesianToLatLong(pos, r);
-      console.log(`Satellite position: lat=${latLong.lat.toFixed(2)}, lng=${latLong.lng.toFixed(2)}`);
     }
   };
 
@@ -644,8 +581,6 @@ export function useSatelliteVisualization({
     let orbitSpeed = 0;
     let orbitPlane: THREE.Group | null = null;
     let orbitRadius = earthRadius + defaultAltitude;
-    let raan = 0; // Right ascension of ascending node
-    let trueAnomaly = 0; // True anomaly
     
     if (locationData.location) {
       updateSatellitePosition(locationData);
@@ -729,9 +664,7 @@ export function useSatelliteVisualization({
       orbitAngle,
       orbitSpeed,
       orbitPlane,
-      orbitRadius,
-      raan,
-      trueAnomaly
+      orbitRadius
     };
     
     if (inputs) {
