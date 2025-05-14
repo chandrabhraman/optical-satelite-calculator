@@ -3,16 +3,16 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SensorInputs } from '@/utils/types';
-import { LocationData } from '@/components/LocationInput';
+import { OrbitData } from '@/components/LocationInput';
 import { createPyramidGeometry, createCurvedFootprint } from '@/utils/threeUtils';
 import { calculateSensorParameters } from '@/utils/sensorCalculations';
 import { 
-  findOptimalOrbitalParameters,
+  toRadians,
+  toDegrees,
+  normalizeAngle,
   calculateSatellitePositionECI,
   eciToECEF,
-  ecefToGeodetic,
-  geodeticToECEF,
-  normalizeAngle
+  ecefToGeodetic
 } from '@/utils/orbitalUtils';
 import { toast } from '@/components/ui/use-toast';
 
@@ -35,14 +35,13 @@ interface SceneRef {
   orbitRadius: number;
   earthRotationAngle: number;
   raan: number;
-  targetLocation: { lat: number, lng: number } | null;
+  trueAnomaly: number;
 }
 
 interface UseSatelliteVisualizationProps {
   containerRef: React.RefObject<HTMLDivElement>;
   inputs: SensorInputs | null;
-  locationData: LocationData;
-  setLocationData: (data: LocationData) => void;
+  orbitData: OrbitData;
 }
 
 const MODEL_PATHS = [
@@ -57,47 +56,35 @@ const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real
 export function useSatelliteVisualization({
   containerRef,
   inputs,
-  locationData,
-  setLocationData
+  orbitData
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
 
-  const updateSatellitePosition = (data: LocationData) => {
-    if (!sceneRef.current || !data.location) return;
+  const updateSatelliteOrbit = (data: OrbitData) => {
+    if (!sceneRef.current) return;
     
     if (sceneRef.current.orbitPlane) {
       sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
       sceneRef.current.orbitPlane = null;
     }
     
-    const earthRadius = 6371;
-    const altitude = data.altitude;
+    // Set values for orbit setup
+    sceneRef.current.raan = toRadians(data.raan);
+    sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     
-    const lat = data.location.lat * Math.PI / 180;
-    const lng = data.location.lng * Math.PI / 180;
-    
-    const surfaceX = earthRadius * Math.cos(lat) * Math.cos(lng);
-    const surfaceY = earthRadius * Math.sin(lat);
-    const surfaceZ = earthRadius * Math.cos(lat) * Math.sin(lng);
-    
-    const directionVector = new THREE.Vector3(surfaceX, surfaceY, surfaceZ).normalize();
-    
-    const satellitePosition = directionVector.clone().multiplyScalar(earthRadius + altitude);
-    
-    sceneRef.current.satellite.position.copy(satellitePosition);
-    sceneRef.current.satellite.lookAt(0, 0, 0);
-    sceneRef.current.satellite.rotateX(Math.PI / 2);
-    
-    sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
-    sceneRef.current.controls.update();
+    // Just update the satellite position without starting animation
+    updateSatelliteOrbitPosition(0);
   };
 
-  const startOrbitAnimation = (altitude: number, inclination: number = 98, location: { lat: number, lng: number } | null = null) => {
+  const startOrbitAnimation = (data: OrbitData) => {
     if (!sceneRef.current) return;
     
     const earthRadius = 6371;
-    sceneRef.current.orbitRadius = earthRadius + altitude;
-    sceneRef.current.targetLocation = location;
+    sceneRef.current.orbitRadius = earthRadius + data.altitude;
+    
+    // Set RAAN and trueAnomaly from inputs
+    sceneRef.current.raan = toRadians(data.raan);
+    sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     
     const GM = 398600.4418;
     const orbitCircumference = 2 * Math.PI * sceneRef.current.orbitRadius;
@@ -105,7 +92,7 @@ export function useSatelliteVisualization({
     
     sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 10);
     
-    console.log(`Starting orbit animation at altitude ${altitude} km with inclination ${inclination}°`);
+    console.log(`Starting orbit animation at altitude ${data.altitude} km with inclination ${data.inclination}°, RAAN ${data.raan}°, True Anomaly ${data.trueAnomaly}°`);
     
     if (sceneRef.current.orbitPlane) {
       sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
@@ -115,7 +102,8 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    orbitPlane.rotation.x = (inclination * Math.PI) / 180;
+    orbitPlane.rotation.x = toRadians(data.inclination);
+    orbitPlane.rotation.y = sceneRef.current.raan;
     
     // Draw orbit path
     const orbitGeometry = new THREE.BufferGeometry();
@@ -143,60 +131,21 @@ export function useSatelliteVisualization({
     orbitPath.computeLineDistances();
     orbitPlane.add(orbitPath);
     
-    // If we have a target location, find optimal orbital parameters
-    let initialAngle = 0;
-    let raan = 0;
+    // Show information about satellite's current position
+    const position = calculateSatellitePositionECI(
+      data.altitude,
+      data.inclination,
+      data.raan,
+      data.trueAnomaly
+    );
     
-    if (location) {
-      try {
-        const result = findOptimalOrbitalParameters(
-          location.lat,
-          location.lng,
-          inclination,
-          altitude,
-          sceneRef.current.earthRotationAngle
-        );
-        
-        raan = result.raan;
-        initialAngle = result.trueAnomaly;
-        
-        // Report the minimizer results
-        console.log(`Optimal orbital parameters found - RAAN: ${(raan * 180 / Math.PI).toFixed(2)}°, True Anomaly: ${(initialAngle * 180 / Math.PI).toFixed(2)}°`);
-        console.log(`Error distance: ${result.error.toFixed(2)} km`);
-        
-        // Rotate the orbit plane by RAAN
-        orbitPlane.rotation.y = raan;
-        
-        // Store the RAAN for future reference
-        sceneRef.current.raan = raan;
-        
-        // Show success message if error is small enough
-        if (result.error < 10) {
-          toast({
-            title: "Orbit positioned",
-            description: `Satellite will pass over the selected location with accuracy of ${result.error.toFixed(1)} km`,
-          });
-        } else {
-          toast({
-            title: "Orbit positioned with reduced accuracy",
-            description: `Satellite path has ${result.error.toFixed(1)} km offset from the target location due to orbital constraints`,
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error("Error finding orbital parameters:", error);
-        toast({
-          title: "Orbit calculation error",
-          description: error instanceof Error ? error.message : "Could not determine optimal orbit parameters",
-          variant: "destructive"
-        });
-        
-        // Use default values if optimization fails
-        initialAngle = 0;
-      }
-    }
+    const ecefPosition = eciToECEF(position, sceneRef.current.earthRotationAngle);
+    const geoPosition = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
     
-    sceneRef.current.orbitAngle = initialAngle;
+    toast({
+      title: "Orbit Initialized",
+      description: `Satellite positioned at Lat: ${geoPosition.lat.toFixed(2)}°, Lng: ${geoPosition.lng.toFixed(2)}°`,
+    });
     
     updateSatelliteOrbitPosition(0);
   };
@@ -204,11 +153,12 @@ export function useSatelliteVisualization({
   const updateSatelliteOrbitPosition = (deltaAngle: number) => {
     if (!sceneRef.current || !sceneRef.current.orbitPlane) return;
     
-    sceneRef.current.orbitAngle = normalizeAngle(sceneRef.current.orbitAngle + deltaAngle);
+    const newTrueAnomaly = normalizeAngle(sceneRef.current.trueAnomaly + deltaAngle);
+    sceneRef.current.trueAnomaly = newTrueAnomaly;
     
     // Calculate position in orbital plane
-    const x = sceneRef.current.orbitRadius * Math.cos(sceneRef.current.orbitAngle);
-    const z = sceneRef.current.orbitRadius * Math.sin(sceneRef.current.orbitAngle);
+    const x = sceneRef.current.orbitRadius * Math.cos(newTrueAnomaly);
+    const z = sceneRef.current.orbitRadius * Math.sin(newTrueAnomaly);
     
     const positionInPlane = new THREE.Vector3(x, 0, z);
     
@@ -642,23 +592,20 @@ export function useSatelliteVisualization({
     sensorFootprint.rotation.x = -Math.PI / 2;
     scene.add(sensorFootprint);
     
-    const defaultAltitude = 600;
-    const defaultInclination = locationData.inclination || 98;
+    const defaultAltitude = orbitData.altitude;
+    const defaultInclination = orbitData.inclination;
+    const defaultRaan = toRadians(orbitData.raan);
+    const defaultTrueAnomaly = toRadians(orbitData.trueAnomaly);
     
-    let orbitAngle = 0;
+    let orbitAngle = defaultTrueAnomaly;
     let orbitSpeed = 0;
     let orbitPlane: THREE.Group | null = null;
     let orbitRadius = earthRadius + defaultAltitude;
     let earthRotationAngle = 0;
-    let raan = 0;
-    let targetLocation = null;
+    let raan = defaultRaan;
+    let trueAnomaly = defaultTrueAnomaly;
     
-    if (locationData.location) {
-      updateSatellitePosition(locationData);
-    } else {
-      satellite.position.y = earthRadius + defaultAltitude;
-      startOrbitAnimation(defaultAltitude, defaultInclination);
-    }
+    startOrbitAnimation(orbitData);
     
     function focusOnSatellite() {
       const offset = satellite.position.clone().add(new THREE.Vector3(0, 0, 2000));
@@ -742,7 +689,7 @@ export function useSatelliteVisualization({
       orbitRadius,
       earthRotationAngle,
       raan,
-      targetLocation
+      trueAnomaly
     };
     
     if (inputs) {
@@ -770,5 +717,5 @@ export function useSatelliteVisualization({
     }
   }, [inputs]);
 
-  return { updateSatellitePosition, loadCustomModel, startOrbitAnimation };
+  return { updateSatelliteOrbit, loadCustomModel, startOrbitAnimation };
 }

@@ -6,42 +6,43 @@ import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
-import LocationSearch, { Location } from './LocationSearch';
-import { isLocationReachableByInclination } from '@/utils/orbitalUtils';
+import { normalizeAngle, toDegrees, toRadians } from '@/utils/orbitalUtils';
 
-export interface LocationData {
-  location: Location | null;
+export interface OrbitData {
   altitude: number;
   inclination: number;
+  raan: number;
+  trueAnomaly: number;
 }
 
 interface LocationInputProps {
-  onLocationChange: (data: LocationData) => void;
-  initialData?: LocationData;
+  onOrbitChange: (data: OrbitData) => void;
+  initialData?: Partial<OrbitData>;
   altitudeRange?: { min: number; max: number };
   onRunSimulation?: () => void;
 }
 
 const LocationInput: React.FC<LocationInputProps> = ({ 
-  onLocationChange, 
+  onOrbitChange, 
   initialData, 
   altitudeRange,
   onRunSimulation
 }) => {
-  const [location, setLocation] = useState<Location | null>(initialData?.location || null);
   const [altitude, setAltitude] = useState<number>(initialData?.altitude || 500);
   const [inclination, setInclination] = useState<number>(initialData?.inclination || 98);
+  const [raan, setRaan] = useState<number>(initialData?.raan || 0);
+  const [trueAnomaly, setTrueAnomaly] = useState<number>(initialData?.trueAnomaly || 0);
+  
   const [altitudeError, setAltitudeError] = useState<string | null>(null);
   const [inclinationError, setInclinationError] = useState<string | null>(null);
+  const [raanError, setRaanError] = useState<string | null>(null);
+  const [trueAnomalyError, setTrueAnomalyError] = useState<string | null>(null);
+  
   const { toast } = useToast();
 
   useEffect(() => {
     validateAltitude(altitude);
   }, [altitudeRange]);
-
-  useEffect(() => {
-    validateInclination(inclination);
-  }, [location, inclination]);
 
   const validateAltitude = (value: number) => {
     if (altitudeRange) {
@@ -62,20 +63,34 @@ const LocationInput: React.FC<LocationInputProps> = ({
   };
 
   const validateInclination = (value: number) => {
-    if (location) {
-      if (!isLocationReachableByInclination(location.lat, value)) {
-        setInclinationError(`Inclination must be at least ${Math.abs(location.lat).toFixed(1)}° to reach this latitude`);
-        return false;
-      }
+    if (value < 0) {
+      setInclinationError("Inclination must be at least 0°");
+      return false;
+    }
+    if (value > 180) {
+      setInclinationError("Inclination must not exceed 180°");
+      return false;
     }
     setInclinationError(null);
     return true;
   };
 
-  const handleLocationSelected = (newLocation: Location) => {
-    setLocation(newLocation);
-    validateInclination(inclination);
-    onLocationChange({ location: newLocation, altitude, inclination });
+  const validateRaan = (value: number) => {
+    if (value < 0 || value > 360) {
+      setRaanError("RAAN must be between 0° and 360°");
+      return false;
+    }
+    setRaanError(null);
+    return true;
+  };
+
+  const validateTrueAnomaly = (value: number) => {
+    if (value < 0 || value > 360) {
+      setTrueAnomalyError("True Anomaly must be between 0° and 360°");
+      return false;
+    }
+    setTrueAnomalyError(null);
+    return true;
   };
 
   const handleAltitudeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +98,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
     setAltitude(value);
     const isValid = validateAltitude(value);
     if (isValid) {
-      onLocationChange({ location, altitude: value, inclination });
+      onOrbitChange({ altitude: value, inclination, raan, trueAnomaly });
     }
   };
 
@@ -92,21 +107,35 @@ const LocationInput: React.FC<LocationInputProps> = ({
     setInclination(value);
     const isValid = validateInclination(value);
     if (isValid) {
-      onLocationChange({ location, altitude, inclination: value });
+      onOrbitChange({ altitude, inclination: value, raan, trueAnomaly });
+    }
+  };
+
+  const handleRaanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    setRaan(value);
+    const isValid = validateRaan(value);
+    if (isValid) {
+      onOrbitChange({ altitude, inclination, raan: value, trueAnomaly });
+    }
+  };
+
+  const handleTrueAnomalyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    setTrueAnomaly(value);
+    const isValid = validateTrueAnomaly(value);
+    if (isValid) {
+      onOrbitChange({ altitude, inclination, raan, trueAnomaly: value });
     }
   };
 
   const handleRunClick = () => {
-    if (!location) {
-      toast({
-        title: "Missing location",
-        description: "Please select a location before running the simulation.",
-        variant: "destructive"
-      });
-      return;
-    }
+    const altitudeIsValid = validateAltitude(altitude);
+    const inclinationIsValid = validateInclination(inclination);
+    const raanIsValid = validateRaan(raan);
+    const trueAnomalyIsValid = validateTrueAnomaly(trueAnomaly);
 
-    if (altitudeError) {
+    if (!altitudeIsValid) {
       toast({
         title: "Invalid altitude",
         description: altitudeError,
@@ -115,10 +144,28 @@ const LocationInput: React.FC<LocationInputProps> = ({
       return;
     }
 
-    if (inclinationError) {
+    if (!inclinationIsValid) {
       toast({
         title: "Invalid inclination",
         description: inclinationError,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!raanIsValid) {
+      toast({
+        title: "Invalid RAAN",
+        description: raanError,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!trueAnomalyIsValid) {
+      toast({
+        title: "Invalid True Anomaly",
+        description: trueAnomalyError,
         variant: "destructive"
       });
       return;
@@ -132,14 +179,6 @@ const LocationInput: React.FC<LocationInputProps> = ({
   return (
     <div className="bg-card/80 p-3 rounded-lg border border-border/50 shadow-sm">
       <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-        <div className="col-span-2">
-          <Label htmlFor="location" className="text-xs mb-1 block">Location</Label>
-          <LocationSearch 
-            onLocationSelected={handleLocationSelected} 
-            initialLocation={location || undefined}
-          />
-        </div>
-        
         <div>
           <Label htmlFor="altitude" className="text-xs mb-1 block">Altitude (km)</Label>
           <Input
@@ -167,23 +206,45 @@ const LocationInput: React.FC<LocationInputProps> = ({
           />
           {inclinationError && <p className="text-xs text-destructive mt-1">{inclinationError}</p>}
         </div>
+        
+        <div>
+          <Label htmlFor="raan" className="text-xs mb-1 block">RAAN (deg)</Label>
+          <Input
+            id="raan"
+            type="number"
+            min="0"
+            max="360"
+            value={raan}
+            onChange={handleRaanChange}
+            className={`h-8 text-sm ${raanError ? 'border-destructive' : ''}`}
+          />
+          {raanError && <p className="text-xs text-destructive mt-1">{raanError}</p>}
+        </div>
+        
+        <div>
+          <Label htmlFor="trueAnomaly" className="text-xs mb-1 block">True Anomaly (deg)</Label>
+          <Input
+            id="trueAnomaly"
+            type="number"
+            min="0"
+            max="360"
+            value={trueAnomaly}
+            onChange={handleTrueAnomalyChange}
+            className={`h-8 text-sm ${trueAnomalyError ? 'border-destructive' : ''}`}
+          />
+          {trueAnomalyError && <p className="text-xs text-destructive mt-1">{trueAnomalyError}</p>}
+        </div>
 
         <div className="col-span-2 mt-2">
           <Button 
             variant="outline" 
             size="sm" 
             className="w-full"
-            disabled={!!altitudeError || !!inclinationError || !location}
+            disabled={!!altitudeError || !!inclinationError || !!raanError || !!trueAnomalyError}
             onClick={handleRunClick}
           >
             <Play className="h-4 w-4 mr-1" /> Run
           </Button>
-        </div>
-        
-        <div className="col-span-2">
-          <p className="text-xs text-muted-foreground">
-            {location && `${location.name.split(',')[0]}`}
-          </p>
         </div>
       </div>
     </div>

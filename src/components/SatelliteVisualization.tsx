@@ -1,11 +1,13 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import LocationInput, { LocationData } from './LocationInput';
+import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
+import { toRadians } from '@/utils/orbitalUtils';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -15,27 +17,27 @@ interface SatelliteVisualizationProps {
 const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisualizationProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [locationData, setLocationData] = useState<LocationData>({
-    location: null,
+  const [orbitData, setOrbitData] = useState<OrbitData>({
     altitude: 500,
-    inclination: 98
+    inclination: 98,
+    raan: 0,
+    trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
   
   // Use custom hook for Three.js visualization
-  const { updateSatellitePosition, loadCustomModel, startOrbitAnimation } = useSatelliteVisualization({
+  const { updateSatelliteOrbit, loadCustomModel, startOrbitAnimation } = useSatelliteVisualization({
     containerRef,
     inputs,
-    locationData,
-    setLocationData
+    orbitData
   });
 
-  // Update the location altitude when inputs change
+  // Update the altitude when inputs change
   useEffect(() => {
-    if (inputs && !locationData.location) {
+    if (inputs) {
       const newAltitude = inputs.altitudeMax / 1000; // Convert to km
-      if (newAltitude !== locationData.altitude) {
-        setLocationData(prev => ({
+      if (newAltitude !== orbitData.altitude) {
+        setOrbitData(prev => ({
           ...prev,
           altitude: newAltitude
         }));
@@ -43,22 +45,20 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     }
   }, [inputs]);
   
-  // Handle location change
-  const handleLocationChange = (data: LocationData) => {
-    setLocationData(data);
-    updateSatellitePosition(data);
+  // Handle orbit data change
+  const handleOrbitChange = (data: OrbitData) => {
+    setOrbitData(data);
+    updateSatelliteOrbit(data);
   };
 
   // Handle run simulation button click
   const handleRunSimulation = () => {
-    if (locationData.location) {
-      toast({
-        title: "Simulation started",
-        description: `Running orbit simulation at ${locationData.altitude} km with ${locationData.inclination}° inclination`,
-        duration: 3000,
-      });
-      startOrbitAnimation(locationData.altitude, locationData.inclination, locationData.location);
-    }
+    toast({
+      title: "Simulation started",
+      description: `Running orbit simulation at ${orbitData.altitude} km with ${orbitData.inclination}° inclination, RAAN: ${orbitData.raan}°, True Anomaly: ${orbitData.trueAnomaly}°`,
+      duration: 3000,
+    });
+    startOrbitAnimation(orbitData);
   };
   
   // Handle model upload
@@ -99,8 +99,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       <CardContent className="flex-grow p-4 relative">
         <div className="absolute top-0 right-0 z-10 w-64 space-y-4 p-4">
           <LocationInput 
-            onLocationChange={handleLocationChange}
-            initialData={locationData}
+            onOrbitChange={handleOrbitChange}
+            initialData={orbitData}
             altitudeRange={inputs ? {min: inputs.altitudeMin, max: inputs.altitudeMax} : undefined}
             onRunSimulation={handleRunSimulation}
           />
