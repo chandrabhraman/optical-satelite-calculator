@@ -36,6 +36,7 @@ interface SceneRef {
   earthRotationAngle: number;
   raan: number;
   trueAnomaly: number;
+  previousRaan: number;
 }
 
 interface UseSatelliteVisualizationProps {
@@ -63,57 +64,68 @@ export function useSatelliteVisualization({
   const updateSatelliteOrbit = (data: OrbitData) => {
     if (!sceneRef.current) return;
     
-    // Store the true anomaly to preserve satellite position in the orbit
+    // Store current true anomaly to preserve satellite position in the orbit
     const currentTrueAnomaly = sceneRef.current.trueAnomaly;
     
-    if (sceneRef.current.orbitPlane) {
-      sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
-      sceneRef.current.orbitPlane = null;
-    }
+    // Only update the orbit plane if RAAN or inclination has changed
+    const raanChanged = toRadians(data.raan) !== sceneRef.current.raan;
+    const inclinationChanged = sceneRef.current.orbitPlane && 
+      sceneRef.current.orbitPlane.rotation.x !== toRadians(data.inclination);
     
-    // Set values for orbit setup
+    // Save previous RAAN for determining if it has changed
+    const previousRaan = sceneRef.current.raan;
+    
+    // Update RAAN in scene reference
     sceneRef.current.raan = toRadians(data.raan);
+    sceneRef.current.previousRaan = previousRaan;
     
-    // Preserve the true anomaly when only RAAN changes
-    // Only update true anomaly if it's explicitly changed in the input
+    // Only update true anomaly if explicitly changed in the input
+    // This prevents the satellite from moving in its orbit when only the RAAN changes
     if (Math.abs(toRadians(data.trueAnomaly) - currentTrueAnomaly) > 0.001) {
       sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     }
     
-    // Create a new orbit plane with the updated orbital parameters
-    const orbitPlane = new THREE.Group();
-    sceneRef.current.scene.add(orbitPlane);
-    sceneRef.current.orbitPlane = orbitPlane;
-    
-    // Apply inclination and RAAN to the orbit plane
-    orbitPlane.rotation.x = toRadians(data.inclination);
-    orbitPlane.rotation.y = sceneRef.current.raan;
-    
-    // Draw orbit path on the new plane
-    const orbitGeometry = new THREE.BufferGeometry();
-    const orbitPoints = [];
-    
-    const segments = 128;
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      orbitPoints.push(
-        sceneRef.current.orbitRadius * Math.cos(angle),
-        0,
-        sceneRef.current.orbitRadius * Math.sin(angle)
-      );
+    // Recreate the orbit plane if RAAN or inclination has changed
+    if (raanChanged || inclinationChanged || !sceneRef.current.orbitPlane) {
+      if (sceneRef.current.orbitPlane) {
+        sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
+      }
+      
+      // Create a new orbit plane with the updated orbital parameters
+      const orbitPlane = new THREE.Group();
+      sceneRef.current.scene.add(orbitPlane);
+      sceneRef.current.orbitPlane = orbitPlane;
+      
+      // Apply inclination and RAAN to the orbit plane
+      orbitPlane.rotation.x = toRadians(data.inclination);
+      orbitPlane.rotation.y = sceneRef.current.raan;
+      
+      // Draw orbit path on the new plane
+      const orbitGeometry = new THREE.BufferGeometry();
+      const orbitPoints = [];
+      
+      const segments = 128;
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        orbitPoints.push(
+          sceneRef.current.orbitRadius * Math.cos(angle),
+          0,
+          sceneRef.current.orbitRadius * Math.sin(angle)
+        );
+      }
+      
+      orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
+      
+      const orbitMaterial = new THREE.LineDashedMaterial({
+        color: 0x4CAF50,
+        dashSize: 50,
+        gapSize: 50,
+      });
+      
+      const orbitPath = new THREE.Line(orbitGeometry, orbitMaterial);
+      orbitPath.computeLineDistances();
+      orbitPlane.add(orbitPath);
     }
-    
-    orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
-    
-    const orbitMaterial = new THREE.LineDashedMaterial({
-      color: 0x4CAF50,
-      dashSize: 50,
-      gapSize: 50,
-    });
-    
-    const orbitPath = new THREE.Line(orbitGeometry, orbitMaterial);
-    orbitPath.computeLineDistances();
-    orbitPlane.add(orbitPath);
     
     // Update the satellite position with the current true anomaly
     updateSatelliteOrbitPosition(0);
@@ -126,6 +138,7 @@ export function useSatelliteVisualization({
     sceneRef.current.orbitRadius = earthRadius + data.altitude;
     
     // Set RAAN and trueAnomaly from inputs
+    sceneRef.current.previousRaan = sceneRef.current.raan; // Save previous RAAN
     sceneRef.current.raan = toRadians(data.raan);
     sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     
@@ -200,16 +213,17 @@ export function useSatelliteVisualization({
     const newTrueAnomaly = normalizeAngle(sceneRef.current.trueAnomaly + deltaAngle);
     sceneRef.current.trueAnomaly = newTrueAnomaly;
     
-    // Calculate position in orbital plane
+    // Calculate position in the orbital plane (local coordinates)
     const x = sceneRef.current.orbitRadius * Math.cos(newTrueAnomaly);
     const z = sceneRef.current.orbitRadius * Math.sin(newTrueAnomaly);
     
     const positionInPlane = new THREE.Vector3(x, 0, z);
     
-    // Apply orbit plane rotation (inclination and RAAN)
+    // Apply orbit plane transformation to get world coordinates
     const worldMatrix = sceneRef.current.orbitPlane.matrixWorld.clone();
     positionInPlane.applyMatrix4(worldMatrix);
     
+    // Update satellite position in world space
     sceneRef.current.satellite.position.copy(positionInPlane);
     
     // Orient the satellite to face Earth center
@@ -657,6 +671,7 @@ export function useSatelliteVisualization({
     let earthRotationAngle = 0;
     let raan = defaultRaan;
     let trueAnomaly = defaultTrueAnomaly;
+    let previousRaan = defaultRaan; // Add previousRaan to track RAAN changes
     
     startOrbitAnimation(orbitData);
     
@@ -742,7 +757,8 @@ export function useSatelliteVisualization({
       orbitRadius,
       earthRotationAngle,
       raan,
-      trueAnomaly
+      trueAnomaly,
+      previousRaan
     };
     
     if (inputs) {
