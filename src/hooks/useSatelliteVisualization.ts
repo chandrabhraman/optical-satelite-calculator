@@ -37,6 +37,11 @@ const MODEL_PATHS = [
   '/models/satellite-default.glb',
 ];
 
+// Real Earth rotates at ~0.0042 degrees per second
+// For 2x faster than real Earth: 0.0042 * 2 = 0.0084 degrees per second
+// Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
+const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real Earth)
+
 export function useSatelliteVisualization({
   containerRef,
   inputs,
@@ -627,7 +632,7 @@ export function useSatelliteVisualization({
       const animationId = requestAnimationFrame(animate);
       controls.update();
       
-      earth.rotation.y += 0.0005;
+      earth.rotation.y += EARTH_ROTATION_RATE;
       stars.rotation.y += 0.0001;
       
       if (sceneRef.current && sceneRef.current.orbitPlane) {
