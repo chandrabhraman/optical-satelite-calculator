@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -14,7 +15,7 @@ import {
   eciToECEF,
   ecefToGeodetic
 } from '@/utils/orbitalUtils';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface SceneRef {
   scene: THREE.Scene;
@@ -368,8 +369,14 @@ export function useSatelliteVisualization({
     const earthRadius = 6371;
     const altitude = inputs.altitudeMax / 1000;
     
-    if (!locationData.location) {
-      startOrbitAnimation(altitude, locationData.inclination);
+    // Removed reference to locationData and using orbitData directly
+    if (!orbitData) {
+      startOrbitAnimation({
+        altitude: altitude,
+        inclination: 98, // Default inclination
+        raan: 0,
+        trueAnomaly: 0
+      });
     }
     
     const calculatedParams = calculateSensorParameters({
