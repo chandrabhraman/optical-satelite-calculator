@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -64,6 +63,9 @@ export function useSatelliteVisualization({
   const updateSatelliteOrbit = (data: OrbitData) => {
     if (!sceneRef.current) return;
     
+    // Store the true anomaly to preserve satellite position in the orbit
+    const currentTrueAnomaly = sceneRef.current.trueAnomaly;
+    
     if (sceneRef.current.orbitPlane) {
       sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
       sceneRef.current.orbitPlane = null;
@@ -71,9 +73,14 @@ export function useSatelliteVisualization({
     
     // Set values for orbit setup
     sceneRef.current.raan = toRadians(data.raan);
-    sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     
-    // Just update the satellite position without starting animation
+    // Preserve the true anomaly when only RAAN changes
+    // Only update true anomaly if it's explicitly changed in the input
+    if (Math.abs(toRadians(data.trueAnomaly) - currentTrueAnomaly) > 0.001) {
+      sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
+    }
+    
+    // Update the satellite position with the current true anomaly
     updateSatelliteOrbitPosition(0);
   };
 
@@ -103,6 +110,7 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
+    // Apply inclination and RAAN to the orbit plane
     orbitPlane.rotation.x = toRadians(data.inclination);
     orbitPlane.rotation.y = sceneRef.current.raan;
     
