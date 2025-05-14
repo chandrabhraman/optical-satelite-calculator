@@ -18,12 +18,13 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const { toast } = useToast();
   const [locationData, setLocationData] = useState<LocationData>({
     location: null,
-    altitude: 500
+    altitude: 500,
+    inclination: 98
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
   
   // Use custom hook for Three.js visualization
-  const { updateSatellitePosition, loadCustomModel } = useSatelliteVisualization({
+  const { updateSatellitePosition, loadCustomModel, startOrbitAnimation } = useSatelliteVisualization({
     containerRef,
     inputs,
     locationData,
@@ -47,6 +48,18 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const handleLocationChange = (data: LocationData) => {
     setLocationData(data);
     updateSatellitePosition(data);
+  };
+
+  // Handle run simulation button click
+  const handleRunSimulation = () => {
+    if (locationData.location) {
+      toast({
+        title: "Simulation started",
+        description: `Running orbit simulation at ${locationData.altitude} km with ${locationData.inclination}° inclination`,
+        duration: 3000,
+      });
+      startOrbitAnimation(locationData.altitude, locationData.inclination);
+    }
   };
   
   // Handle model upload
@@ -89,6 +102,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <LocationInput 
             onLocationChange={handleLocationChange}
             initialData={locationData}
+            altitudeRange={inputs ? {min: inputs.altitudeMin, max: inputs.altitudeMax} : undefined}
+            onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
         </div>

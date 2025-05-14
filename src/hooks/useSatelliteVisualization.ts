@@ -75,7 +75,7 @@ export function useSatelliteVisualization({
     sceneRef.current.controls.update();
   };
 
-  const startOrbitAnimation = (altitude: number) => {
+  const startOrbitAnimation = (altitude: number, inclination: number = 98) => {
     if (!sceneRef.current) return;
     
     const earthRadius = 6371;
@@ -87,16 +87,20 @@ export function useSatelliteVisualization({
     
     sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 10);
     
-    console.log(`Starting orbit animation at altitude ${altitude} km`);
+    console.log(`Starting orbit animation at altitude ${altitude} km with inclination ${inclination}°`);
     console.log(`Orbit radius: ${sceneRef.current.orbitRadius} km`);
     console.log(`Orbit period would be: ${orbitPeriod.toFixed(2)} seconds`);
     console.log(`Animation speed: ${sceneRef.current.orbitSpeed.toFixed(8)} rad/frame`);
+    
+    if (sceneRef.current.orbitPlane) {
+      sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
+    }
     
     const orbitPlane = new THREE.Group();
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    orbitPlane.rotation.x = (98 * Math.PI) / 180;
+    orbitPlane.rotation.x = (inclination * Math.PI) / 180;
     
     const orbitGeometry = new THREE.BufferGeometry();
     const orbitPoints = [];
@@ -342,7 +346,7 @@ export function useSatelliteVisualization({
     const altitude = inputs.altitudeMax / 1000;
     
     if (!locationData.location) {
-      startOrbitAnimation(altitude);
+      startOrbitAnimation(altitude, locationData.inclination);
     }
     
     const calculatedParams = calculateSensorParameters({
@@ -566,6 +570,7 @@ export function useSatelliteVisualization({
     scene.add(sensorFootprint);
     
     const defaultAltitude = 600;
+    const defaultInclination = locationData.inclination || 98;
     
     let orbitAngle = 0;
     let orbitSpeed = 0;
@@ -576,7 +581,7 @@ export function useSatelliteVisualization({
       updateSatellitePosition(locationData);
     } else {
       satellite.position.y = earthRadius + defaultAltitude;
-      startOrbitAnimation(defaultAltitude);
+      startOrbitAnimation(defaultAltitude, defaultInclination);
     }
     
     function focusOnSatellite() {
@@ -682,5 +687,5 @@ export function useSatelliteVisualization({
     }
   }, [inputs]);
 
-  return { updateSatellitePosition, loadCustomModel };
+  return { updateSatellitePosition, loadCustomModel, startOrbitAnimation };
 }
