@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +57,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         description: `Running orbit simulation at ${locationData.altitude} km with ${locationData.inclination}° inclination`,
         duration: 3000,
       });
-      startOrbitAnimation(locationData.altitude, locationData.inclination);
+      startOrbitAnimation(locationData.altitude, locationData.inclination, locationData.location);
     }
   };
   

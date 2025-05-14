@@ -7,6 +7,7 @@ import { Play } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import LocationSearch, { Location } from './LocationSearch';
+import { isLocationReachableByInclination } from '@/utils/orbitalUtils';
 
 export interface LocationData {
   location: Location | null;
@@ -31,11 +32,16 @@ const LocationInput: React.FC<LocationInputProps> = ({
   const [altitude, setAltitude] = useState<number>(initialData?.altitude || 500);
   const [inclination, setInclination] = useState<number>(initialData?.inclination || 98);
   const [altitudeError, setAltitudeError] = useState<string | null>(null);
+  const [inclinationError, setInclinationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     validateAltitude(altitude);
   }, [altitudeRange]);
+
+  useEffect(() => {
+    validateInclination(inclination);
+  }, [location, inclination]);
 
   const validateAltitude = (value: number) => {
     if (altitudeRange) {
@@ -55,8 +61,20 @@ const LocationInput: React.FC<LocationInputProps> = ({
     return true;
   };
 
+  const validateInclination = (value: number) => {
+    if (location) {
+      if (!isLocationReachableByInclination(location.lat, value)) {
+        setInclinationError(`Inclination must be at least ${Math.abs(location.lat).toFixed(1)}° to reach this latitude`);
+        return false;
+      }
+    }
+    setInclinationError(null);
+    return true;
+  };
+
   const handleLocationSelected = (newLocation: Location) => {
     setLocation(newLocation);
+    validateInclination(inclination);
     onLocationChange({ location: newLocation, altitude, inclination });
   };
 
@@ -72,7 +90,10 @@ const LocationInput: React.FC<LocationInputProps> = ({
   const handleInclinationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     setInclination(value);
-    onLocationChange({ location, altitude, inclination: value });
+    const isValid = validateInclination(value);
+    if (isValid) {
+      onLocationChange({ location, altitude, inclination: value });
+    }
   };
 
   const handleRunClick = () => {
@@ -89,6 +110,15 @@ const LocationInput: React.FC<LocationInputProps> = ({
       toast({
         title: "Invalid altitude",
         description: altitudeError,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (inclinationError) {
+      toast({
+        title: "Invalid inclination",
+        description: inclinationError,
         variant: "destructive"
       });
       return;
@@ -133,8 +163,9 @@ const LocationInput: React.FC<LocationInputProps> = ({
             max="180"
             value={inclination}
             onChange={handleInclinationChange}
-            className="h-8 text-sm"
+            className={`h-8 text-sm ${inclinationError ? 'border-destructive' : ''}`}
           />
+          {inclinationError && <p className="text-xs text-destructive mt-1">{inclinationError}</p>}
         </div>
 
         <div className="col-span-2 mt-2">
@@ -142,6 +173,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full"
+            disabled={!!altitudeError || !!inclinationError || !location}
             onClick={handleRunClick}
           >
             <Play className="h-4 w-4 mr-1" /> Run
