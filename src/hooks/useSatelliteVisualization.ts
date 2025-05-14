@@ -80,6 +80,41 @@ export function useSatelliteVisualization({
       sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     }
     
+    // Create a new orbit plane with the updated orbital parameters
+    const orbitPlane = new THREE.Group();
+    sceneRef.current.scene.add(orbitPlane);
+    sceneRef.current.orbitPlane = orbitPlane;
+    
+    // Apply inclination and RAAN to the orbit plane
+    orbitPlane.rotation.x = toRadians(data.inclination);
+    orbitPlane.rotation.y = sceneRef.current.raan;
+    
+    // Draw orbit path on the new plane
+    const orbitGeometry = new THREE.BufferGeometry();
+    const orbitPoints = [];
+    
+    const segments = 128;
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      orbitPoints.push(
+        sceneRef.current.orbitRadius * Math.cos(angle),
+        0,
+        sceneRef.current.orbitRadius * Math.sin(angle)
+      );
+    }
+    
+    orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
+    
+    const orbitMaterial = new THREE.LineDashedMaterial({
+      color: 0x4CAF50,
+      dashSize: 50,
+      gapSize: 50,
+    });
+    
+    const orbitPath = new THREE.Line(orbitGeometry, orbitMaterial);
+    orbitPath.computeLineDistances();
+    orbitPlane.add(orbitPath);
+    
     // Update the satellite position with the current true anomaly
     updateSatelliteOrbitPosition(0);
   };
@@ -377,7 +412,7 @@ export function useSatelliteVisualization({
     const earthRadius = 6371;
     const altitude = inputs.altitudeMax / 1000;
     
-    // Removed reference to locationData and using orbitData directly
+    // Use orbitData if available, otherwise use default values
     if (!orbitData) {
       startOrbitAnimation({
         altitude: altitude,
@@ -385,6 +420,9 @@ export function useSatelliteVisualization({
         raan: 0,
         trueAnomaly: 0
       });
+    } else {
+      // Update the orbit with the current orbitData
+      updateSatelliteOrbit(orbitData);
     }
     
     const calculatedParams = calculateSensorParameters({
