@@ -128,6 +128,7 @@ export function rotateZ(point: [number, number, number], angleRad: number): [num
 
 /**
  * Calculate satellite position in ECI coordinates based on orbital elements
+ * This is a direct calculation using orbital elements, not a frame transformation
  */
 export function calculateSatelliteECIPosition(
   semiMajorAxis: number,
@@ -160,7 +161,7 @@ export function calculateSatelliteECIPosition(
 }
 
 /**
- * Convert ECI coordinates to ECEF coordinates
+ * Convert ECI coordinates to ECEF coordinates using Greenwich Sidereal Time
  */
 export function eciToEcef(
   eciCoords: [number, number, number],
@@ -171,7 +172,7 @@ export function eciToEcef(
 }
 
 /**
- * Convert ECEF coordinates to ECI coordinates
+ * Convert ECEF coordinates to ECI coordinates using Greenwich Sidereal Time
  */
 export function ecefToEci(
   ecefCoords: [number, number, number],
@@ -206,7 +207,8 @@ export function calculateSatelliteLatLong(
     trueAnomalyRad
   );
   
-  // Convert to ECEF, accounting for Earth's rotation
+  // Convert to ECEF, accounting for Earth's rotation but NOT for RAAN
+  // RAAN is already accounted for in the ECI calculation
   const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
   
   // Convert ECEF to lat/long
@@ -366,4 +368,3 @@ export function findOptimalOrbitalParameters(
     error: minError
   };
 }
-

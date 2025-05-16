@@ -112,10 +112,10 @@ export function useSatelliteVisualization({
       sceneRef.current.orbitPlane = orbitPlane;
       
       // For visualization, rotate the orbit plane according to RAAN and inclination
-      // First rotate by RAAN around Y axis (Earth's pole)
+      // Apply RAAN rotation (around Y axis in our visualization coordinate system)
       orbitPlane.rotation.y = sceneRef.current.raan;
       
-      // Then apply inclination around X axis (now properly oriented after RAAN rotation)
+      // Then apply inclination around X axis
       orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
       
       console.log(`Updated orbit plane - Inclination: ${sceneRef.current.inclination}°, RAAN: ${toDegrees(sceneRef.current.raan)}°`);
@@ -183,10 +183,10 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // First apply RAAN rotation around Y-axis (Earth's pole)
+    // Apply RAAN rotation (around Y axis in our visualization coordinate system)
     orbitPlane.rotation.y = sceneRef.current.raan;
     
-    // Then apply inclination around X-axis
+    // Then apply inclination around X axis
     orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
     
     // Draw orbit path
@@ -220,7 +220,8 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.lookAt(0, 0, 0);
     sceneRef.current.satellite.rotateX(Math.PI / 2);
     
-    // Calculate lat/long taking Earth rotation into account using the orbital elements
+    // Calculate lat/long using the orbital elements
+    // Note: Earth rotation affects the longitude, but RAAN is set in the orbit plane itself
     const { lat, lng } = calculateSatelliteLatLong(
       sceneRef.current.orbitRadius - 6371, // altitude
       sceneRef.current.inclination, 
@@ -229,30 +230,64 @@ export function useSatelliteVisualization({
       sceneRef.current.earthRotationAngle
     );
     
-    // Update sensor footprint position on Earth surface directly below satellite
-    if (sceneRef.current.sensorFootprint) {
-      // Calculate the nadir point (point on Earth directly below satellite)
-      const dirToCenter = new THREE.Vector3().subVectors(
-        new THREE.Vector3(0, 0, 0),
-        sceneRef.current.satellite.position
-      ).normalize();
+    // Remove any existing footprint before updating
+    if (sceneRef.current.sensorFootprint && sceneRef.current.sensorFootprint.parent) {
+      sceneRef.current.sensorFootprint.parent.remove(sceneRef.current.sensorFootprint);
+      sceneRef.current.sensorFootprint = null;
+    }
+    
+    // Calculate the nadir point on Earth's surface
+    const dirToCenter = new THREE.Vector3().subVectors(
+      new THREE.Vector3(0, 0, 0),
+      sceneRef.current.satellite.position
+    ).normalize();
+    
+    const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+    
+    // Only create a new footprint if we have inputs for field of view
+    if (inputs && sceneRef.current.sensorField) {
+      // Get field of view parameters from inputs if available
+      const calculatedParams = calculateSensorParameters({
+        pixelSize: inputs.pixelSize,
+        pixelCountH: inputs.pixelCountH,
+        pixelCountV: inputs.pixelCountV,
+        gsdRequirements: inputs.gsdRequirements,
+        altitudeMin: inputs.altitudeMin / 1000,
+        altitudeMax: inputs.altitudeMax / 1000,
+        focalLength: inputs.focalLength,
+        aperture: inputs.aperture,
+        nominalOffNadirAngle: inputs.nominalOffNadirAngle
+      });
       
-      const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+      const fovH = calculatedParams.hfovDeg * Math.PI / 180;
+      const fovV = calculatedParams.vfovDeg * Math.PI / 180;
       
-      // Only update the footprint if it's attached to the scene
-      if (sceneRef.current.sensorFootprint.parent) {
-        sceneRef.current.sensorFootprint.position.copy(surfacePoint);
-        
-        // Orient the footprint to be tangent to Earth's surface
-        const normal = surfacePoint.clone().normalize();
-        const up = new THREE.Vector3(0, 1, 0);
-        const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
-        const angle = Math.acos(up.dot(normal));
-        
-        if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
-          sceneRef.current.sensorFootprint.quaternion.setFromAxisAngle(axis, angle);
-        }
+      // Create the footprint on Earth's surface
+      const footprint = createCurvedFootprint(
+        6371, // Earth radius
+        sceneRef.current.satellite.position, 
+        fovH, 
+        fovV, 
+        inputs.nominalOffNadirAngle,
+        calculatedParams.horizontalFootprint,
+        calculatedParams.verticalFootprint
+      );
+      
+      footprint.position.copy(surfacePoint);
+      
+      // Orient the footprint to be tangent to Earth's surface
+      const normal = surfacePoint.clone().normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
+      const angle = Math.acos(up.dot(normal));
+      
+      if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
+        footprint.quaternion.setFromAxisAngle(axis, angle);
       }
+      
+      // Add footprint to the scene (not to the satellite)
+      sceneRef.current.scene.add(footprint);
+      sceneRef.current.sensorFootprint = footprint;
     }
     
     // Notify position update with lat/long coordinates
@@ -481,9 +516,7 @@ export function useSatelliteVisualization({
     }
     
     const offNadirRad = (inputs.nominalOffNadirAngle * Math.PI) / 180;
-    
     const pyramidHeight = altitude;
-    
     const baseWidth = 2 * pyramidHeight * Math.tan(fovH / 2);
     const baseHeight = 2 * pyramidHeight * Math.tan(fovV / 2);
     
@@ -511,44 +544,12 @@ export function useSatelliteVisualization({
     
     sceneRef.current.fovAnnotations = null;
     
-    // Create the footprint on Earth's surface (actually below the satellite)
-    const footprint = createCurvedFootprint(
-      earthRadius, 
-      sceneRef.current.satellite.position, 
-      fovH, 
-      fovV, 
-      inputs.nominalOffNadirAngle,
-      calculatedParams.horizontalFootprint,
-      calculatedParams.verticalFootprint
-    );
-    
-    // Update the satellite to nadir direction
-    const dirToCenter = new THREE.Vector3().subVectors(
-      new THREE.Vector3(0, 0, 0),
-      sceneRef.current.satellite.position
-    ).normalize();
-    
-    const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
-    
-    footprint.position.copy(surfacePoint);
-    
-    // Orient the footprint to be tangent to Earth's surface
-    const normal = surfacePoint.clone().normalize();
-    const up = new THREE.Vector3(0, 1, 0);
-    const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
-    const angle = Math.acos(up.dot(normal));
-    
-    if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
-      footprint.quaternion.setFromAxisAngle(axis, angle);
-    }
-    
-    // Add footprint to the scene (not to the satellite)
-    sceneRef.current.scene.add(footprint);
-    sceneRef.current.sensorFootprint = footprint;
-    
     // Update camera to look at satellite
     sceneRef.current.controls.target.copy(sceneRef.current.satellite.position);
     sceneRef.current.controls.update();
+    
+    // Update satellite position to refresh the footprint
+    updateSatelliteOrbitPosition(0);
   };
 
   useEffect(() => {
@@ -755,6 +756,7 @@ export function useSatelliteVisualization({
       controls.update();
       
       // Update Earth rotation angle for day/night effect
+      // This doesn't affect the coordinates system or RAAN
       earthRotationAngle = normalizeAngle(earthRotationAngle + EARTH_ROTATION_RATE);
       earth.rotation.y = earthRotationAngle;
       
@@ -834,4 +836,3 @@ export function useSatelliteVisualization({
     getCurrentEarthRotation
   };
 }
-
