@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -111,11 +110,11 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.add(orbitPlane);
       sceneRef.current.orbitPlane = orbitPlane;
       
-      // For visualization, rotate the orbit plane according to RAAN and inclination
-      // Apply RAAN rotation (around Y axis in our visualization coordinate system)
-      orbitPlane.rotation.y = sceneRef.current.raan;
+      // For visualization with Z as polar axis:
+      // 1. Apply RAAN rotation around Z axis
+      orbitPlane.rotation.z = sceneRef.current.raan;
       
-      // Then apply inclination around X axis
+      // 2. Apply inclination around X axis
       orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
       
       console.log(`Updated orbit plane - Inclination: ${sceneRef.current.inclination}°, RAAN: ${toDegrees(sceneRef.current.raan)}°`);
@@ -135,10 +134,11 @@ export function useSatelliteVisualization({
     const segments = 128;
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2;
+      // With Z as polar axis, orbit is in X-Y plane
       orbitPoints.push(
         radius * Math.cos(angle),
-        0,
-        radius * Math.sin(angle)
+        radius * Math.sin(angle),
+        0
       );
     }
     
@@ -183,8 +183,8 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // Apply RAAN rotation (around Y axis in our visualization coordinate system)
-    orbitPlane.rotation.y = sceneRef.current.raan;
+    // Apply RAAN rotation around Z axis (polar axis)
+    orbitPlane.rotation.z = sceneRef.current.raan;
     
     // Then apply inclination around X axis
     orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
@@ -205,10 +205,12 @@ export function useSatelliteVisualization({
     }
     
     // Calculate position in the orbital plane (local coordinates)
+    // With Z as polar axis, orbit is in X-Y plane
     const x = sceneRef.current.orbitRadius * Math.cos(sceneRef.current.trueAnomaly);
-    const z = sceneRef.current.orbitRadius * Math.sin(sceneRef.current.trueAnomaly);
+    const y = sceneRef.current.orbitRadius * Math.sin(sceneRef.current.trueAnomaly);
+    const z = 0;
     
-    const localPosition = new THREE.Vector3(x, 0, z);
+    const localPosition = new THREE.Vector3(x, y, z);
     
     // Clone the orbit plane's world matrix to avoid modifying the original
     const orbitPlaneMatrix = sceneRef.current.orbitPlane.matrixWorld.clone();
@@ -218,7 +220,9 @@ export function useSatelliteVisualization({
     
     // Orient the satellite to face Earth center
     sceneRef.current.satellite.lookAt(0, 0, 0);
-    sceneRef.current.satellite.rotateX(Math.PI / 2);
+    
+    // Adjust the satellite orientation - Z axis is polar axis
+    sceneRef.current.satellite.rotateZ(Math.PI / 2);
     
     // Calculate lat/long using the orbital elements
     // Note: Earth rotation affects the longitude, but RAAN is set in the orbit plane itself
@@ -277,7 +281,7 @@ export function useSatelliteVisualization({
       
       // Orient the footprint to be tangent to Earth's surface
       const normal = surfacePoint.clone().normalize();
-      const up = new THREE.Vector3(0, 1, 0);
+      const up = new THREE.Vector3(0, 0, 1); // Z axis is up (polar axis)
       const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
       const angle = Math.acos(up.dot(normal));
       
@@ -570,7 +574,7 @@ export function useSatelliteVisualization({
       0.1,
       1000000
     );
-    camera.position.set(0, 2000, 15000);
+    camera.position.set(0, 2000, 15000); // Y is forward in initial view
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -578,11 +582,13 @@ export function useSatelliteVisualization({
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
     
+    // Setup lighting
     const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
     scene.add(ambientLight);
     
+    // Position lights appropriate for Z-up system
     const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.5);
-    directionalLight.position.set(5000, 3000, 5000);
+    directionalLight.position.set(5000, 5000, 3000); // Adjust for Z-polar system
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
     directionalLight.shadow.mapSize.height = 1024;
@@ -596,7 +602,8 @@ export function useSatelliteVisualization({
     controls.dampingFactor = 0.05;
     controls.minDistance = 10;
     controls.maxDistance = 500000;
-    
+
+    // Add stars as background
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
     const positions = new Float32Array(starCount * 3);
@@ -610,8 +617,13 @@ export function useSatelliteVisualization({
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
+    // Create Earth with Z as polar axis
     const earthRadius = 6371;
     const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
+    
+    // Rotate Earth geometry so that Z is polar axis
+    earthGeometry.rotateX(Math.PI / 2);
+    
     const earthTextureLoader = new THREE.TextureLoader();
     
     const earthMaterial = new THREE.MeshPhongMaterial({
@@ -627,9 +639,13 @@ export function useSatelliteVisualization({
     earth.receiveShadow = true;
     scene.add(earth);
     
+    // Load Earth textures
     earthTextureLoader.load(
       'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
       (texture) => {
+        // Adjust texture rotation for Z-polar mapping
+        texture.center.set(0.5, 0.5);
+        texture.rotation = Math.PI / 2;
         earthMaterial.map = texture;
         earthMaterial.needsUpdate = true;
       }
@@ -661,6 +677,7 @@ export function useSatelliteVisualization({
     
     loadDefaultSatelliteModel(satellite);
     
+    // Configure default sensor field visualization for Z-polar system
     const defaultSensorAngle = Math.PI / 12;
     const sensorHeight = 600;
     const baseSize = Math.tan(defaultSensorAngle) * sensorHeight;
@@ -677,8 +694,9 @@ export function useSatelliteVisualization({
     
     const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
     
+    // Adjust sensor field orientation for Z-polar system
     sensorField.rotation.x = Math.PI;
-    sensorField.position.y = 0;
+    sensorField.position.z = 0;
     satellite.add(sensorField);
     
     // Initialize with no footprint - we'll create it when needed
@@ -700,7 +718,8 @@ export function useSatelliteVisualization({
     let raan = defaultRaan;
     
     function focusOnSatellite() {
-      const offset = satellite.position.clone().add(new THREE.Vector3(0, 0, 2000));
+      // Adjust focus camera for Z-polar system
+      const offset = satellite.position.clone().add(new THREE.Vector3(0, 2000, 0));
       camera.position.copy(offset);
       controls.target.copy(satellite.position);
       controls.update();
@@ -756,11 +775,11 @@ export function useSatelliteVisualization({
       controls.update();
       
       // Update Earth rotation angle for day/night effect
-      // This doesn't affect the coordinates system or RAAN
+      // Z is now the polar axis, so rotate around Z
       earthRotationAngle = normalizeAngle(earthRotationAngle + EARTH_ROTATION_RATE);
-      earth.rotation.y = earthRotationAngle;
+      earth.rotation.z = earthRotationAngle;
       
-      stars.rotation.y += 0.0001;
+      stars.rotation.z += 0.0001;
       
       // Update satellite position in orbit if initialized
       if (sceneRef.current && sceneRef.current.orbitPlane && isInitialized) {
