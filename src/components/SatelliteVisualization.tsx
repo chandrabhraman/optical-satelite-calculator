@@ -7,7 +7,7 @@ import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
-import { toRadians } from '@/utils/orbitalUtils';
+import { toRadians, calculateSatelliteLatLong } from '@/utils/orbitalUtils';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -24,23 +24,33 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
-  const [validationData, setValidationData] = useState<{
-    visual: {x: number, y: number, z: number} | null,
-    calculated: {x: number, y: number, z: number} | null,
-    difference: number | null
-  }>({ visual: null, calculated: null, difference: null });
+  const [satellitePosition, setSatellitePosition] = useState<{
+    lat: number | null,
+    lng: number | null
+  }>({ lat: null, lng: null });
   
   // Use custom hook for Three.js visualization
   const { 
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    runPositionValidation 
+    getCurrentEarthRotation
   } = useSatelliteVisualization({
     containerRef,
     inputs,
     orbitData,
-    onValidationUpdate: setValidationData
+    onPositionUpdate: (position) => {
+      // Calculate lat/long from orbit parameters
+      const earthRotation = getCurrentEarthRotation();
+      const { lat, lng } = calculateSatelliteLatLong(
+        orbitData.altitude,
+        orbitData.inclination,
+        toRadians(orbitData.raan),
+        toRadians(orbitData.trueAnomaly),
+        earthRotation
+      );
+      setSatellitePosition({ lat, lng });
+    }
   });
 
   // Update the altitude when inputs change
@@ -69,12 +79,26 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       description: `Running orbit simulation at ${orbitData.altitude} km with ${orbitData.inclination}° inclination, RAAN: ${orbitData.raan}°, True Anomaly: ${orbitData.trueAnomaly}°`,
       duration: 3000,
     });
+    
     startOrbitAnimation(orbitData);
     
-    // Run validation after animation starts
-    setTimeout(() => {
-      runPositionValidation();
-    }, 100);
+    // Calculate and display current satellite position
+    const earthRotation = getCurrentEarthRotation();
+    const { lat, lng } = calculateSatelliteLatLong(
+      orbitData.altitude,
+      orbitData.inclination,
+      toRadians(orbitData.raan),
+      toRadians(orbitData.trueAnomaly),
+      earthRotation
+    );
+    
+    setSatellitePosition({ lat, lng });
+    
+    toast({
+      title: "Satellite positioned",
+      description: `Lat: ${lat.toFixed(2)}°, Lng: ${lng.toFixed(2)}°`,
+      duration: 5000,
+    });
   };
   
   // Handle model upload
@@ -122,21 +146,16 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           />
           <ModelUploader onModelUpload={handleModelUpload} />
           
-          {/* Position validation panel */}
-          {validationData.visual && validationData.calculated && (
+          {/* Satellite position display */}
+          {satellitePosition.lat !== null && satellitePosition.lng !== null && (
             <div className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border border-border text-xs">
-              <h4 className="font-medium text-primary mb-1">Position Cross-Validation</h4>
+              <h4 className="font-medium text-primary mb-1">Current Satellite Position</h4>
               <div className="grid grid-cols-2 gap-1">
-                <div className="text-muted-foreground">Visual:</div>
-                <div>X: {validationData.visual.x.toFixed(1)}, Y: {validationData.visual.y.toFixed(1)}, Z: {validationData.visual.z.toFixed(1)}</div>
+                <div className="text-muted-foreground">Latitude:</div>
+                <div>{satellitePosition.lat.toFixed(2)}°</div>
                 
-                <div className="text-muted-foreground">Calculated:</div>
-                <div>X: {validationData.calculated.x.toFixed(1)}, Y: {validationData.calculated.y.toFixed(1)}, Z: {validationData.calculated.z.toFixed(1)}</div>
-                
-                <div className="text-muted-foreground">Difference:</div>
-                <div className={validationData.difference && validationData.difference > 10 ? "text-destructive" : "text-primary"}>
-                  {validationData.difference !== null ? `${validationData.difference.toFixed(2)} km` : 'N/A'}
-                </div>
+                <div className="text-muted-foreground">Longitude:</div>
+                <div>{satellitePosition.lng.toFixed(2)}°</div>
               </div>
             </div>
           )}

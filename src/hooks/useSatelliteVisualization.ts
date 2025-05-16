@@ -10,9 +10,7 @@ import {
   toRadians,
   toDegrees,
   normalizeAngle,
-  calculateSatellitePositionECI,
-  eciToECEF,
-  ecefToGeodetic
+  calculateSatellitePosition
 } from '@/utils/orbitalUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -43,11 +41,7 @@ interface UseSatelliteVisualizationProps {
   containerRef: React.RefObject<HTMLDivElement>;
   inputs: SensorInputs | null;
   orbitData: OrbitData;
-  onValidationUpdate?: (data: {
-    visual: {x: number, y: number, z: number} | null,
-    calculated: {x: number, y: number, z: number} | null,
-    difference: number | null
-  }) => void;
+  onPositionUpdate?: (position: THREE.Vector3) => void;
 }
 
 const MODEL_PATHS = [
@@ -63,9 +57,14 @@ export function useSatelliteVisualization({
   containerRef,
   inputs,
   orbitData,
-  onValidationUpdate
+  onPositionUpdate
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
+
+  // Get current Earth rotation angle
+  const getCurrentEarthRotation = (): number => {
+    return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
+  };
 
   const updateSatelliteOrbit = (data: OrbitData) => {
     if (!sceneRef.current) return;
@@ -162,130 +161,6 @@ export function useSatelliteVisualization({
     orbitPlane.add(orbitPath);
   };
 
-  /**
-   * Performs cross-validation between the visual satellite position and the calculated position
-   * from the orbital equations
-   */
-  const runPositionValidation = () => {
-    if (!sceneRef.current || !sceneRef.current.orbitPlane) {
-      if (onValidationUpdate) {
-        onValidationUpdate({ 
-          visual: null, 
-          calculated: null, 
-          difference: null 
-        });
-      }
-      return;
-    }
-
-    // Get current parameters
-    const altitude = sceneRef.current.orbitRadius - 6371; // km
-    const inclination = sceneRef.current.inclination; // degrees
-    const raan = toDegrees(sceneRef.current.raan); // convert to degrees
-    const trueAnomaly = toDegrees(sceneRef.current.trueAnomaly); // convert to degrees
-    const earthRotationAngle = sceneRef.current.earthRotationAngle; // radians
-    
-    // Method 1: Get current visual satellite position from Three.js
-    const visualPosition = sceneRef.current.satellite.position.clone();
-    
-    // Method 2: Calculate position using orbital equations
-    const eciPosition = calculateSatellitePositionECI(
-      altitude,
-      inclination,
-      toRadians(raan), // convert back to radians for calculation
-      toRadians(trueAnomaly) // convert back to radians for calculation
-    );
-    
-    const ecefPosition = eciToECEF(eciPosition, earthRotationAngle);
-    
-    // Convert ECEF to Three.js coordinates (same scale)
-    const calculatedPosition = new THREE.Vector3(
-      ecefPosition[0],
-      ecefPosition[1],
-      ecefPosition[2]
-    );
-    
-    // Calculate distance between positions
-    const difference = visualPosition.distanceTo(calculatedPosition);
-    
-    console.log('Cross-Validation');
-    console.log(`Parameters: Alt: ${altitude}km, Inc: ${inclination}°, RAAN: ${raan}°, TA: ${trueAnomaly}°`);
-    console.log(`Visual Position: ${visualPosition.x.toFixed(2)}, ${visualPosition.y.toFixed(2)}, ${visualPosition.z.toFixed(2)}`);
-    console.log(`Calculated Position: ${calculatedPosition.x.toFixed(2)}, ${calculatedPosition.y.toFixed(2)}, ${calculatedPosition.z.toFixed(2)}`);
-    console.log(`Difference: ${difference.toFixed(2)} km`);
-    
-    // Visualize the calculated position (optional helper sphere)
-    // First remove any existing validation marker
-    const existingMarker = sceneRef.current.scene.getObjectByName('validation-marker');
-    if (existingMarker) {
-      sceneRef.current.scene.remove(existingMarker);
-    }
-    
-    // Create small sphere to visualize the calculated position
-    const markerGeometry = new THREE.SphereGeometry(50, 16, 16);
-    const markerMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xFF0000,
-      transparent: true,
-      opacity: 0.7
-    });
-    const validationMarker = new THREE.Mesh(markerGeometry, markerMaterial);
-    validationMarker.name = 'validation-marker';
-    validationMarker.position.copy(calculatedPosition);
-    sceneRef.current.scene.add(validationMarker);
-    
-    // Add a line connecting the two positions
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-      visualPosition,
-      calculatedPosition
-    ]);
-    
-    const lineMaterial = new THREE.LineBasicMaterial({ 
-      color: 0xFF0000,
-      linewidth: 2
-    });
-    
-    const connectionLine = new THREE.Line(lineGeometry, lineMaterial);
-    connectionLine.name = 'validation-line';
-    sceneRef.current.scene.add(connectionLine);
-    
-    // Update callback with validation data
-    if (onValidationUpdate) {
-      onValidationUpdate({
-        visual: {
-          x: visualPosition.x,
-          y: visualPosition.y,
-          z: visualPosition.z
-        },
-        calculated: {
-          x: calculatedPosition.x,
-          y: calculatedPosition.y,
-          z: calculatedPosition.z
-        },
-        difference
-      });
-    }
-    
-    // Show toast with validation result
-    if (difference > 10) {
-      toast({
-        title: "Position Discrepancy Detected",
-        description: `Visual and calculated positions differ by ${difference.toFixed(2)} km.`,
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Position Validation",
-        description: `Visual and calculated positions match within ${difference.toFixed(2)} km.`,
-      });
-    }
-    
-    return {
-      visualPosition,
-      calculatedPosition,
-      difference
-    };
-  };
-
   const startOrbitAnimation = (data: OrbitData) => {
     if (!sceneRef.current) return;
     
@@ -321,22 +196,6 @@ export function useSatelliteVisualization({
     
     // Draw orbit path
     drawOrbitPath(orbitalRadius, orbitPlane);
-    
-    // Show information about satellite's current position
-    const position = calculateSatellitePositionECI(
-      data.altitude,
-      data.inclination,
-      data.raan,
-      data.trueAnomaly
-    );
-    
-    const ecefPosition = eciToECEF(position, sceneRef.current.earthRotationAngle);
-    const geoPosition = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
-    
-    toast({
-      title: "Orbit Initialized",
-      description: `Satellite positioned at Lat: ${geoPosition.lat.toFixed(2)}°, Lng: ${geoPosition.lng.toFixed(2)}°`,
-    });
     
     // Update satellite position along orbit
     updateSatelliteOrbitPosition(0);
@@ -387,6 +246,11 @@ export function useSatelliteVisualization({
           sceneRef.current.sensorFootprint.quaternion.setFromAxisAngle(axis, angle);
         }
       }
+    }
+    
+    // Notify position update
+    if (onPositionUpdate) {
+      onPositionUpdate(sceneRef.current.satellite.position);
     }
   };
 
@@ -929,6 +793,6 @@ export function useSatelliteVisualization({
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    runPositionValidation
+    getCurrentEarthRotation
   };
 }
