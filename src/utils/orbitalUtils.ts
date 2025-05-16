@@ -1,4 +1,3 @@
-
 /**
  * Orbital calculation utilities for satellite positioning
  */
@@ -102,8 +101,7 @@ export function calculateSatellitePosition(
   const yOrbit = 0;
   const zOrbit = orbitRadius * Math.sin(trueAnomalyRad);
   
-  // Apply rotation matrices directly
-  // 1. Rotate around Y axis by inclination (tilt the orbital plane)
+  // First, apply inclination rotation (around X-axis)
   const cosInc = Math.cos(inclination);
   const sinInc = Math.sin(inclination);
   
@@ -111,27 +109,28 @@ export function calculateSatellitePosition(
   const y1 = yOrbit * cosInc - zOrbit * sinInc;
   const z1 = yOrbit * sinInc + zOrbit * cosInc;
   
-  // 2. Rotate around Z axis by RAAN (orient the orbital plane)
+  // Second, apply RAAN rotation (around Y-axis)
   const cosRaan = Math.cos(raanRad);
   const sinRaan = Math.sin(raanRad);
   
-  const x2 = x1 * cosRaan - y1 * sinRaan;
-  const y2 = x1 * sinRaan + y1 * cosRaan;
-  const z2 = z1;
+  const x2 = x1 * cosRaan - z1 * sinRaan;
+  const y2 = y1;
+  const z2 = x1 * sinRaan + z1 * cosRaan;
   
-  // 3. Apply Earth rotation (if needed)
+  // Finally, apply Earth's rotation (around Y-axis)
   const cosEarth = Math.cos(earthRotationAngle);
   const sinEarth = Math.sin(earthRotationAngle);
   
-  const x3 = x2 * cosEarth - y2 * sinEarth;
-  const y3 = x2 * sinEarth + y2 * cosEarth;
-  const z3 = z2;
+  const x3 = x2 * cosEarth + z2 * sinEarth;
+  const y3 = y2;
+  const z3 = -x2 * sinEarth + z2 * cosEarth;
   
   return [x3, y3, z3];
 }
 
 /**
  * Calculate lat/long coordinates for satellite position
+ * This function correctly accounts for the orbital elements and Earth's rotation
  */
 export function calculateSatelliteLatLong(
   altitudeKm: number,
@@ -141,7 +140,7 @@ export function calculateSatelliteLatLong(
   earthRotationAngle: number = 0
 ): { lat: number, lng: number } {
   // Get position in Cartesian coordinates
-  const position = calculateSatellitePosition(
+  const [x, y, z] = calculateSatellitePosition(
     altitudeKm, 
     inclinationDeg, 
     raanRad, 
@@ -149,13 +148,18 @@ export function calculateSatelliteLatLong(
     earthRotationAngle
   );
   
-  // Convert to geodetic coordinates
-  const geodetic = ecefToGeodetic(position[0], position[1], position[2]);
+  // Calculate latitude (angle from equatorial plane)
+  const r = Math.sqrt(x*x + y*y + z*z);
+  const lat = toDegrees(Math.asin(y/r));
   
-  return {
-    lat: geodetic.lat,
-    lng: geodetic.lng
-  };
+  // Calculate longitude
+  let lng = toDegrees(Math.atan2(z, x));
+  
+  // Normalize longitude to [-180, 180]
+  if (lng > 180) lng -= 360;
+  if (lng < -180) lng += 360;
+  
+  return { lat, lng };
 }
 
 /**
@@ -210,7 +214,6 @@ export function isLocationReachableByInclination(latDeg: number, inclinationDeg:
 
 /**
  * Finds optimal RAAN and True Anomaly values to position a satellite over a target lat/long
- * Uses a simple grid search followed by refinement
  */
 export function findOptimalOrbitalParameters(
   targetLatDeg: number, 

@@ -7,7 +7,7 @@ import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
-import { toRadians, calculateSatelliteLatLong } from '@/utils/orbitalUtils';
+import { toRadians } from '@/utils/orbitalUtils';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -40,16 +40,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     inputs,
     orbitData,
     onPositionUpdate: (position) => {
-      // Calculate lat/long from orbit parameters
-      const earthRotation = getCurrentEarthRotation();
-      const { lat, lng } = calculateSatelliteLatLong(
-        orbitData.altitude,
-        orbitData.inclination,
-        toRadians(orbitData.raan),
-        toRadians(orbitData.trueAnomaly),
-        earthRotation
-      );
-      setSatellitePosition({ lat, lng });
+      setSatellitePosition({ lat: position.lat, lng: position.lng });
     }
   });
 
@@ -82,23 +73,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     
     startOrbitAnimation(orbitData);
     
-    // Calculate and display current satellite position
-    const earthRotation = getCurrentEarthRotation();
-    const { lat, lng } = calculateSatelliteLatLong(
-      orbitData.altitude,
-      orbitData.inclination,
-      toRadians(orbitData.raan),
-      toRadians(orbitData.trueAnomaly),
-      earthRotation
-    );
-    
-    setSatellitePosition({ lat, lng });
-    
-    toast({
-      title: "Satellite positioned",
-      description: `Lat: ${lat.toFixed(2)}°, Lng: ${lng.toFixed(2)}°`,
-      duration: 5000,
-    });
+    // Orbital parameters will be updated by the onPositionUpdate callback
   };
   
   // Handle model upload
