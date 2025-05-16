@@ -1,16 +1,15 @@
+
 import * as THREE from 'three';
 
 /**
  * Creates a pyramid geometry for sensor field visualization
- * The pyramid is created with apex at origin (0,0,0) and base toward -Y direction
- * Adapted for Z-polar coordinate system
+ * The pyramid is created with apex at origin (0,0,0) and base toward -Y direction (Earth)
  */
 export function createPyramidGeometry(width: number, height: number, depth: number): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   
   // Define the 5 vertices of the pyramid (4 base corners + 1 apex)
   // Apex at origin, base extends in negative Y direction
-  // For Z-polar system, we keep the sensor pointing in -Y direction
   const vertices = new Float32Array([
     // Base vertices (toward Earth direction)
     -width/2, -depth, -height/2,  // bottom left
@@ -110,7 +109,6 @@ export function createArrow(direction: THREE.Vector3, origin: THREE.Vector3, len
 /**
  * Creates FOV angle annotations with arrows and text labels
  * Enhanced to make annotations more visible and illustrative
- * Updated for Z-polar coordinate system
  */
 export function createFOVAnnotations(
   satellitePosition: THREE.Vector3,
@@ -131,11 +129,11 @@ export function createFOVAnnotations(
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.8 } // More opaque background
   });
   
-  // Position label at right side of the sensor field view - adjusted for Z-polar
+  // Position label at right side of the sensor field view
   hLabel.position.set(distanceFromOrigin, -200, 0);
   group.add(hLabel);
   
-  // Add horizontal FOV indicator arrows - adjusted for Z-polar
+  // Add horizontal FOV indicator arrows
   const hArrowLeft = createArrow(
     new THREE.Vector3(-1, 0, 0), // Left direction
     new THREE.Vector3(0, -100, 0), // Slightly below origin
@@ -152,20 +150,20 @@ export function createFOVAnnotations(
   );
   group.add(hArrowRight);
   
-  // Create vertical FOV label - adjusted for Z-polar
+  // Create vertical FOV label
   const vLabel = createTextSprite(`VFOV: ${fovVDeg.toFixed(2)}°`, {
     fontsize: 32, // Increased font size
     textColor: { r: 255, g: 50, b: 50, a: 1.0 },
     backgroundColor: { r: 0, g: 0, b: 0, a: 0.8 } // More opaque background
   });
   
-  // Position label on the side for better visibility - adjusted for Z-polar
+  // Position label on the side for better visibility
   vLabel.position.set(0, -200, distanceFromOrigin);
   group.add(vLabel);
   
-  // Add vertical FOV indicator arrows - adjusted for Z-polar
+  // Add vertical FOV indicator arrows
   const vArrowUp = createArrow(
-    new THREE.Vector3(0, 0, 1), // Up direction in Z-polar system
+    new THREE.Vector3(0, 0, 1), // Up direction (in the scene's coordinate system)
     new THREE.Vector3(0, -100, 0), // Slightly below origin
     distanceFromOrigin * 0.8, // Arrow length
     0xFF3333 // Red color
@@ -173,18 +171,18 @@ export function createFOVAnnotations(
   group.add(vArrowUp);
   
   const vArrowDown = createArrow(
-    new THREE.Vector3(0, 0, -1), // Down direction in Z-polar system
+    new THREE.Vector3(0, 0, -1), // Down direction
     new THREE.Vector3(0, -100, 0), // Slightly below origin
     distanceFromOrigin * 0.8, // Arrow length
     0xFF3333 // Red color
   );
   group.add(vArrowDown);
   
-  // Add diagonal arrows to show the actual FOV angles - adjusted for Z-polar
+  // Add diagonal arrows to show the actual FOV angles
   const hAngle = fovH / 2; // Half of horizontal FOV
   const vAngle = fovV / 2; // Half of vertical FOV
   
-  // Calculate directions based on FOV angles for Z-polar system
+  // Calculate directions based on FOV angles
   const rightDirection = new THREE.Vector3(
     Math.sin(hAngle),
     -Math.cos(hAngle),
@@ -247,7 +245,7 @@ export function createFOVAnnotations(
 
 /**
  * Creates a curved polygon on the Earth surface to represent sensor footprint
- * Updated for Z-polar coordinate system
+ * Now with added dimension labels
  */
 export function createCurvedFootprint(
   earthRadius: number, 
@@ -270,23 +268,26 @@ export function createCurvedFootprint(
   const distanceToEarthCenter = satellitePosition.length();
   const altitude = distanceToEarthCenter - earthRadius;
   
-  // Create a coordinate system with Y pointing to Earth center in Z-polar system
-  const yAxis = directionToEarthCenter; // Y is toward Earth center
-  const zAxis = new THREE.Vector3(0, 0, 1); // Z is polar axis
-  
-  // Create X axis orthogonal to Y and Z
-  const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
-  
-  // Recalculate Z to ensure orthogonality
-  const zAxisAdjusted = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize();
+  // Create a coordinate system with Z pointing to Earth center
+  const zAxis = directionToEarthCenter;
+  const xAxis = new THREE.Vector3(1, 0, 0);
+  if (Math.abs(zAxis.dot(xAxis)) > 0.9) {
+    xAxis.set(0, 1, 0);
+  }
+  const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
+  xAxis.crossVectors(yAxis, zAxis).normalize();
   
   // Apply off-nadir angle rotation if specified
   if (offNadirAngle !== 0) {
     const offNadirRad = (offNadirAngle * Math.PI) / 180;
     const rotationAxis = xAxis;
     const rotationMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, offNadirRad);
-    yAxis.applyMatrix4(rotationMatrix);
+    zAxis.applyMatrix4(rotationMatrix);
   }
+  
+  // Calculate corners of the field of view at the Earth's surface
+  const fovHRad = fovH / 2;
+  const fovVRad = fovV / 2;
   
   // Create a high-resolution curved polygon using segments
   const segments = 32;
@@ -304,14 +305,14 @@ export function createCurvedFootprint(
       const v = (j / segments) * 2 - 1;
       
       // Scale by field of view
-      const xOffset = Math.tan(fovH / 2) * u * altitude;
-      const zOffset = Math.tan(fovV / 2) * v * altitude;
+      const x = Math.tan(fovHRad) * u * altitude;
+      const y = Math.tan(fovVRad) * v * altitude;
       
-      // Calculate direction from satellite to this point in Z-polar system
+      // Calculate direction from satellite to this point
       const direction = new THREE.Vector3(
-        xOffset * xAxis.x + altitude * yAxis.x + zOffset * zAxisAdjusted.x,
-        xOffset * xAxis.y + altitude * yAxis.y + zOffset * zAxisAdjusted.y,
-        xOffset * xAxis.z + altitude * yAxis.z + zOffset * zAxisAdjusted.z
+        x * xAxis.x + y * yAxis.x + altitude * zAxis.x,
+        x * xAxis.y + y * yAxis.y + altitude * zAxis.y,
+        x * xAxis.z + y * yAxis.z + altitude * zAxis.z
       ).normalize();
       
       // Find intersection with Earth's surface
@@ -373,7 +374,8 @@ export function createCurvedFootprint(
       backgroundColor: { r: 0, g: 0, b: 0, a: 0.7 }
     });
     
-    // Calculate position for horizontal label - adjusted for Z-polar
+    // Calculate position for horizontal label
+    // Position at the right edge of footprint
     const rightEdgePosition = new THREE.Vector3();
     rightEdgePosition.setFromMatrixPosition(footprintMesh.matrixWorld);
     rightEdgePosition.x += footprintRadius * 0.7;
@@ -391,10 +393,11 @@ export function createCurvedFootprint(
       backgroundColor: { r: 0, g: 0, b: 0, a: 0.7 }
     });
     
-    // Calculate position for vertical label - adjusted for Z-polar
+    // Calculate position for vertical label
+    // Position at the top edge of footprint
     const topEdgePosition = new THREE.Vector3();
     topEdgePosition.setFromMatrixPosition(footprintMesh.matrixWorld);
-    topEdgePosition.z += footprintRadius * 0.7; // Z is up in Z-polar system
+    topEdgePosition.z += footprintRadius * 0.7;
     topEdgePosition.y -= 20; // Small offset from the footprint
     vLabel.position.copy(topEdgePosition);
     

@@ -85,12 +85,7 @@ export function ecefToGeodetic(
 }
 
 /**
- * Rotation matrices for orbital mechanics
- * Z is polar axis, X and Y are in equatorial plane
- */
-
-/**
- * Rotate a point around the X axis (equatorial plane rotation)
+ * Rotate a point around the X axis
  */
 export function rotateX(point: [number, number, number], angleRad: number): [number, number, number] {
   const cosAngle = Math.cos(angleRad);
@@ -104,7 +99,7 @@ export function rotateX(point: [number, number, number], angleRad: number): [num
 }
 
 /**
- * Rotate a point around the Y axis (equatorial plane rotation)
+ * Rotate a point around the Y axis
  */
 export function rotateY(point: [number, number, number], angleRad: number): [number, number, number] {
   const cosAngle = Math.cos(angleRad);
@@ -118,7 +113,7 @@ export function rotateY(point: [number, number, number], angleRad: number): [num
 }
 
 /**
- * Rotate a point around the Z axis (polar axis rotation)
+ * Rotate a point around the Z axis
  */
 export function rotateZ(point: [number, number, number], angleRad: number): [number, number, number] {
   const cosAngle = Math.cos(angleRad);
@@ -133,7 +128,7 @@ export function rotateZ(point: [number, number, number], angleRad: number): [num
 
 /**
  * Calculate satellite position in ECI coordinates based on orbital elements
- * Using standard orbital mechanics convention: Z is polar, X,Y are equatorial
+ * This is a direct calculation using orbital elements, not a frame transformation
  */
 export function calculateSatelliteECIPosition(
   semiMajorAxis: number,
@@ -167,7 +162,6 @@ export function calculateSatelliteECIPosition(
 
 /**
  * Convert ECI coordinates to ECEF coordinates using Greenwich Sidereal Time
- * Z axis is aligned with Earth's rotation axis in both frames
  */
 export function eciToEcef(
   eciCoords: [number, number, number],
@@ -179,7 +173,6 @@ export function eciToEcef(
 
 /**
  * Convert ECEF coordinates to ECI coordinates using Greenwich Sidereal Time
- * Z axis is aligned with Earth's rotation axis in both frames
  */
 export function ecefToEci(
   ecefCoords: [number, number, number],
