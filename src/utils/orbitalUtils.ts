@@ -1,3 +1,4 @@
+
 /**
  * Orbital calculation utilities for satellite positioning
  */
@@ -10,6 +11,7 @@ const RAD_TO_DEG = 180 / Math.PI;
 const EARTH_RADIUS = 6371; // km
 const EARTH_FLATTENING = 1/298.257223563;
 const EARTH_ECCENTRICITY_SQ = 2*EARTH_FLATTENING - Math.pow(EARTH_FLATTENING, 2);
+const EARTH_MU = 398600.4418; // Earth's gravitational parameter (km³/s²)
 
 /**
  * Conversion between degrees and radians
@@ -83,54 +85,105 @@ export function ecefToGeodetic(
 }
 
 /**
- * Calculates satellite position directly in Cartesian coordinates
- * based on orbital parameters, without using ECI/ECEF conversions
+ * Rotate a point around the X axis
  */
-export function calculateSatellitePosition(
-  altitudeKm: number,
-  inclinationDeg: number,
-  raanRad: number,
-  trueAnomalyRad: number,
-  earthRotationAngle: number = 0
-): [number, number, number] {
-  const orbitRadius = EARTH_RADIUS + altitudeKm;
-  const inclination = toRadians(inclinationDeg);
+export function rotateX(point: [number, number, number], angleRad: number): [number, number, number] {
+  const cosAngle = Math.cos(angleRad);
+  const sinAngle = Math.sin(angleRad);
   
-  // Position in orbital plane (x-z plane by default)
-  const xOrbit = orbitRadius * Math.cos(trueAnomalyRad);
-  const yOrbit = 0;
-  const zOrbit = orbitRadius * Math.sin(trueAnomalyRad);
-  
-  // First, apply inclination rotation (around X-axis)
-  const cosInc = Math.cos(inclination);
-  const sinInc = Math.sin(inclination);
-  
-  const x1 = xOrbit;
-  const y1 = yOrbit * cosInc - zOrbit * sinInc;
-  const z1 = yOrbit * sinInc + zOrbit * cosInc;
-  
-  // Second, apply RAAN rotation (around Y-axis)
-  const cosRaan = Math.cos(raanRad);
-  const sinRaan = Math.sin(raanRad);
-  
-  const x2 = x1 * cosRaan - z1 * sinRaan;
-  const y2 = y1;
-  const z2 = x1 * sinRaan + z1 * cosRaan;
-  
-  // Finally, apply Earth's rotation (around Y-axis)
-  const cosEarth = Math.cos(earthRotationAngle);
-  const sinEarth = Math.sin(earthRotationAngle);
-  
-  const x3 = x2 * cosEarth + z2 * sinEarth;
-  const y3 = y2;
-  const z3 = -x2 * sinEarth + z2 * cosEarth;
-  
-  return [x3, y3, z3];
+  return [
+    point[0],
+    point[1] * cosAngle - point[2] * sinAngle,
+    point[1] * sinAngle + point[2] * cosAngle
+  ];
 }
 
 /**
- * Calculate lat/long coordinates for satellite position
- * This function correctly accounts for the orbital elements and Earth's rotation
+ * Rotate a point around the Y axis
+ */
+export function rotateY(point: [number, number, number], angleRad: number): [number, number, number] {
+  const cosAngle = Math.cos(angleRad);
+  const sinAngle = Math.sin(angleRad);
+  
+  return [
+    point[0] * cosAngle + point[2] * sinAngle,
+    point[1],
+    -point[0] * sinAngle + point[2] * cosAngle
+  ];
+}
+
+/**
+ * Rotate a point around the Z axis
+ */
+export function rotateZ(point: [number, number, number], angleRad: number): [number, number, number] {
+  const cosAngle = Math.cos(angleRad);
+  const sinAngle = Math.sin(angleRad);
+  
+  return [
+    point[0] * cosAngle - point[1] * sinAngle,
+    point[0] * sinAngle + point[1] * cosAngle,
+    point[2]
+  ];
+}
+
+/**
+ * Calculate satellite position in ECI coordinates based on orbital elements
+ */
+export function calculateSatelliteECIPosition(
+  semiMajorAxis: number,
+  eccentricity: number = 0, 
+  inclinationRad: number,
+  raanRad: number,
+  argOfPeriapsisRad: number = 0,
+  trueAnomalyRad: number
+): [number, number, number] {
+  // For circular orbits, calculate position in the orbital plane (perifocal frame)
+  const r = semiMajorAxis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math.cos(trueAnomalyRad));
+  
+  // Position in the orbital plane (perifocal coordinates)
+  const x_orbit = r * Math.cos(trueAnomalyRad);
+  const y_orbit = r * Math.sin(trueAnomalyRad);
+  const z_orbit = 0;
+  
+  // Apply the transformation from orbital plane to ECI
+  // First rotation: Argument of periapsis (around Z)
+  let position: [number, number, number] = [x_orbit, y_orbit, z_orbit];
+  position = rotateZ(position, argOfPeriapsisRad);
+  
+  // Second rotation: Inclination (around X)
+  position = rotateX(position, inclinationRad);
+  
+  // Third rotation: RAAN (around Z)
+  position = rotateZ(position, raanRad);
+  
+  return position;
+}
+
+/**
+ * Convert ECI coordinates to ECEF coordinates
+ */
+export function eciToEcef(
+  eciCoords: [number, number, number],
+  greenwichSiderealTimeRad: number
+): [number, number, number] {
+  // Rotate around Z axis by the Greenwich Sidereal Time
+  return rotateZ(eciCoords, -greenwichSiderealTimeRad);
+}
+
+/**
+ * Convert ECEF coordinates to ECI coordinates
+ */
+export function ecefToEci(
+  ecefCoords: [number, number, number],
+  greenwichSiderealTimeRad: number
+): [number, number, number] {
+  // Rotate around Z axis by the Greenwich Sidereal Time (opposite direction)
+  return rotateZ(ecefCoords, greenwichSiderealTimeRad);
+}
+
+/**
+ * Calculate satellite position in Geodetic coordinates (lat, long, alt)
+ * based on orbital elements and Earth rotation
  */
 export function calculateSatelliteLatLong(
   altitudeKm: number,
@@ -139,27 +192,27 @@ export function calculateSatelliteLatLong(
   trueAnomalyRad: number,
   earthRotationAngle: number = 0
 ): { lat: number, lng: number } {
-  // Get position in Cartesian coordinates
-  const [x, y, z] = calculateSatellitePosition(
-    altitudeKm, 
-    inclinationDeg, 
-    raanRad, 
-    trueAnomalyRad, 
-    earthRotationAngle
+  // Convert altitude to semi-major axis
+  const semiMajorAxis = EARTH_RADIUS + altitudeKm;
+  const inclinationRad = toRadians(inclinationDeg);
+  
+  // Calculate ECI position
+  const eciPosition = calculateSatelliteECIPosition(
+    semiMajorAxis,
+    0, // circular orbit
+    inclinationRad,
+    raanRad,
+    0, // argument of perigee
+    trueAnomalyRad
   );
   
-  // Calculate latitude (angle from equatorial plane)
-  const r = Math.sqrt(x*x + y*y + z*z);
-  const lat = toDegrees(Math.asin(y/r));
+  // Convert to ECEF, accounting for Earth's rotation
+  const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
   
-  // Calculate longitude
-  let lng = toDegrees(Math.atan2(z, x));
+  // Convert ECEF to lat/long
+  const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
   
-  // Normalize longitude to [-180, 180]
-  if (lng > 180) lng -= 360;
-  if (lng < -180) lng += 360;
-  
-  return { lat, lng };
+  return { lat: geodetic.lat, lng: geodetic.lng };
 }
 
 /**
@@ -213,6 +266,13 @@ export function isLocationReachableByInclination(latDeg: number, inclinationDeg:
 }
 
 /**
+ * Calculate orbital period in seconds for a given semi-major axis
+ */
+export function calculateOrbitalPeriod(semiMajorAxisKm: number): number {
+  return 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxisKm, 3) / EARTH_MU);
+}
+
+/**
  * Finds optimal RAAN and True Anomaly values to position a satellite over a target lat/long
  */
 export function findOptimalOrbitalParameters(
@@ -242,17 +302,14 @@ export function findOptimalOrbitalParameters(
     for (let taStep = 0; taStep < taSteps; taStep++) {
       const trueAnomaly = (taStep / taSteps) * 2 * Math.PI;
       
-      // Calculate satellite position directly
-      const satPosition = calculateSatellitePosition(
+      // Calculate satellite position using orbital elements
+      const satGeodetic = calculateSatelliteLatLong(
         altitudeKm,
         inclinationDeg,
         raan,
         trueAnomaly,
         earthRotationAngle
       );
-      
-      // Convert to geodetic
-      const satGeodetic = ecefToGeodetic(satPosition[0], satPosition[1], satPosition[2]);
       
       // Calculate the great circle distance between the satellite ground point and target
       const error = calculateGreatCircleDistance(
@@ -280,15 +337,13 @@ export function findOptimalOrbitalParameters(
     for (let taOffset = -refinementRadius; taOffset <= refinementRadius; taOffset += (2 * refinementRadius) / refinementSteps) {
       const trueAnomaly = normalizeAngle(bestTrueAnomaly + taOffset);
       
-      const satPosition = calculateSatellitePosition(
+      const satGeodetic = calculateSatelliteLatLong(
         altitudeKm,
         inclinationDeg,
         raan,
         trueAnomaly,
         earthRotationAngle
       );
-      
-      const satGeodetic = ecefToGeodetic(satPosition[0], satPosition[1], satPosition[2]);
       
       const error = calculateGreatCircleDistance(
         targetLatDeg,
@@ -311,3 +366,4 @@ export function findOptimalOrbitalParameters(
     error: minError
   };
 }
+

@@ -11,8 +11,11 @@ import {
   toRadians,
   toDegrees,
   normalizeAngle,
-  calculateSatellitePosition,
-  calculateSatelliteLatLong
+  calculateSatelliteECIPosition,
+  eciToEcef,
+  ecefToGeodetic,
+  calculateSatelliteLatLong,
+  calculateOrbitalPeriod
 } from '@/utils/orbitalUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -103,11 +106,12 @@ export function useSatelliteVisualization({
         sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
       }
       
-      // Create a new orbit plane
+      // Create a new orbit plane based on orbital elements
       const orbitPlane = new THREE.Group();
       sceneRef.current.scene.add(orbitPlane);
       sceneRef.current.orbitPlane = orbitPlane;
       
+      // For visualization, rotate the orbit plane according to RAAN and inclination
       // First rotate by RAAN around Y axis (Earth's pole)
       orbitPlane.rotation.y = sceneRef.current.raan;
       
@@ -161,10 +165,10 @@ export function useSatelliteVisualization({
     sceneRef.current.raan = toRadians(data.raan);
     sceneRef.current.trueAnomaly = toRadians(data.trueAnomaly);
     
-    // Calculate orbit speed (radians per frame)
-    const GM = 398600.4418; // Earth's gravitational parameter (km³/s²)
-    const orbitPeriod = 2 * Math.PI * Math.sqrt(Math.pow(orbitalRadius, 3) / GM);
-    sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 60); // 60 is to convert to frames
+    // Calculate orbit speed using orbital period
+    const orbitPeriod = calculateOrbitalPeriod(orbitalRadius);
+    // Convert to radians per frame assuming 60 frames per second
+    sceneRef.current.orbitSpeed = (2 * Math.PI) / (orbitPeriod * 60);
     
     console.log(`Starting orbit animation at altitude ${data.altitude} km with inclination ${data.inclination}°, RAAN ${data.raan}°, True Anomaly ${data.trueAnomaly}°`);
     console.log(`Orbit period: ${orbitPeriod.toFixed(2)} seconds, Orbit speed: ${sceneRef.current.orbitSpeed.toFixed(8)} rad/frame`);
@@ -174,7 +178,7 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.remove(sceneRef.current.orbitPlane);
     }
     
-    // Create a new orbit plane
+    // Create a new orbit plane based on orbital elements
     const orbitPlane = new THREE.Group();
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
@@ -216,7 +220,7 @@ export function useSatelliteVisualization({
     sceneRef.current.satellite.lookAt(0, 0, 0);
     sceneRef.current.satellite.rotateX(Math.PI / 2);
     
-    // Calculate lat/long taking Earth rotation into account
+    // Calculate lat/long taking Earth rotation into account using the orbital elements
     const { lat, lng } = calculateSatelliteLatLong(
       sceneRef.current.orbitRadius - 6371, // altitude
       sceneRef.current.inclination, 
@@ -235,7 +239,8 @@ export function useSatelliteVisualization({
       
       const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
       
-      if (sceneRef.current.sensorFootprint.parent === sceneRef.current.scene) {
+      // Only update the footprint if it's attached to the scene
+      if (sceneRef.current.sensorFootprint.parent) {
         sceneRef.current.sensorFootprint.position.copy(surfacePoint);
         
         // Orient the footprint to be tangent to Earth's surface
@@ -244,7 +249,7 @@ export function useSatelliteVisualization({
         const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
         const angle = Math.acos(up.dot(normal));
         
-        if (!isNaN(angle) && angle !== 0) {
+        if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
           sceneRef.current.sensorFootprint.quaternion.setFromAxisAngle(axis, angle);
         }
       }
@@ -469,7 +474,9 @@ export function useSatelliteVisualization({
     
     // Remove any existing footprint before creating a new one
     if (sceneRef.current.sensorFootprint) {
-      sceneRef.current.scene.remove(sceneRef.current.sensorFootprint);
+      if (sceneRef.current.sensorFootprint.parent) {
+        sceneRef.current.sensorFootprint.parent.remove(sceneRef.current.sensorFootprint);
+      }
       sceneRef.current.sensorFootprint = null;
     }
     
@@ -515,7 +522,27 @@ export function useSatelliteVisualization({
       calculatedParams.verticalFootprint
     );
     
-    // Only add the footprint if we have a valid sensor field
+    // Update the satellite to nadir direction
+    const dirToCenter = new THREE.Vector3().subVectors(
+      new THREE.Vector3(0, 0, 0),
+      sceneRef.current.satellite.position
+    ).normalize();
+    
+    const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+    
+    footprint.position.copy(surfacePoint);
+    
+    // Orient the footprint to be tangent to Earth's surface
+    const normal = surfacePoint.clone().normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+    const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
+    const angle = Math.acos(up.dot(normal));
+    
+    if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
+      footprint.quaternion.setFromAxisAngle(axis, angle);
+    }
+    
+    // Add footprint to the scene (not to the satellite)
     sceneRef.current.scene.add(footprint);
     sceneRef.current.sensorFootprint = footprint;
     
@@ -807,3 +834,4 @@ export function useSatelliteVisualization({
     getCurrentEarthRotation
   };
 }
+
