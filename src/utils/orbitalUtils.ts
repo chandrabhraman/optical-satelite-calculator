@@ -129,6 +129,7 @@ export function eciToECEF(
 
 /**
  * Calculates the satellite position in ECI coordinates based on orbital parameters
+ * This is the primary position calculation used by all components
  */
 export function calculateSatellitePositionECI(
   altitudeKm: number,
@@ -151,9 +152,17 @@ export function calculateSatellitePositionECI(
   const sinRaan = Math.sin(raanRad);
   
   // Apply the orbital plane orientation (inclination and RAAN)
-  const x = xOrbit * cosRaan - yOrbit * cosInc * sinRaan;
-  const y = xOrbit * sinRaan + yOrbit * cosInc * cosRaan;
-  const z = yOrbit * sinInc;
+  // Create and apply rotation matrices explicitly for consistency with Three.js
+  // First rotate around the Z-axis by RAAN
+  let x = xOrbit * cosRaan - yOrbit * sinRaan;
+  let y = xOrbit * sinRaan + yOrbit * cosRaan;
+  let z = zOrbit;
+  
+  // Then rotate around the new X-axis by inclination
+  const tempY = y * cosInc - z * sinInc;
+  const tempZ = y * sinInc + z * cosInc;
+  y = tempY;
+  z = tempZ;
   
   return [x, y, z];
 }

@@ -24,12 +24,23 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
+  const [validationData, setValidationData] = useState<{
+    visual: {x: number, y: number, z: number} | null,
+    calculated: {x: number, y: number, z: number} | null,
+    difference: number | null
+  }>({ visual: null, calculated: null, difference: null });
   
   // Use custom hook for Three.js visualization
-  const { updateSatelliteOrbit, loadCustomModel, startOrbitAnimation } = useSatelliteVisualization({
+  const { 
+    updateSatelliteOrbit, 
+    loadCustomModel, 
+    startOrbitAnimation,
+    runPositionValidation 
+  } = useSatelliteVisualization({
     containerRef,
     inputs,
-    orbitData
+    orbitData,
+    onValidationUpdate: setValidationData
   });
 
   // Update the altitude when inputs change
@@ -59,6 +70,11 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       duration: 3000,
     });
     startOrbitAnimation(orbitData);
+    
+    // Run validation after animation starts
+    setTimeout(() => {
+      runPositionValidation();
+    }, 100);
   };
   
   // Handle model upload
@@ -105,6 +121,25 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
             onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
+          
+          {/* Position validation panel */}
+          {validationData.visual && validationData.calculated && (
+            <div className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border border-border text-xs">
+              <h4 className="font-medium text-primary mb-1">Position Cross-Validation</h4>
+              <div className="grid grid-cols-2 gap-1">
+                <div className="text-muted-foreground">Visual:</div>
+                <div>X: {validationData.visual.x.toFixed(1)}, Y: {validationData.visual.y.toFixed(1)}, Z: {validationData.visual.z.toFixed(1)}</div>
+                
+                <div className="text-muted-foreground">Calculated:</div>
+                <div>X: {validationData.calculated.x.toFixed(1)}, Y: {validationData.calculated.y.toFixed(1)}, Z: {validationData.calculated.z.toFixed(1)}</div>
+                
+                <div className="text-muted-foreground">Difference:</div>
+                <div className={validationData.difference && validationData.difference > 10 ? "text-destructive" : "text-primary"}>
+                  {validationData.difference !== null ? `${validationData.difference.toFixed(2)} km` : 'N/A'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />
