@@ -28,6 +28,8 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     gpsAccuracy: 10 // m
   });
 
+  const [fStop, setFStop] = useState<number>(0);
+
   useEffect(() => {
     if (inputs.pixelSize && inputs.altitudeMin && inputs.altitudeMax && inputs.gsdRequirements) {
       try {
@@ -44,6 +46,19 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
       }
     }
   }, [inputs.pixelSize, inputs.altitudeMin, inputs.altitudeMax, inputs.gsdRequirements]);
+
+  // Calculate F-Stop whenever focal length or aperture changes
+  useEffect(() => {
+    if (inputs.focalLength > 0 && inputs.aperture > 0) {
+      try {
+        // F-Stop = Focal Length / Aperture Diameter
+        const calculatedFStop = inputs.focalLength / inputs.aperture;
+        setFStop(Number(calculatedFStop.toFixed(1)));
+      } catch (error) {
+        console.error("Error calculating F-Stop:", error);
+      }
+    }
+  }, [inputs.focalLength, inputs.aperture]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -219,6 +234,19 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
                 onChange={handleChange}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center">
+                F-Stop (f/)
+                <ParameterTooltip description="The f-number or f-stop is the ratio of the lens's focal length to the diameter of the entrance pupil (aperture). Lower f-stops allow more light but have shallower depth of field." />
+              </Label>
+              <Input
+                type="text"
+                value={`f/${fStop}`}
+                readOnly
+                className="bg-muted/50 cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">Auto-calculated from Focal Length and Aperture</p>
             </div>
           </div>
           

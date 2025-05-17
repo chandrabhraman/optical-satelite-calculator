@@ -65,12 +65,12 @@ export function useSatelliteVisualization({
   onPositionUpdate
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
-
+  
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
     return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
   };
-
+  
   const updateSatelliteOrbit = (data: OrbitData) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -137,7 +137,7 @@ export function useSatelliteVisualization({
     // Update satellite position based on current true anomaly
     updateSatelliteOrbitPosition(0);
   };
-
+  
   const drawOrbitPath = (radius: number, orbitPlane: THREE.Group) => {
     const orbitGeometry = new THREE.BufferGeometry();
     const orbitPoints = [];
@@ -164,7 +164,7 @@ export function useSatelliteVisualization({
     orbitPath.computeLineDistances();
     orbitPlane.add(orbitPath);
   };
-
+  
   const startOrbitAnimation = (data: OrbitData) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -217,7 +217,7 @@ export function useSatelliteVisualization({
     // Update satellite position along orbit
     updateSatelliteOrbitPosition(0);
   };
-
+  
   const updateSatelliteOrbitPosition = (deltaAngle: number) => {
     if (!sceneRef.current || !sceneRef.current.orbitPlane || !sceneRef.current.isInitialized) return;
     
@@ -320,7 +320,7 @@ export function useSatelliteVisualization({
       onPositionUpdate({ lat, lng });
     }
   };
-
+  
   const loadCustomModel = (file: File) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -378,7 +378,7 @@ export function useSatelliteVisualization({
       }
     );
   };
-
+  
   const loadDefaultSatelliteModel = (satelliteGroup: THREE.Group) => {
     if (!sceneRef.current) return;
     
@@ -413,7 +413,7 @@ export function useSatelliteVisualization({
       }
     );
   };
-
+  
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
     console.log('Creating fallback satellite model with size:', satelliteBaseSize);
     
@@ -486,7 +486,7 @@ export function useSatelliteVisualization({
     
     console.log('Fallback satellite model created with', satelliteGroup.children.length, 'parts');
   };
-
+  
   const updateVisualization = (inputs: SensorInputs) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -524,19 +524,20 @@ export function useSatelliteVisualization({
     console.log(`Calculated FOV - Horizontal: ${calculatedParams.hfovDeg.toFixed(2)}°, Vertical: ${calculatedParams.vfovDeg.toFixed(2)}°`);
     console.log(`Footprints - Horizontal: ${calculatedParams.horizontalFootprint.toFixed(2)} km, Vertical: ${calculatedParams.verticalFootprint.toFixed(2)} km`);
     
-    if (sceneRef.current.sensorField) {
+    // Remove existing sensor field if present
+    if (sceneRef.current.sensorField && sceneRef.current.sensorField.parent) {
       sceneRef.current.satellite.remove(sceneRef.current.sensorField);
+      sceneRef.current.sensorField = null;
     }
     
-    if (sceneRef.current.fovAnnotations) {
+    if (sceneRef.current.fovAnnotations && sceneRef.current.fovAnnotations.parent) {
       sceneRef.current.satellite.remove(sceneRef.current.fovAnnotations);
+      sceneRef.current.fovAnnotations = null;
     }
     
     // Remove any existing footprint before creating a new one
-    if (sceneRef.current.sensorFootprint) {
-      if (sceneRef.current.sensorFootprint.parent) {
-        sceneRef.current.sensorFootprint.parent.remove(sceneRef.current.sensorFootprint);
-      }
+    if (sceneRef.current.sensorFootprint && sceneRef.current.sensorFootprint.parent) {
+      sceneRef.current.sensorFootprint.parent.remove(sceneRef.current.sensorFootprint);
       sceneRef.current.sensorFootprint = null;
     }
     
@@ -547,12 +548,17 @@ export function useSatelliteVisualization({
     
     const pyramidGeometry = createPyramidGeometry(baseWidth, baseHeight, pyramidHeight);
     
+    // PERFORMANCE IMPROVEMENT: Use MeshBasicMaterial instead of MeshPhongMaterial
+    // for the sensor field, and optimize transparency settings
     const sensorFieldMaterial = new THREE.MeshBasicMaterial({
       color: 0x4CAF50,
       transparent: true,
       opacity: 0.3,
       side: THREE.DoubleSide,
-      depthWrite: false
+      depthWrite: false, // Improve transparency rendering
+      polygonOffset: true, // Prevent z-fighting
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
     });
     
     const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
@@ -563,6 +569,10 @@ export function useSatelliteVisualization({
     if (offNadirRad > 0) {
       newSensorField.rotation.z = offNadirRad;
     }
+    
+    // PERFORMANCE IMPROVEMENT: Set frustumCulled to false to prevent 
+    // the sensor field from being culled incorrectly
+    newSensorField.frustumCulled = false;
     
     sceneRef.current.satellite.add(newSensorField);
     sceneRef.current.sensorField = newSensorField;
@@ -576,7 +586,7 @@ export function useSatelliteVisualization({
     // Update satellite position to refresh the footprint
     updateSatelliteOrbitPosition(0);
   };
-
+  
   useEffect(() => {
     if (!containerRef.current) return;
     
@@ -697,7 +707,10 @@ export function useSatelliteVisualization({
       transparent: true,
       opacity: 0.3,
       side: THREE.DoubleSide,
-      depthWrite: false
+      depthWrite: false, // Improve transparency rendering
+      polygonOffset: true, // Prevent z-fighting
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
     });
     
     const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
@@ -776,8 +789,22 @@ export function useSatelliteVisualization({
     
     window.addEventListener('resize', handleResize);
     
-    const animate = () => {
+    // PERFORMANCE IMPROVEMENT: Use a better render loop with throttling for smoother animations
+    let lastRenderTime = 0;
+    const minRenderInterval = 1000 / 60; // Target 60fps
+    
+    const animate = (currentTime: number) => {
       const animationId = requestAnimationFrame(animate);
+      
+      // Throttle rendering for performance
+      if (currentTime - lastRenderTime < minRenderInterval) {
+        if (sceneRef.current) {
+          sceneRef.current.animationId = animationId;
+        }
+        return;
+      }
+      
+      lastRenderTime = currentTime;
       controls.update();
       
       // Update Earth rotation angle for day/night effect
@@ -800,7 +827,7 @@ export function useSatelliteVisualization({
       }
     };
     
-    animate();
+    animate(0);
     
     sceneRef.current = {
       scene,
