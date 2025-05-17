@@ -693,11 +693,21 @@ export function useSatelliteVisualization({
     const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.8);
     scene.add(hemisphereLight);
     
+    // Create and configure OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.minDistance = 10;
     controls.maxDistance = 500000;
+    
+    // Make sure these are explicitly enabled
+    controls.enableRotate = true;
+    controls.enableZoom = true;
+    controls.enablePan = true;
+    
+    // Set initial control target to center of Earth
+    controls.target.set(0, 0, 0);
+    controls.update();
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
@@ -848,6 +858,8 @@ export function useSatelliteVisualization({
       }
       
       lastRenderTime = currentTime;
+      
+      // Must call controls.update() in the animation loop for damping to work
       controls.update();
       
       // Update Earth rotation angle for day/night effect
@@ -902,6 +914,13 @@ export function useSatelliteVisualization({
         updateVisualization(inputs);
       }, 800);
     }
+    
+    // Mark as initialized with a delay to ensure all resources are loaded
+    setTimeout(() => {
+      if (sceneRef.current) {
+        sceneRef.current.isInitialized = true;
+      }
+    }, 1000);
     
     return () => {
       window.removeEventListener('resize', handleResize);
