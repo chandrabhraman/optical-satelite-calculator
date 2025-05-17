@@ -100,7 +100,7 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
         
         <div className="space-y-2">
           <Label htmlFor="inclination" className="text-xs text-muted-foreground">
-            Inclination (deg)
+            Inclination (°)
           </Label>
           <Input
             id="inclination"
@@ -114,38 +114,36 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
           />
         </div>
         
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            <Label htmlFor="raan" className="text-xs text-muted-foreground">
-              RAAN (deg)
-            </Label>
-            <Input
-              id="raan"
-              name="raan"
-              type="number"
-              value={orbitData.raan}
-              onChange={handleChange}
-              className="h-7 text-xs"
-              min={0}
-              max={360}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="trueAnomaly" className="text-xs text-muted-foreground">
-              True Anomaly (deg)
-            </Label>
-            <Input
-              id="trueAnomaly"
-              name="trueAnomaly"
-              type="number"
-              value={orbitData.trueAnomaly}
-              onChange={handleChange}
-              className="h-7 text-xs"
-              min={0}
-              max={360}
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="raan" className="text-xs text-muted-foreground">
+            RAAN (°)
+          </Label>
+          <Input
+            id="raan"
+            name="raan"
+            type="number"
+            value={orbitData.raan}
+            onChange={handleChange}
+            className="h-7 text-xs"
+            min={0}
+            max={360}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="trueAnomaly" className="text-xs text-muted-foreground">
+            True Anomaly (°)
+          </Label>
+          <Input
+            id="trueAnomaly"
+            name="trueAnomaly"
+            type="number"
+            value={orbitData.trueAnomaly}
+            onChange={handleChange}
+            className="h-7 text-xs"
+            min={0}
+            max={360}
+          />
         </div>
       </CardContent>
       
