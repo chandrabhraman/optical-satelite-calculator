@@ -110,11 +110,23 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.add(orbitPlane);
       sceneRef.current.orbitPlane = orbitPlane;
       
-      // Changed rotation order: First apply inclination rotation (around X axis)
-      orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
+      // Apply rotations with quaternions to rotate around world axes
+      // First apply RAAN rotation around world Y axis (equivalent to Z axis in orbital calculations)
+      const raanQuaternion = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(0, 1, 0), 
+        sceneRef.current.raan
+      );
       
-      // Then apply RAAN rotation (around Y axis in our visualization coordinate system)
-      orbitPlane.rotation.y = sceneRef.current.raan;
+      orbitPlane.quaternion.copy(raanQuaternion);
+      
+      // Then apply inclination rotation around the local X axis (after RAAN rotation)
+      const inclinationQuaternion = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(1, 0, 0), 
+        toRadians(sceneRef.current.inclination)
+      );
+      
+      // Combine rotations (quaternion multiplication applies the second quaternion to the result of the first)
+      orbitPlane.quaternion.multiply(inclinationQuaternion);
       
       console.log(`Updated orbit plane - Inclination: ${sceneRef.current.inclination}°, RAAN: ${toDegrees(sceneRef.current.raan)}°`);
       
@@ -181,11 +193,23 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // Changed rotation order: First apply inclination rotation (around X axis)
-    orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
+    // Apply rotations with quaternions to rotate around world axes
+    // First apply RAAN rotation around world Y axis (equivalent to Z axis in orbital calculations)
+    const raanQuaternion = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0), 
+      sceneRef.current.raan
+    );
     
-    // Then apply RAAN rotation (around Y axis in our visualization coordinate system)
-    orbitPlane.rotation.y = sceneRef.current.raan;
+    orbitPlane.quaternion.copy(raanQuaternion);
+    
+    // Then apply inclination rotation around the local X axis (after RAAN rotation)
+    const inclinationQuaternion = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(1, 0, 0), 
+      toRadians(sceneRef.current.inclination)
+    );
+    
+    // Combine rotations (quaternion multiplication applies the second quaternion to the result of the first)
+    orbitPlane.quaternion.multiply(inclinationQuaternion);
     
     // Draw orbit path
     drawOrbitPath(orbitalRadius, orbitPlane);
