@@ -115,7 +115,7 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="raan" className="text-xs text-muted-foreground">
+          <Label htmlFor="raan" className="text-[11px] text-muted-foreground">
             RAAN (°)
           </Label>
           <Input
@@ -131,7 +131,7 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="trueAnomaly" className="text-xs text-muted-foreground">
+          <Label htmlFor="trueAnomaly" className="text-[11px] text-muted-foreground">
             True Anomaly (°)
           </Label>
           <Input

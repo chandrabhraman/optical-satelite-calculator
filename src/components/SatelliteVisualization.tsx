@@ -18,7 +18,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [orbitData, setOrbitData] = useState<OrbitData>({
-    altitude: 500,
+    altitude: 500, // Will be updated when inputs change
     inclination: 98,
     raan: 0,
     trueAnomaly: 0
@@ -34,7 +34,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    getCurrentEarthRotation
+    getCurrentEarthRotation,
+    focusOnSatellite
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -47,11 +48,12 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   // Update the altitude when inputs change
   useEffect(() => {
     if (inputs) {
-      const newAltitude = inputs.altitudeMax / 1000; // Convert to km
-      if (newAltitude !== orbitData.altitude) {
+      // Calculate mean altitude in km
+      const meanAltitude = (inputs.altitudeMin + inputs.altitudeMax) / (2 * 1000);
+      if (meanAltitude !== orbitData.altitude) {
         setOrbitData(prev => ({
           ...prev,
-          altitude: newAltitude
+          altitude: meanAltitude
         }));
       }
     }
@@ -72,6 +74,11 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     });
     
     startOrbitAnimation(orbitData);
+    
+    // Focus camera on satellite after simulation starts
+    setTimeout(() => {
+      focusOnSatellite();
+    }, 100);
     
     // Orbital parameters will be updated by the onPositionUpdate callback
   };
@@ -103,6 +110,16 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
 
   const hasCalculated = calculationCount > 0;
 
+  // Focus on satellite when calculation happens
+  useEffect(() => {
+    if (hasCalculated && focusOnSatellite) {
+      // Short delay to ensure the scene is ready
+      setTimeout(() => {
+        focusOnSatellite();
+      }, 200);
+    }
+  }, [calculationCount, focusOnSatellite]);
+
   return (
     <Card className="glassmorphism w-full h-full flex flex-col">
       <CardHeader className="pb-2">
@@ -116,7 +133,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <LocationInput 
             onOrbitChange={handleOrbitChange}
             initialData={orbitData}
-            altitudeRange={inputs ? {min: inputs.altitudeMin, max: inputs.altitudeMax} : undefined}
+            altitudeRange={inputs ? {min: inputs.altitudeMin / 1000, max: inputs.altitudeMax / 1000} : undefined}
             onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
