@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SensorInputs } from "@/utils/types";
 import { calculateSensorParameters } from "@/utils/sensorCalculations";
 import ParameterTooltip from "@/components/ParameterTooltip";
+import { playSound, SOUNDS } from "@/utils/soundEffects";
 
 interface CalculatorFormProps {
   onCalculate: (inputs: SensorInputs) => void;
@@ -76,6 +76,9 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
       altitudeMax: inputs.altitudeMax * 1000,
     };
     onCalculate(submittedInputs);
+    
+    // Play the calculation sound effect
+    playSound(SOUNDS.calculate, 0.4);
   };
 
   const getFovValues = () => {

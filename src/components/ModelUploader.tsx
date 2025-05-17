@@ -1,9 +1,9 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ModelHelpTooltip from './ModelHelpTooltip';
+import { playSound, SOUNDS } from "@/utils/soundEffects";
 
 interface ModelUploaderProps {
   onModelUpload: (file: File) => void;
@@ -22,7 +22,10 @@ const ModelUploader = ({ onModelUpload }: ModelUploaderProps) => {
         setSelectedFile(file);
         onModelUpload(file);
         
-        // Toast messages are now handled in the parent component
+        // Play the upload sound effect
+        playSound(SOUNDS.upload, 0.4);
+        
+        // Toast messages are handled in the parent component
       } else {
         toast({
           title: "Unsupported file format",
