@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,6 @@ import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
-import { toRadians } from '@/utils/orbitalUtils';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -24,10 +22,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
-  const [satellitePosition, setSatellitePosition] = useState<{
-    lat: number | null,
-    lng: number | null
-  }>({ lat: null, lng: null });
   
   // Use custom hook for Three.js visualization
   const { 
@@ -39,8 +33,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     containerRef,
     inputs,
     orbitData,
-    onPositionUpdate: (position) => {
-      setSatellitePosition({ lat: position.lat, lng: position.lng });
+    onPositionUpdate: () => {
+      // We're keeping the callback but not using the position data anymore
     }
   });
 
@@ -73,8 +67,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     });
     
     startOrbitAnimation(orbitData);
-    
-    // Orbital parameters will be updated by the onPositionUpdate callback
   };
   
   // Handle model upload
@@ -121,20 +113,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
             onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
-          
-          {/* Satellite position display */}
-          {satellitePosition.lat !== null && satellitePosition.lng !== null && (
-            <div className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border border-border text-xs">
-              <h4 className="font-medium text-primary mb-1">Current Satellite Position</h4>
-              <div className="grid grid-cols-2 gap-1">
-                <div className="text-muted-foreground">Latitude:</div>
-                <div>{satellitePosition.lat.toFixed(2)}°</div>
-                
-                <div className="text-muted-foreground">Longitude:</div>
-                <div>{satellitePosition.lng.toFixed(2)}°</div>
-              </div>
-            </div>
-          )}
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />
