@@ -18,18 +18,13 @@ import {
 } from '@/utils/orbitalUtils';
 import { toast } from '@/hooks/use-toast';
 
-// Define the model paths constant that was missing
-const MODEL_PATHS = [
-  '/models/satellite-default.glb',
-];
-
 interface SceneRef {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
   satellite: THREE.Group;
-  sensorField: THREE.Mesh | null;
+  sensorField: THREE.Mesh;
   fovAnnotations: THREE.Group | null;
   sensorFootprint: THREE.Mesh | null;
   earth: THREE.Mesh;
@@ -54,6 +49,10 @@ interface UseSatelliteVisualizationProps {
   onPositionUpdate?: (position: {lat: number, lng: number}) => void;
 }
 
+const MODEL_PATHS = [
+  '/models/satellite-default.glb',
+];
+
 // Real Earth rotates at ~0.0042 degrees per second
 // For 2x faster than real Earth: 0.0042 * 2 = 0.0084 degrees per second
 // Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
@@ -70,67 +69,6 @@ export function useSatelliteVisualization({
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
     return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
-  };
-  
-  // Function to focus camera on satellite - MODIFIED to provide view from above satellite looking at Earth
-  const focusOnSatellite = () => {
-    if (!sceneRef.current || !sceneRef.current.isInitialized) return;
-    
-    // Get the satellite position
-    const satellite = sceneRef.current.satellite;
-    const satellitePos = satellite.position.clone();
-    
-    // Calculate the direction from satellite to Earth center (0,0,0)
-    const dirToEarth = new THREE.Vector3(0, 0, 0).sub(satellitePos).normalize();
-    
-    // Position the camera above the satellite looking toward Earth
-    // We'll position it behind and above the satellite
-    const cameraOffsetBehind = 150; // Distance behind the satellite
-    const cameraOffsetUp = 200;     // Distance above the satellite
-    
-    // Create a position vector that's offset from the satellite
-    const cameraPos = satellitePos.clone();
-    
-    // Move away from Earth (opposite of dirToEarth)
-    cameraPos.add(dirToEarth.clone().multiplyScalar(-cameraOffsetBehind));
-    
-    // Move up relative to the satellite-Earth axis
-    const upVector = new THREE.Vector3(0, 1, 0);
-    // Make sure our "up" is not parallel to our view direction
-    const rightVector = new THREE.Vector3().crossVectors(dirToEarth, upVector).normalize();
-    // Recalculate a proper up vector that's perpendicular to our view direction
-    const properUpVector = new THREE.Vector3().crossVectors(rightVector, dirToEarth).normalize();
-    cameraPos.add(properUpVector.multiplyScalar(cameraOffsetUp));
-    
-    // Smoothly move the camera to this position
-    const duration = 1000; // in milliseconds
-    const startTime = Date.now();
-    const startPos = sceneRef.current.camera.position.clone();
-    const startTarget = sceneRef.current.controls.target.clone();
-    
-    function animateCamera() {
-      const now = Date.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Use easing function for smoother transition
-      const easeProgress = 1 - Math.pow(1 - progress, 3); // cubic ease out
-      
-      // Interpolate camera position
-      sceneRef.current!.camera.position.lerpVectors(startPos, cameraPos, easeProgress);
-      
-      // Interpolate controls target position
-      sceneRef.current!.controls.target.lerpVectors(startTarget, satellitePos, easeProgress);
-      sceneRef.current!.controls.update();
-      
-      // Continue animation if not complete
-      if (progress < 1) {
-        requestAnimationFrame(animateCamera);
-      }
-    }
-    
-    // Start animation
-    animateCamera();
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
@@ -647,9 +585,6 @@ export function useSatelliteVisualization({
     
     // Update satellite position to refresh the footprint
     updateSatelliteOrbitPosition(0);
-    
-    // Focus camera on satellite after updating visualization
-    setTimeout(focusOnSatellite, 100);
   };
   
   useEffect(() => {
@@ -664,15 +599,13 @@ export function useSatelliteVisualization({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A0F1A);
     
-    // Initial camera positioning - UPDATED for better default view
     const camera = new THREE.PerspectiveCamera(
       45, 
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000000
     );
-    // Position camera looking toward where the satellite will be
-    camera.position.set(0, 10000, 15000);
+    camera.position.set(0, 2000, 15000);
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -693,21 +626,11 @@ export function useSatelliteVisualization({
     const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.8);
     scene.add(hemisphereLight);
     
-    // Create and configure OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.minDistance = 10;
     controls.maxDistance = 500000;
-    
-    // Make sure these are explicitly enabled
-    controls.enableRotate = true;
-    controls.enableZoom = true;
-    controls.enablePan = true;
-    
-    // Set initial control target to center of Earth
-    controls.target.set(0, 0, 0);
-    controls.update();
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
@@ -773,11 +696,34 @@ export function useSatelliteVisualization({
     
     loadDefaultSatelliteModel(satellite);
     
-    // Initialize default orbit parameters - use mean altitude if inputs are available
-    let defaultAltitude = orbitData.altitude;
-    if (inputs) {
-      defaultAltitude = (inputs.altitudeMin + inputs.altitudeMax) / (2 * 1000);
-    }
+    const defaultSensorAngle = Math.PI / 12;
+    const sensorHeight = 600;
+    const baseSize = Math.tan(defaultSensorAngle) * sensorHeight;
+    
+    const pyramidGeometry = createPyramidGeometry(baseSize, baseSize, sensorHeight);
+    
+    const sensorFieldMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4CAF50,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+      depthWrite: false, // Improve transparency rendering
+      polygonOffset: true, // Prevent z-fighting
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+    
+    const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
+    
+    sensorField.rotation.x = Math.PI;
+    sensorField.position.y = 0;
+    satellite.add(sensorField);
+    
+    // Initialize with no footprint - we'll create it when needed
+    let sensorFootprint: THREE.Mesh | null = null;
+    
+    // Initialize default orbit parameters
+    const defaultAltitude = orbitData.altitude;
     const defaultInclination = orbitData.inclination;
     const defaultRaan = toRadians(orbitData.raan);
     const defaultTrueAnomaly = toRadians(orbitData.trueAnomaly);
@@ -791,9 +737,12 @@ export function useSatelliteVisualization({
     let inclination = defaultInclination;
     let raan = defaultRaan;
     
-    // Initialize sensor-related variables to null
-    let sensorField: THREE.Mesh | null = null;
-    let sensorFootprint: THREE.Mesh | null = null;
+    function focusOnSatellite() {
+      const offset = satellite.position.clone().add(new THREE.Vector3(0, 0, 2000));
+      camera.position.copy(offset);
+      controls.target.copy(satellite.position);
+      controls.update();
+    }
     
     // Mark when scene is fully initialized to avoid race conditions
     let isInitialized = false;
@@ -801,15 +750,13 @@ export function useSatelliteVisualization({
     // Initialize orbit with default parameters (but defer until we're fully loaded)
     setTimeout(() => {
       startOrbitAnimation(orbitData);
+      focusOnSatellite();
       isInitialized = true;
       
       // Store this flag in the sceneRef
       if (sceneRef.current) {
         sceneRef.current.isInitialized = true;
       }
-      
-      // Focus on satellite after initialization
-      setTimeout(focusOnSatellite, 100);
     }, 500);
     
     const instructionsElement = document.createElement('div');
@@ -858,8 +805,6 @@ export function useSatelliteVisualization({
       }
       
       lastRenderTime = currentTime;
-      
-      // Must call controls.update() in the animation loop for damping to work
       controls.update();
       
       // Update Earth rotation angle for day/night effect
@@ -890,9 +835,9 @@ export function useSatelliteVisualization({
       renderer,
       controls,
       satellite,
-      sensorField: null,
+      sensorField,
       fovAnnotations: null,
-      sensorFootprint: null,
+      sensorFootprint,
       earth,
       stars,
       animationId: 0,
@@ -914,13 +859,6 @@ export function useSatelliteVisualization({
         updateVisualization(inputs);
       }, 800);
     }
-    
-    // Mark as initialized with a delay to ensure all resources are loaded
-    setTimeout(() => {
-      if (sceneRef.current) {
-        sceneRef.current.isInitialized = true;
-      }
-    }, 1000);
     
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -947,7 +885,6 @@ export function useSatelliteVisualization({
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    getCurrentEarthRotation,
-    focusOnSatellite
+    getCurrentEarthRotation
   };
 }

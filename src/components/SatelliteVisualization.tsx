@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [orbitData, setOrbitData] = useState<OrbitData>({
-    altitude: 500, // Will be updated when inputs change
+    altitude: 500,
     inclination: 98,
     raan: 0,
     trueAnomaly: 0
@@ -33,8 +34,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    getCurrentEarthRotation,
-    focusOnSatellite
+    getCurrentEarthRotation
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -47,24 +47,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   // Update the altitude when inputs change
   useEffect(() => {
     if (inputs) {
-      // Calculate mean altitude in km
-      const meanAltitude = (inputs.altitudeMin + inputs.altitudeMax) / (2 * 1000);
-      if (meanAltitude !== orbitData.altitude) {
+      const newAltitude = inputs.altitudeMax / 1000; // Convert to km
+      if (newAltitude !== orbitData.altitude) {
         setOrbitData(prev => ({
           ...prev,
-          altitude: meanAltitude
+          altitude: newAltitude
         }));
       }
-      
-      // If we already have calculated values, focus on the satellite
-      if (calculationCount > 0) {
-        // Short delay to ensure orbit is updated
-        setTimeout(() => {
-          focusOnSatellite();
-        }, 300);
-      }
     }
-  }, [inputs, calculationCount]);
+  }, [inputs]);
   
   // Handle orbit data change
   const handleOrbitChange = (data: OrbitData) => {
@@ -81,11 +72,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     });
     
     startOrbitAnimation(orbitData);
-    
-    // Focus camera on satellite after simulation starts
-    setTimeout(() => {
-      focusOnSatellite();
-    }, 100);
     
     // Orbital parameters will be updated by the onPositionUpdate callback
   };
@@ -117,16 +103,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
 
   const hasCalculated = calculationCount > 0;
 
-  // Focus on satellite when calculation happens
-  useEffect(() => {
-    if (hasCalculated && focusOnSatellite) {
-      // Increased delay to ensure the scene is ready
-      setTimeout(() => {
-        focusOnSatellite();
-      }, 300);
-    }
-  }, [calculationCount, focusOnSatellite]);
-
   return (
     <Card className="glassmorphism w-full h-full flex flex-col">
       <CardHeader className="pb-2">
@@ -140,7 +116,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <LocationInput 
             onOrbitChange={handleOrbitChange}
             initialData={orbitData}
-            altitudeRange={inputs ? {min: inputs.altitudeMin / 1000, max: inputs.altitudeMax / 1000} : undefined}
+            altitudeRange={inputs ? {min: inputs.altitudeMin, max: inputs.altitudeMax} : undefined}
             onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
