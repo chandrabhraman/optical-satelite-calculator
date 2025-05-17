@@ -1,4 +1,3 @@
-
 /**
  * Orbital calculation utilities for satellite positioning
  */
@@ -129,6 +128,7 @@ export function rotateZ(point: [number, number, number], angleRad: number): [num
 /**
  * Calculate satellite position in ECI coordinates based on orbital elements
  * This is a direct calculation using orbital elements, not a frame transformation
+ * Updated to apply inclination rotation first, then RAAN rotation
  */
 export function calculateSatelliteECIPosition(
   semiMajorAxis: number,
@@ -151,10 +151,11 @@ export function calculateSatelliteECIPosition(
   let position: [number, number, number] = [x_orbit, y_orbit, z_orbit];
   position = rotateZ(position, argOfPeriapsisRad);
   
-  // Second rotation: Inclination (around X)
+  // Changed rotation order: First inclination (around X), then RAAN (around Z)
+  // First rotation: Inclination (around X)
   position = rotateX(position, inclinationRad);
   
-  // Third rotation: RAAN (around Z)
+  // Second rotation: RAAN (around Z)
   position = rotateZ(position, raanRad);
   
   return position;

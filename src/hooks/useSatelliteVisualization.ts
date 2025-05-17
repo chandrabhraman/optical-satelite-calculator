@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -111,12 +110,11 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.add(orbitPlane);
       sceneRef.current.orbitPlane = orbitPlane;
       
-      // For visualization, rotate the orbit plane according to RAAN and inclination
-      // Apply RAAN rotation (around Y axis in our visualization coordinate system)
-      orbitPlane.rotation.y = sceneRef.current.raan;
-      
-      // Then apply inclination around X axis
+      // Changed rotation order: First apply inclination rotation (around X axis)
       orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
+      
+      // Then apply RAAN rotation (around Y axis in our visualization coordinate system)
+      orbitPlane.rotation.y = sceneRef.current.raan;
       
       console.log(`Updated orbit plane - Inclination: ${sceneRef.current.inclination}°, RAAN: ${toDegrees(sceneRef.current.raan)}°`);
       
@@ -183,11 +181,11 @@ export function useSatelliteVisualization({
     sceneRef.current.scene.add(orbitPlane);
     sceneRef.current.orbitPlane = orbitPlane;
     
-    // Apply RAAN rotation (around Y axis in our visualization coordinate system)
-    orbitPlane.rotation.y = sceneRef.current.raan;
-    
-    // Then apply inclination around X axis
+    // Changed rotation order: First apply inclination rotation (around X axis)
     orbitPlane.rotation.x = toRadians(sceneRef.current.inclination);
+    
+    // Then apply RAAN rotation (around Y axis in our visualization coordinate system)
+    orbitPlane.rotation.y = sceneRef.current.raan;
     
     // Draw orbit path
     drawOrbitPath(orbitalRadius, orbitPlane);
