@@ -24,7 +24,7 @@ interface SceneRef {
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
   satellite: THREE.Group;
-  sensorField: THREE.Mesh;
+  sensorField: THREE.Mesh | null;
   fovAnnotations: THREE.Group | null;
   sensorFootprint: THREE.Mesh | null;
   earth: THREE.Mesh;
@@ -48,10 +48,6 @@ interface UseSatelliteVisualizationProps {
   orbitData: OrbitData;
   onPositionUpdate?: (position: {lat: number, lng: number}) => void;
 }
-
-const MODEL_PATHS = [
-  '/models/satellite-default.glb',
-];
 
 // Real Earth rotates at ~0.0042 degrees per second
 // For 2x faster than real Earth: 0.0042 * 2 = 0.0084 degrees per second
@@ -764,6 +760,10 @@ export function useSatelliteVisualization({
     let inclination = defaultInclination;
     let raan = defaultRaan;
     
+    // Initialize sensor-related variables to null
+    let sensorField: THREE.Mesh | null = null;
+    let sensorFootprint: THREE.Mesh | null = null;
+    
     // Mark when scene is fully initialized to avoid race conditions
     let isInitialized = false;
     
@@ -857,9 +857,9 @@ export function useSatelliteVisualization({
       renderer,
       controls,
       satellite,
-      sensorField,
+      sensorField: null,
       fovAnnotations: null,
-      sensorFootprint,
+      sensorFootprint: null,
       earth,
       stars,
       animationId: 0,
