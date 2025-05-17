@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -17,6 +18,11 @@ import {
   calculateOrbitalPeriod
 } from '@/utils/orbitalUtils';
 import { toast } from '@/hooks/use-toast';
+
+// Define the model paths constant that was missing
+const MODEL_PATHS = [
+  '/models/satellite-default.glb',
+];
 
 interface SceneRef {
   scene: THREE.Scene;
