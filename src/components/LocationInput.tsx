@@ -22,8 +22,16 @@ interface LocationInputProps {
 }
 
 const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRange }: LocationInputProps) => {
+  // Calculate default altitude as mean of min and max if available
+  const getDefaultAltitude = () => {
+    if (altitudeRange) {
+      return Math.round((altitudeRange.min + altitudeRange.max) / 2);
+    }
+    return initialData?.altitude || 500;
+  };
+  
   const [orbitData, setOrbitData] = useState<OrbitData>({
-    altitude: initialData?.altitude || 500,
+    altitude: getDefaultAltitude(),
     inclination: initialData?.inclination || 98,
     raan: initialData?.raan || 0,
     trueAnomaly: initialData?.trueAnomaly || 0
@@ -37,12 +45,12 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
 
   useEffect(() => {
     if (altitudeRange) {
-      // Update altitude if it's outside the range
-      const midAltitude = Math.floor((altitudeRange.min + altitudeRange.max) / 2);
+      // Update altitude to mean value if outside the range
+      const meanAltitude = Math.round((altitudeRange.min + altitudeRange.max) / 2);
       if (orbitData.altitude < altitudeRange.min || orbitData.altitude > altitudeRange.max) {
         setOrbitData(prev => ({
           ...prev,
-          altitude: midAltitude
+          altitude: meanAltitude
         }));
       }
     }

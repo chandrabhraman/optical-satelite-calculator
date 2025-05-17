@@ -44,14 +44,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     }
   });
 
-  // Update the altitude when inputs change
+  // Update the altitude when inputs change - using the mean value
   useEffect(() => {
     if (inputs) {
-      const newAltitude = inputs.altitudeMax / 1000; // Convert to km
-      if (newAltitude !== orbitData.altitude) {
+      // Calculate mean altitude in km
+      const meanAltitude = (inputs.altitudeMin + inputs.altitudeMax) / 2000; // Convert to km
+      if (meanAltitude !== orbitData.altitude) {
         setOrbitData(prev => ({
           ...prev,
-          altitude: newAltitude
+          altitude: meanAltitude
         }));
       }
     }
@@ -116,7 +117,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <LocationInput 
             onOrbitChange={handleOrbitChange}
             initialData={orbitData}
-            altitudeRange={inputs ? {min: inputs.altitudeMin, max: inputs.altitudeMax} : undefined}
+            altitudeRange={inputs ? {min: inputs.altitudeMin / 1000, max: inputs.altitudeMax / 1000} : undefined}
             onRunSimulation={handleRunSimulation}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
