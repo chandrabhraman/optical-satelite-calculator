@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -73,7 +72,7 @@ export function useSatelliteVisualization({
     return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
   };
   
-  // Function to focus camera on satellite
+  // Function to focus camera on satellite - MODIFIED to provide view from above satellite looking at Earth
   const focusOnSatellite = () => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -84,10 +83,24 @@ export function useSatelliteVisualization({
     // Calculate the direction from satellite to Earth center (0,0,0)
     const dirToEarth = new THREE.Vector3(0, 0, 0).sub(satellitePos).normalize();
     
-    // Position the camera behind the satellite looking toward Earth
-    // Offset the camera position back from the satellite along the inverse of dirToEarth
-    const cameraOffset = 500; // Distance behind the satellite
-    const cameraPos = satellitePos.clone().add(dirToEarth.clone().multiplyScalar(-cameraOffset));
+    // Position the camera above the satellite looking toward Earth
+    // We'll position it behind and above the satellite
+    const cameraOffsetBehind = 150; // Distance behind the satellite
+    const cameraOffsetUp = 200;     // Distance above the satellite
+    
+    // Create a position vector that's offset from the satellite
+    const cameraPos = satellitePos.clone();
+    
+    // Move away from Earth (opposite of dirToEarth)
+    cameraPos.add(dirToEarth.clone().multiplyScalar(-cameraOffsetBehind));
+    
+    // Move up relative to the satellite-Earth axis
+    const upVector = new THREE.Vector3(0, 1, 0);
+    // Make sure our "up" is not parallel to our view direction
+    const rightVector = new THREE.Vector3().crossVectors(dirToEarth, upVector).normalize();
+    // Recalculate a proper up vector that's perpendicular to our view direction
+    const properUpVector = new THREE.Vector3().crossVectors(rightVector, dirToEarth).normalize();
+    cameraPos.add(properUpVector.multiplyScalar(cameraOffsetUp));
     
     // Smoothly move the camera to this position
     const duration = 1000; // in milliseconds
@@ -651,13 +664,15 @@ export function useSatelliteVisualization({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A0F1A);
     
+    // Initial camera positioning - UPDATED for better default view
     const camera = new THREE.PerspectiveCamera(
       45, 
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000000
     );
-    camera.position.set(0, 2000, 15000);
+    // Position camera looking toward where the satellite will be
+    camera.position.set(0, 10000, 15000);
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);

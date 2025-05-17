@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +55,16 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           altitude: meanAltitude
         }));
       }
+      
+      // If we already have calculated values, focus on the satellite
+      if (calculationCount > 0) {
+        // Short delay to ensure orbit is updated
+        setTimeout(() => {
+          focusOnSatellite();
+        }, 300);
+      }
     }
-  }, [inputs]);
+  }, [inputs, calculationCount]);
   
   // Handle orbit data change
   const handleOrbitChange = (data: OrbitData) => {
@@ -113,10 +120,10 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   // Focus on satellite when calculation happens
   useEffect(() => {
     if (hasCalculated && focusOnSatellite) {
-      // Short delay to ensure the scene is ready
+      // Increased delay to ensure the scene is ready
       setTimeout(() => {
         focusOnSatellite();
-      }, 200);
+      }, 300);
     }
   }, [calculationCount, focusOnSatellite]);
 
