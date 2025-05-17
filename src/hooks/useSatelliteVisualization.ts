@@ -227,8 +227,11 @@ export function useSatelliteVisualization({
     }
     
     // Calculate position in the orbital plane (local coordinates)
+    // FIX: Reverse sin/cos to correct the true anomaly display
+    // When true anomaly is 90°, satellite should be at (0, 0, radius) not at (0, 0, -radius)
     const x = sceneRef.current.orbitRadius * Math.cos(sceneRef.current.trueAnomaly);
-    const z = sceneRef.current.orbitRadius * Math.sin(sceneRef.current.trueAnomaly);
+    // Use negative sine to correct the orientation so 90° is where it should be
+    const z = -sceneRef.current.orbitRadius * Math.sin(sceneRef.current.trueAnomaly);
     
     const localPosition = new THREE.Vector3(x, 0, z);
     
