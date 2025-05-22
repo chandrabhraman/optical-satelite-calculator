@@ -120,31 +120,9 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>Satellite Optical Sensor Calculator | Precision Satellite Tools</title>
-        <meta name="description" content="Professional tool to calculate optical sensor parameters, ground sample distance (GSD), and visualize satellite sensor field coverage with precision engineering." />
-        <meta name="keywords" content="satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization" />
-        <script 
-          async 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" 
-          crossOrigin="anonymous" 
-        />
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-        <style>
-          {`
-            @keyframes shake {
-              0% { transform: translateX(0); }
-              20% { transform: translateX(-5px); }
-              40% { transform: translateX(5px); }
-              60% { transform: translateX(-3px); }
-              80% { transform: translateX(3px); }
-              100% { transform: translateX(0); }
-            }
-          `}
-        </style>
+        <title>Satellite Optical Sensor Calculator | Precision Engineering Tools</title>
       </Helmet>
-
+      
       <main className="min-h-screen space-gradient text-foreground">
         <div className="container mx-auto py-8 pb-12">
           <header className="text-center mb-12 relative">
