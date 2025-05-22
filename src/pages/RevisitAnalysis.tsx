@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Footer from "@/components/Footer";
 import RevisitAnalysisForm from "@/components/revisit/RevisitAnalysisForm";
 import RevisitVisualization from "@/components/revisit/RevisitVisualization";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 const RevisitAnalysis: React.FC = () => {
   // State for handling analysis results
@@ -50,6 +52,14 @@ const RevisitAnalysis: React.FC = () => {
       
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-8 font-serif">Satellite Revisit Analysis</h1>
+        
+        <Alert className="mb-4">
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription>
+            Currently showing simulation with simplified orbital mechanics. SGP4 propagator not yet implemented.
+            The visualization shows mock data for demonstration purposes.
+          </AlertDescription>
+        </Alert>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Input Form */}

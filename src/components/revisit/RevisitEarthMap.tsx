@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
@@ -203,9 +204,27 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   
   return (
     <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden relative">
+      {isHeatmapActive && (
+        <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs">
+          <div className="text-white font-medium mb-1">Revisit Count Legend</div>
+          <div className="flex items-center gap-1">
+            <div className="w-full h-6 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded"></div>
+          </div>
+          <div className="flex justify-between text-[10px] text-white mt-0.5">
+            <span>Low (1-2)</span>
+            <span>Medium (3-5)</span>
+            <span>High (6+)</span>
+          </div>
+        </div>
+      )}
       <div className="absolute bottom-2 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white">
         <div>Click and drag to rotate</div>
         <div>Scroll to zoom</div>
+      </div>
+      {/* Simulation information label */}
+      <div className="absolute top-2 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white max-w-[200px]">
+        <div className="font-medium mb-1">Simulation Info</div>
+        <div className="text-[10px]">Currently showing mock visualization data (not using SGP4 propagator)</div>
       </div>
     </div>
   );

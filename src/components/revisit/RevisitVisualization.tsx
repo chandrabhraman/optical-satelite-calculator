@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Play, Pause, RotateCw } from "lucide-react";
+import { AlertCircle, Play, Pause, RotateCw, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import RevisitEarthMap from "./RevisitEarthMap";
 
 interface RevisitVisualizationProps {
@@ -69,6 +70,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       <div className="mt-8 max-w-md text-center">
         <p className="text-muted-foreground">
           Propagating satellite orbits and calculating revisit statistics...
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Note: Currently using simplified orbital mechanics (not SGP4 propagator)
         </p>
       </div>
     </div>
@@ -137,6 +141,21 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             >
               Revisit Heatmap
             </Toggle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">
+                    This is a prototype visualization using mock data. The orbits shown are for demonstration purposes only.
+                    A full SGP4 propagator will be implemented in a future update.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       )}
@@ -157,13 +176,20 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
           </div>
           <div className="p-4">
             <Alert>
-              <AlertTitle>Revisit Statistics</AlertTitle>
+              <AlertTitle className="flex items-center gap-2">
+                Revisit Statistics 
+                <span className="text-xs text-muted-foreground">(Simulated Data)</span>
+              </AlertTitle>
               <AlertDescription className="grid grid-cols-2 gap-2 mt-2">
                 <div>Average Revisit Time: <span className="font-medium">12.4 hours</span></div>
                 <div>Maximum Gap: <span className="font-medium">36.2 hours</span></div>
                 <div>Minimum Revisit: <span className="font-medium">4.1 hours</span></div>
                 <div>Global Coverage: <span className="font-medium">98.7%</span></div>
               </AlertDescription>
+              <div className="text-xs text-muted-foreground mt-2">
+                Note: These statistics are based on mock data and not actual orbit propagation.
+                The simulation does not currently use an SGP4 propagator.
+              </div>
             </Alert>
           </div>
         </>
@@ -191,6 +217,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
               <AlertDescription>
                 Draw a polygon on the map to analyze revisit statistics for a specific area.
               </AlertDescription>
+              <div className="text-xs text-muted-foreground mt-2">
+                Currently showing a prototype visualization with simulated tracks.
+              </div>
             </Alert>
           </div>
         </>
