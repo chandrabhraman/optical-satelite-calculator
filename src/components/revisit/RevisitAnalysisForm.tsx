@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -47,6 +46,9 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       raan: 0,
       argOfPerigee: 0,
       meanAnomaly: 0,
+      
+      // Add longitude field for GEO orbit type
+      longitudeGEO: 0,
       
       // Constellation defaults
       constellationType: "single",
@@ -277,7 +279,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
           {orbitType === "geo" && (
             <FormField
               control={form.control}
-              name="longitude"
+              name="longitudeGEO"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Longitude (°E)</FormLabel>
