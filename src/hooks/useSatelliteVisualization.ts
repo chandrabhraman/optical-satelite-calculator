@@ -26,7 +26,7 @@ interface SceneRef {
   satellite: THREE.Group;
   sensorField: THREE.Mesh;
   fovAnnotations: THREE.Group | null;
-  sensorFootprint: THREE.Mesh | null;
+  sensorFootprint: THREE.Mesh | THREE.Group | null; // Update the type to allow Group as well
   earth: THREE.Mesh;
   stars: THREE.Points;
   animationId: number;
@@ -720,7 +720,7 @@ export function useSatelliteVisualization({
     satellite.add(sensorField);
     
     // Initialize with no footprint - we'll create it when needed
-    let sensorFootprint: THREE.Mesh | null = null;
+    let sensorFootprint: THREE.Mesh | THREE.Group | null = null;
     
     // Initialize default orbit parameters
     const defaultAltitude = orbitData.altitude;
