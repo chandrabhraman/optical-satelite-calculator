@@ -65,6 +65,7 @@ const RevisitAnalysis: React.FC = () => {
                 <RevisitAnalysisForm 
                   onRunAnalysis={handleRunAnalysis}
                   isAnalysisRunning={isAnalysisRunning}
+                  analysisProgress={analysisProgress}
                 />
               </CardContent>
             </Card>
@@ -86,13 +87,11 @@ const RevisitAnalysis: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-1 h-[calc(100vh-240px)]">
-                <TabsContent value={activeTab} className="h-full m-0">
-                  <RevisitVisualization 
-                    tab={activeTab}
-                    isAnalysisRunning={isAnalysisRunning}
-                    analysisProgress={analysisProgress}
-                  />
-                </TabsContent>
+                <RevisitVisualization 
+                  tab={activeTab}
+                  isAnalysisRunning={isAnalysisRunning}
+                  analysisProgress={analysisProgress}
+                />
               </CardContent>
             </Card>
           </div>

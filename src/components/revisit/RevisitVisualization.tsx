@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 
 interface RevisitVisualizationProps {
   tab: string;
@@ -185,7 +186,8 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     return <LoadingDisplay />;
   }
   
-  // Render appropriate tab content
+  // Using a TabsContent without a parent Tabs is causing our error
+  // Instead of directly rendering TabsContent, let's conditionally render the appropriate content
   switch (tab) {
     case "map":
       return <MapAnimationTab />;

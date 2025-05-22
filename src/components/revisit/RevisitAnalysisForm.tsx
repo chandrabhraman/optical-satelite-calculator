@@ -1,500 +1,258 @@
 
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { 
   Form, 
   FormControl, 
+  FormDescription, 
   FormField, 
   FormItem, 
   FormLabel, 
-  FormDescription 
+  FormMessage 
 } from "@/components/ui/form";
 import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue, 
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { playSound, SOUNDS } from "@/utils/soundEffects";
 
-// Define form schema
-const formSchema = z.object({
-  // Orbit parameters
-  orbitType: z.enum(["leo-general", "sso", "non-sso-leo", "meo", "geo"]),
-  altitude: z.number().min(200).max(36000),
-  inclination: z.number().min(0).max(180).optional(),
-  raan: z.number().min(0).max(360).optional(),
-  argOfPerigee: z.number().min(0).max(360).optional(),
-  meanAnomaly: z.number().min(0).max(360).optional(),
-  ltan: z.string().optional(),
-  subsatelliteLongitude: z.number().min(-180).max(180).optional(),
-  
-  // Constellation parameters
-  constellationType: z.enum(["single", "walker", "street"]),
-  totalSatellites: z.number().min(1).max(1000).optional(),
-  planes: z.number().min(1).max(100).optional(),
-  phasing: z.number().min(0).max(100).optional(),
-  trainSatellites: z.number().min(1).max(100).optional(),
-  spacingDegrees: z.number().min(0).max(360).optional(),
-  
-  // Payload parameters
-  swathWidth: z.number().min(1).optional(),
-  fieldOfView: z.number().min(0.1).max(180).optional(),
-  maxOffNadirAngle: z.number().min(0).max(90),
-  
-  // Analysis settings
-  startDate: z.string(),
-  endDate: z.string(),
-  timeStep: z.number().min(1).max(3600),
-  gridSize: z.number().min(0.1).max(10),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
+// Define prop types
 interface RevisitAnalysisFormProps {
-  onRunAnalysis: (values: FormValues) => void;
+  onRunAnalysis: (formData: any) => void;
   isAnalysisRunning: boolean;
+  analysisProgress: number;
 }
 
-const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({ 
+const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   onRunAnalysis,
-  isAnalysisRunning 
+  isAnalysisRunning,
+  analysisProgress
 }) => {
-  // Default values
-  const defaultValues: Partial<FormValues> = {
-    orbitType: "sso",
-    altitude: 500,
-    inclination: 97.4,
-    raan: 0,
-    argOfPerigee: 90,
-    meanAnomaly: 0,
-    ltan: "10:30",
-    constellationType: "single",
-    totalSatellites: 1,
-    planes: 1,
-    phasing: 0,
-    swathWidth: 120,
-    maxOffNadirAngle: 30,
-    timeStep: 60,
-    gridSize: 1,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  };
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues,
+  // Form setup with react-hook-form
+  const form = useForm({
+    defaultValues: {
+      // Orbit defaults
+      orbitType: "sso",
+      altitude: 550,
+      inclination: 97.6,
+      ltan: "10:30",
+      raan: 0,
+      argOfPerigee: 0,
+      meanAnomaly: 0,
+      
+      // Constellation defaults
+      constellationType: "single",
+      totalSatellites: 1,
+      planes: 1,
+      phasing: 0,
+      inPlaneSpacing: 30,
+      
+      // Payload defaults
+      swathWidth: 120,
+      fieldOfView: 10,
+      maxOffNadirAngle: 30,
+      
+      // Analysis defaults
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      timeStep: 60,
+      gridCellSize: "1deg",
+      useJ2Perturbations: true,
+    }
   });
+
+  // Dynamic form state
+  const [orbitType, setOrbitType] = useState("sso");
+  const [constellationType, setConstellationType] = useState("single");
   
-  // Watch form values to dynamically show/hide fields
-  const orbitType = form.watch("orbitType");
-  const constellationType = form.watch("constellationType");
-  
-  const handleSubmit = (values: FormValues) => {
-    playSound(SOUNDS.simulate, 0.5);
-    onRunAnalysis(values);
+  // Submit handler
+  const onSubmit = (data: any) => {
+    console.log("Form submitted:", data);
+    onRunAnalysis(data);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Accordion type="single" collapsible defaultValue="orbit" className="w-full">
-          <AccordionItem value="orbit">
-            <AccordionTrigger>Orbit Configuration</AccordionTrigger>
-            <AccordionContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="orbitType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Orbit Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled={isAnalysisRunning}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select orbit type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="leo-general">LEO - General</SelectItem>
-                        <SelectItem value="sso">Sun-Synchronous Orbit (SSO)</SelectItem>
-                        <SelectItem value="non-sso-leo">Non-SSO LEO</SelectItem>
-                        <SelectItem value="meo">Medium Earth Orbit (MEO)</SelectItem>
-                        <SelectItem value="geo">Geostationary Orbit (GEO)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="altitude"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Altitude (km)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
-                        disabled={isAnalysisRunning}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              {orbitType !== "geo" && (
-                <FormField
-                  control={form.control}
-                  name="inclination"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Inclination (degrees)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
-                          disabled={isAnalysisRunning || orbitType === "sso"}
-                        />
-                      </FormControl>
-                      {orbitType === "sso" && (
-                        <FormDescription>
-                          Auto-calculated for SSO based on altitude
-                        </FormDescription>
-                      )}
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {(orbitType === "sso") && (
-                <FormField
-                  control={form.control}
-                  name="ltan"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Local Time of Ascending Node</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        disabled={isAnalysisRunning}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select LTAN" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="10:30">10:30 AM (Morning)</SelectItem>
-                          <SelectItem value="13:30">1:30 PM (Afternoon)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {orbitType !== "sso" && orbitType !== "geo" && (
-                <FormField
-                  control={form.control}
-                  name="raan"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RAAN (degrees)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
-                          disabled={isAnalysisRunning}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {orbitType !== "geo" && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="argOfPerigee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Argument of Perigee (degrees)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseFloat(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="meanAnomaly"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Initial Mean Anomaly (degrees)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseFloat(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-              
-              {orbitType === "geo" && (
-                <FormField
-                  control={form.control}
-                  name="subsatelliteLongitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sub-satellite Longitude (degrees East)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          onChange={e => field.onChange(parseFloat(e.target.value))}
-                          disabled={isAnalysisRunning}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              )}
-            </AccordionContent>
-          </AccordionItem>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Orbit Parameters */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Orbit Configuration</h3>
           
-          <AccordionItem value="constellation">
-            <AccordionTrigger>Constellation Geometry</AccordionTrigger>
-            <AccordionContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="constellationType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Constellation Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled={isAnalysisRunning}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select constellation type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="single">Single Satellite</SelectItem>
-                        <SelectItem value="walker">Walker Star/Delta</SelectItem>
-                        <SelectItem value="street">Street of Coverage (Train)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              
-              {constellationType === "walker" && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="totalSatellites"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total Satellites (T)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="planes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Planes (P)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="phasing"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phasing Parameter (F)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-              
-              {constellationType === "street" && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="trainSatellites"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Satellites in Train</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="spacingDegrees"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>In-plane Spacing (degrees)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseFloat(e.target.value))}
-                            disabled={isAnalysisRunning}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-            </AccordionContent>
-          </AccordionItem>
+          <FormField
+            control={form.control}
+            name="orbitType"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Orbit Type</FormLabel>
+                <Select 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setOrbitType(value);
+                  }}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select orbit type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="leo">LEO - General</SelectItem>
+                    <SelectItem value="sso">Sun-Synchronous (SSO)</SelectItem>
+                    <SelectItem value="meo">Medium Earth Orbit (MEO)</SelectItem>
+                    <SelectItem value="geo">Geostationary Orbit (GEO)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Select the type of orbit for your satellite(s)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
-          <AccordionItem value="payload">
-            <AccordionTrigger>Payload Characteristics</AccordionTrigger>
-            <AccordionContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="swathWidth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sensor Swath Width (km at nadir)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
-                        disabled={isAnalysisRunning}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="maxOffNadirAngle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Maximum Off-Nadir Pointing Angle (degrees)
-                    </FormLabel>
-                    <FormControl>
-                      <div className="pt-2">
-                        <Slider
-                          min={0}
-                          max={60}
-                          step={1}
-                          defaultValue={[field.value]}
-                          onValueChange={([value]) => field.onChange(value)}
-                          disabled={isAnalysisRunning}
-                        />
-                        <div className="text-center mt-2">{field.value}°</div>
-                      </div>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </AccordionContent>
-          </AccordionItem>
-          
-          <AccordionItem value="analysis">
-            <AccordionTrigger>Analysis Settings</AccordionTrigger>
-            <AccordionContent className="space-y-4">
+          {/* Dynamic fields based on orbit type */}
+          {orbitType === "sso" && (
+            <>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="startDate"
+                  name="altitude"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Start Date</FormLabel>
+                      <FormLabel>Altitude (km)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field} 
-                          disabled={isAnalysisRunning}
-                        />
+                        <Input type="number" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
                 
                 <FormField
                   control={form.control}
-                  name="endDate"
+                  name="ltan"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>End Date</FormLabel>
+                      <FormLabel>LTAN</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select LTAN" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="06:00">06:00 (Dawn)</SelectItem>
+                          <SelectItem value="09:30">09:30 (Morning)</SelectItem>
+                          <SelectItem value="10:30">10:30 (Mid-Morning)</SelectItem>
+                          <SelectItem value="13:30">13:30 (Afternoon)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Local Time of Ascending Node</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="argOfPerigee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Argument of Perigee (°)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field} 
-                          disabled={isAnalysisRunning}
-                        />
+                        <Input type="number" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="meanAnomaly"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mean Anomaly (°)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </>
+          )}
+          
+          {orbitType === "leo" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="altitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Altitude (km)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="inclination"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Inclination (°)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="raan"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RAAN (°)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>Right Ascension of Ascending Node</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="argOfPerigee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Arg. of Perigee (°)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -502,66 +260,317 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="timeStep"
+                name="meanAnomaly"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <FormLabel>Mean Anomaly (°)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+          
+          {orbitType === "geo" && (
+            <FormField
+              control={form.control}
+              name="longitude"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Longitude (°E)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Sub-satellite point longitude (East positive)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+        
+        <Separator />
+        
+        {/* Constellation Parameters */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Constellation Configuration</h3>
+          
+          <FormField
+            control={form.control}
+            name="constellationType"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Constellation Type</FormLabel>
+                <Select 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setConstellationType(value);
+                  }}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select constellation type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="single">Single Satellite</SelectItem>
+                    <SelectItem value="walker">Walker Star/Delta</SelectItem>
+                    <SelectItem value="train">Street of Coverage (Train)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Select the type of constellation pattern
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Dynamic fields based on constellation type */}
+          {constellationType === "walker" && (
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="totalSatellites"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Time Step (seconds)</FormLabel>
+                    <FormLabel>Total Satellites</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={e => field.onChange(parseInt(e.target.value))}
-                        disabled={isAnalysisRunning}
-                      />
+                      <Input type="number" {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
               
               <FormField
                 control={form.control}
-                name="gridSize"
+                name="planes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Global Grid Cell Size (degrees)</FormLabel>
-                    <Select 
-                      onValueChange={(val) => field.onChange(parseFloat(val))} 
-                      defaultValue={field.value.toString()}
-                      disabled={isAnalysisRunning}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select grid size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0.5">0.5° (~55km at equator)</SelectItem>
-                        <SelectItem value="1">1.0° (~110km at equator)</SelectItem>
-                        <SelectItem value="2">2.0° (~220km at equator)</SelectItem>
-                        <SelectItem value="5">5.0° (~550km at equator)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Number of Planes</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+              
+              <FormField
+                control={form.control}
+                name="phasing"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phasing Parameter</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormDescription>Relative phasing between planes (0 to P-1)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+          
+          {constellationType === "train" && (
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="totalSatellites"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Satellites in Train</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="inPlaneSpacing"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>In-Plane Spacing (°)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormDescription>Mean anomaly spacing between satellites</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+        </div>
         
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={isAnalysisRunning}
-        >
-          {isAnalysisRunning ? "Analysis running..." : "Run Analysis"}
-        </Button>
+        <Separator />
         
-        {isAnalysisRunning && (
-          <div className="space-y-2">
-            <Progress value={Math.round(100 * (analysisProgress / 100))} className="h-2" />
-            <p className="text-center text-sm text-muted-foreground">
-              {Math.round(analysisProgress)}% complete
-            </p>
+        {/* Payload Parameters */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Payload Characteristics</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="swathWidth"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Swath Width (km)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="maxOffNadirAngle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max Off-Nadir (°)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormDescription>Maximum off-nadir pointing angle</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
-        )}
+        </div>
+        
+        <Separator />
+        
+        {/* Analysis Parameters */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Analysis Settings</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <FormField
+              control={form.control}
+              name="timeStep"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Time Step (sec)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormDescription>Simulation time step in seconds</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="gridCellSize"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Grid Cell Size</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select cell size" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="0.5deg">0.5° × 0.5° (High resolution)</SelectItem>
+                      <SelectItem value="1deg">1° × 1° (Standard)</SelectItem>
+                      <SelectItem value="2deg">2° × 2° (Fast calculation)</SelectItem>
+                      <SelectItem value="5deg">5° × 5° (Rough estimate)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Resolution of analysis grid</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="useJ2Perturbations"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Enable J2 Perturbations</FormLabel>
+                  <FormDescription>
+                    Include Earth's oblateness effects in orbit propagation
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        {/* Submit Button */}
+        <div className="mt-6">
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isAnalysisRunning}
+          >
+            {isAnalysisRunning ? "Running Analysis..." : "Run Analysis"}
+          </Button>
+          
+          {isAnalysisRunning && (
+            <div className="mt-4">
+              <Progress value={analysisProgress} className="h-2" />
+              <p className="text-xs text-center text-muted-foreground mt-1">
+                {analysisProgress}% complete
+              </p>
+            </div>
+          )}
+        </div>
       </form>
     </Form>
   );
