@@ -1,12 +1,12 @@
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Play, Pause, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import RevisitEarthMap from "./RevisitEarthMap";
 
 interface RevisitVisualizationProps {
   tab: string;
@@ -19,10 +19,12 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   isAnalysisRunning,
   analysisProgress
 }) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [simulationTime, setSimulationTime] = useState(0);
   const [hasResults, setHasResults] = useState(false);
+  const [showGroundTracks, setShowGroundTracks] = useState(true);
+  const [showSwaths, setShowSwaths] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(true);
   
   useEffect(() => {
     // Reset playing state when analysis starts
@@ -76,8 +78,11 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   const MapAnimationTab = () => (
     <div className="h-full flex flex-col">
       <div className="flex-1 relative bg-muted/30 rounded-md overflow-hidden">
-        <div ref={mapContainerRef} className="absolute inset-0"></div>
-        {/* Map will be initialized here */}
+        <RevisitEarthMap 
+          isAnalysisRunning={isAnalysisRunning}
+          showGroundTracks={showGroundTracks}
+          isHeatmapActive={showHeatmap}
+        />
       </div>
       
       {hasResults && (
@@ -110,13 +115,26 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Toggle aria-label="Show ground tracks">
+            <Toggle 
+              aria-label="Show ground tracks"
+              pressed={showGroundTracks}
+              onPressedChange={setShowGroundTracks}
+            >
               Ground Tracks
             </Toggle>
-            <Toggle aria-label="Show swaths">
+            <Toggle 
+              aria-label="Show swaths"
+              pressed={showSwaths}
+              onPressedChange={setShowSwaths}
+            >
               Sensor Swaths
             </Toggle>
-            <Toggle aria-label="Show heatmap" defaultPressed>
+            <Toggle 
+              aria-label="Show heatmap" 
+              pressed={showHeatmap}
+              onPressedChange={setShowHeatmap}
+              defaultPressed
+            >
               Revisit Heatmap
             </Toggle>
           </div>
@@ -131,10 +149,11 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       {hasResults ? (
         <>
           <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
-            {/* Global heatmap visualization would go here */}
-            <div className="h-full flex items-center justify-center">
-              <p className="text-muted-foreground">Global revisit heatmap will be displayed here</p>
-            </div>
+            <RevisitEarthMap 
+              isAnalysisRunning={isAnalysisRunning}
+              isHeatmapActive={true}
+              showGroundTracks={false}
+            />
           </div>
           <div className="p-4">
             <Alert>
@@ -160,12 +179,11 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       {hasResults ? (
         <>
           <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
-            {/* AOI map would go here */}
-            <div className="h-full flex items-center justify-center">
-              <p className="text-muted-foreground">
-                Use drawing tools to define your Area of Interest
-              </p>
-            </div>
+            <RevisitEarthMap 
+              isAnalysisRunning={isAnalysisRunning}
+              isHeatmapActive={true}
+              showGroundTracks={true}
+            />
           </div>
           <div className="p-4">
             <Alert>
@@ -186,8 +204,6 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     return <LoadingDisplay />;
   }
   
-  // Using a TabsContent without a parent Tabs is causing our error
-  // Instead of directly rendering TabsContent, let's conditionally render the appropriate content
   switch (tab) {
     case "map":
       return <MapAnimationTab />;

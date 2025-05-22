@@ -1,0 +1,5 @@
+
+// This would be an actual image file. Since we can't upload binary data directly, 
+// you'll need to manually add an Earth texture image to the public folder.
+// You can use any public domain Earth texture image and name it earth_map.jpg.
+// For now, the visualization will work with a placeholder color if the image is not available.
