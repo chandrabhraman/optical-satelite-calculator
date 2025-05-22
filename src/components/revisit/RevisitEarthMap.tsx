@@ -2,17 +2,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { usePropagator } from '@/hooks/usePropagator';
 
 interface RevisitEarthMapProps {
   isAnalysisRunning?: boolean;
   isHeatmapActive?: boolean;
   showGroundTracks?: boolean;
+  satellites?: Array<{
+    id: string;
+    name: string;
+    altitude: number;
+    inclination: number;
+    raan: number;
+    trueAnomaly: number;
+  }>;
+  timeSpan?: number; // in hours
 }
 
 const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   isAnalysisRunning = false,
   isHeatmapActive = false,
-  showGroundTracks = true
+  showGroundTracks = true,
+  satellites = [],
+  timeSpan = 24 // default 24 hours
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -22,6 +34,11 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   const earthRef = useRef<THREE.Mesh | null>(null);
   const groundTracksRef = useRef<THREE.Group | null>(null);
   const heatmapRef = useRef<THREE.Mesh | null>(null);
+  
+  // Use our propagator hook
+  const { propagateSatelliteOrbit, calculateRevisits } = usePropagator();
+  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
+  const [maxRevisitCount, setMaxRevisitCount] = useState(0);
   
   // Initialize Three.js scene
   useEffect(() => {
@@ -115,92 +132,142 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     };
   }, []);
   
-  // Add mock ground tracks when analysis is complete
+  // Update ground tracks when satellites configuration changes
   useEffect(() => {
     if (!groundTracksRef.current || !sceneRef.current || isAnalysisRunning) return;
     
-    if (showGroundTracks && groundTracksRef.current.children.length === 0) {
-      // Create mock ground tracks for visualization
-      const createMockGroundTrack = (offset: number, color: number) => {
-        const points = [];
-        for (let i = 0; i <= 100; i++) {
-          const t = i / 100 * Math.PI * 2;
-          const x = 2 * Math.sin(t + offset) * Math.cos(t * 3 + offset);
-          const y = 2 * Math.sin(t * 2);
-          const z = 2 * Math.cos(t + offset) * Math.cos(t * 3 + offset);
-          points.push(new THREE.Vector3(x, y, z));
+    // Clear previous ground tracks
+    while (groundTracksRef.current.children.length > 0) {
+      groundTracksRef.current.remove(groundTracksRef.current.children[0]);
+    }
+    
+    if (showGroundTracks && satellites.length > 0) {
+      // For each satellite, generate real ground track using SGP4 propagator
+      satellites.forEach((satellite, index) => {
+        // Propagate satellite orbit for the specified timespan
+        const groundTrackPoints = propagateSatelliteOrbit({
+          altitude: satellite.altitude,
+          inclination: satellite.inclination,
+          raan: satellite.raan,
+          trueAnomaly: satellite.trueAnomaly,
+          timeSpanHours: timeSpan
+        });
+        
+        // Create visual representation of the ground track
+        const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
+        const lineColor = colors[index % colors.length];
+        
+        const trackPoints = [];
+        for (const point of groundTrackPoints) {
+          // Convert lat/long to 3D coordinates on Earth's surface
+          const phi = (90 - point.lat) * Math.PI / 180;
+          const theta = (point.lng + 180) * Math.PI / 180;
+          
+          const x = -2 * Math.sin(phi) * Math.cos(theta);
+          const y = 2 * Math.cos(phi);
+          const z = 2 * Math.sin(phi) * Math.sin(theta);
+          
+          trackPoints.push(new THREE.Vector3(x, y, z));
         }
         
-        const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-        const lineMaterial = new THREE.LineBasicMaterial({ color });
+        const lineGeometry = new THREE.BufferGeometry().setFromPoints(trackPoints);
+        const lineMaterial = new THREE.LineBasicMaterial({ color: lineColor });
         const line = new THREE.Line(lineGeometry, lineMaterial);
-        return line;
-      };
-      
-      // Add several tracks with different colors
-      const track1 = createMockGroundTrack(0, 0xff0000);  // Red
-      const track2 = createMockGroundTrack(Math.PI / 3, 0x00ff00);  // Green
-      const track3 = createMockGroundTrack(Math.PI / 1.5, 0x0000ff);  // Blue
-      const track4 = createMockGroundTrack(Math.PI, 0xffff00);  // Yellow
-      const track5 = createMockGroundTrack(Math.PI * 1.33, 0xff00ff);  // Magenta
-      
-      groundTracksRef.current.add(track1, track2, track3, track4, track5);
-    } else if (!showGroundTracks && groundTracksRef.current.children.length > 0) {
-      // Remove all ground tracks
-      while (groundTracksRef.current.children.length) {
-        groundTracksRef.current.remove(groundTracksRef.current.children[0]);
-      }
+        groundTracksRef.current.add(line);
+      });
     }
-  }, [showGroundTracks, isAnalysisRunning]);
+  }, [satellites, showGroundTracks, isAnalysisRunning, propagateSatelliteOrbit, timeSpan]);
   
-  // Create heatmap overlay
+  // Generate heatmap based on satellite revisit data
   useEffect(() => {
     if (!sceneRef.current || !earthRef.current) return;
     
-    if (isHeatmapActive && !heatmapRef.current) {
-      // Create a UV-mapped sphere slightly larger than Earth for the heatmap
-      const heatmapGeometry = new THREE.SphereGeometry(2.01, 32, 32);
-      
-      // Create heatmap texture - this would be generated from actual data
-      const size = 256;
-      const data = new Uint8Array(4 * size * size);
-      
-      // Generate mock heatmap data
-      for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-          const index = (i * size + j) * 4;
-          
-          // Create patterns of revisit frequency - mock data
-          const lat = (i / size - 0.5) * Math.PI;
-          const value = Math.pow(Math.cos(lat * 3), 2) * 255;
-          const alpha = 180;  // Semi-transparent
-          
-          data[index] = value > 200 ? 255 : value < 100 ? 0 : (value - 100) * 2.55; // R
-          data[index + 1] = value < 100 ? (value) * 2.55 : 255 - (value - 100) * 1.55; // G
-          data[index + 2] = 0; // B
-          data[index + 3] = alpha; // A
-        }
-      }
-      
-      // Create texture from data
-      const heatmapTexture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-      heatmapTexture.needsUpdate = true;
-      
-      const heatmapMaterial = new THREE.MeshBasicMaterial({
-        map: heatmapTexture,
-        transparent: true,
-        opacity: 0.7,
-      });
-      
-      const heatmap = new THREE.Mesh(heatmapGeometry, heatmapMaterial);
-      sceneRef.current.add(heatmap);
-      heatmapRef.current = heatmap;
-    } else if (!isHeatmapActive && heatmapRef.current) {
-      // Remove heatmap if it exists but should not be shown
+    // Remove existing heatmap
+    if (heatmapRef.current && heatmapRef.current.parent) {
       sceneRef.current.remove(heatmapRef.current);
       heatmapRef.current = null;
     }
-  }, [isHeatmapActive]);
+    
+    if (isHeatmapActive) {
+      if (satellites.length > 0) {
+        // Calculate real revisit data for all satellites
+        const revisitData = calculateRevisits({
+          satellites: satellites.map(sat => ({
+            altitude: sat.altitude,
+            inclination: sat.inclination,
+            raan: sat.raan,
+            trueAnomaly: sat.trueAnomaly
+          })),
+          timeSpanHours: timeSpan,
+          gridResolution: 180 // Number of cells in latitude direction
+        });
+        
+        setHeatmapData(revisitData.grid);
+        setMaxRevisitCount(revisitData.maxCount);
+        
+        // Create a UV-mapped sphere slightly larger than Earth for the heatmap
+        const heatmapGeometry = new THREE.SphereGeometry(2.01, 180, 90);
+        
+        // Generate texture from revisit data
+        const size = 256;
+        const data = new Uint8Array(4 * size * size);
+        
+        // Map revisit data to colors
+        for (let i = 0; i < size; i++) {
+          for (let j = 0; j < size; j++) {
+            const index = (i * size + j) * 4;
+            
+            // Sample from our revisit grid (scale coordinates to match grid resolution)
+            const latIndex = Math.floor((i / size) * revisitData.grid.length);
+            const lngIndex = Math.floor((j / size) * revisitData.grid[0].length);
+            
+            const value = revisitData.grid[latIndex][lngIndex];
+            const normalizedValue = revisitData.maxCount > 0 ? value / revisitData.maxCount : 0;
+            const alpha = 180; // Semi-transparent
+            
+            // Apply color based on normalized value (red for high revisit, green for low)
+            if (normalizedValue > 0.7) {
+              // Red - high revisit count
+              data[index] = 255;
+              data[index + 1] = Math.max(0, 255 - (normalizedValue - 0.7) * 850);
+              data[index + 2] = 0;
+            } else if (normalizedValue > 0.3) {
+              // Yellow - medium revisit count
+              data[index] = 255;
+              data[index + 1] = 255;
+              data[index + 2] = 0;
+            } else if (normalizedValue > 0) {
+              // Green - low revisit count
+              data[index] = normalizedValue * 510;
+              data[index + 1] = 255;
+              data[index + 2] = 0;
+            } else {
+              // No revisits
+              data[index] = 0;
+              data[index + 1] = 0;
+              data[index + 2] = 0;
+            }
+            
+            data[index + 3] = normalizedValue > 0 ? alpha : 0; // Make zero revisit areas transparent
+          }
+        }
+        
+        // Create texture from data
+        const heatmapTexture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+        heatmapTexture.needsUpdate = true;
+        
+        const heatmapMaterial = new THREE.MeshBasicMaterial({
+          map: heatmapTexture,
+          transparent: true,
+          opacity: 0.7,
+        });
+        
+        const heatmap = new THREE.Mesh(heatmapGeometry, heatmapMaterial);
+        sceneRef.current.add(heatmap);
+        heatmapRef.current = heatmap;
+      }
+    }
+  }, [isHeatmapActive, satellites, calculateRevisits, timeSpan]);
   
   return (
     <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden relative">
@@ -215,6 +282,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
             <span>Medium (3-5)</span>
             <span>High (6+)</span>
           </div>
+          <div className="text-[10px] text-white mt-1">
+            Max observed: {maxRevisitCount} revisits
+          </div>
         </div>
       )}
       <div className="absolute bottom-2 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white">
@@ -224,7 +294,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       {/* Simulation information label */}
       <div className="absolute top-2 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white max-w-[200px]">
         <div className="font-medium mb-1">Simulation Info</div>
-        <div className="text-[10px]">Currently showing mock visualization data (not using SGP4 propagator)</div>
+        <div className="text-[10px]">Using SGP4 propagator via Orekit.js for orbit calculations</div>
+        <div className="text-[10px] mt-1">
+          {satellites.length} satellite{satellites.length !== 1 ? 's' : ''} simulated over {timeSpan} hours
+        </div>
       </div>
     </div>
   );

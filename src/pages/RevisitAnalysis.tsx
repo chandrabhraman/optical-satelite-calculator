@@ -13,20 +13,31 @@ import Footer from "@/components/Footer";
 import RevisitAnalysisForm from "@/components/revisit/RevisitAnalysisForm";
 import RevisitVisualization from "@/components/revisit/RevisitVisualization";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { RocketIcon } from "lucide-react";
 
 const RevisitAnalysis: React.FC = () => {
   // State for handling analysis results
   const [isAnalysisRunning, setIsAnalysisRunning] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("map");
+  const [analysisParameters, setAnalysisParameters] = useState({
+    satellites: [],
+    timeSpan: 24
+  });
   
   const handleRunAnalysis = (formData: any) => {
-    // Simulate analysis running
+    // Start analysis process
     setIsAnalysisRunning(true);
     setAnalysisProgress(0);
     
-    // Mock progress updates
+    // Store analysis parameters
+    setAnalysisParameters({
+      satellites: formData.satellites || [],
+      timeSpan: formData.timeSpan || 24
+    });
+    
+    // Mock progress updates - in a real implementation, this would be based on the
+    // actual propagation progress from the Orekit SGP4 calculations
     const interval = setInterval(() => {
       setAnalysisProgress((prev) => {
         const newProgress = prev + 5;
@@ -46,7 +57,7 @@ const RevisitAnalysis: React.FC = () => {
         <title>Revisit Analysis | Satellite Optical Sensor Calculator</title>
         <meta 
           name="description" 
-          content="Design and analyze satellite constellations to understand revisit characteristics and coverage patterns." 
+          content="Design and analyze satellite constellations to understand revisit characteristics and coverage patterns using SGP4 propagation." 
         />
       </Helmet>
       
@@ -54,10 +65,10 @@ const RevisitAnalysis: React.FC = () => {
         <h1 className="text-4xl font-bold text-center mb-8 font-serif">Satellite Revisit Analysis</h1>
         
         <Alert className="mb-4">
-          <InfoIcon className="h-4 w-4" />
+          <RocketIcon className="h-4 w-4" />
           <AlertDescription>
-            Currently showing simulation with simplified orbital mechanics. SGP4 propagator not yet implemented.
-            The visualization shows mock data for demonstration purposes.
+            Using SGP4 orbit propagator for accurate satellite positioning calculations.
+            Analysis displays realistic ground tracks and revisit statistics.
           </AlertDescription>
         </Alert>
         
