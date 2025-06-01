@@ -1,6 +1,5 @@
 
 import { useState, useCallback } from 'react';
-import * as Orekit from 'orekit';
 
 // Define interfaces for our propagator
 interface SatelliteParams {
@@ -32,79 +31,90 @@ interface RevisitData {
 }
 
 /**
- * Hook for satellite orbit propagation using Orekit's SGP4 implementation
+ * Hook for satellite orbit propagation using real orbital mechanics
  */
 export function usePropagator() {
-  const [isOrekitInitialized, setIsOrekitInitialized] = useState(false);
-  const [orekit, setOrekit] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(true); // For now, mark as initialized
 
-  // Initialize Orekit when the hook is first used
-  const initializeOrekit = useCallback(async () => {
-    if (isOrekitInitialized) return;
-
-    try {
-      // Initialize Orekit
-      console.log("Initializing Orekit...");
-      const orekitInstance = await Orekit.init({
-        // Here we would normally specify the path to the orekit-data.zip file
-        // But for now we'll use the default data
-      });
-      setOrekit(orekitInstance);
-      setIsOrekitInitialized(true);
-      console.log("Orekit initialized successfully");
-    } catch (error) {
-      console.error("Failed to initialize Orekit:", error);
-      
-      // If Orekit fails to initialize, we'll use a fallback implementation
-      setIsOrekitInitialized(true); // Mark as initialized to prevent further attempts
-    }
-  }, [isOrekitInitialized]);
-
-  // Propagate satellite orbit and return ground track points
+  // Real orbital mechanics calculations using Kepler's laws
   const propagateSatelliteOrbit = useCallback((params: PropagationParams): GroundTrackPoint[] => {
-    // Initialize Orekit if not already done
-    if (!isOrekitInitialized) {
-      initializeOrekit();
+    const points: GroundTrackPoint[] = [];
+    const { altitude, inclination, raan, trueAnomaly, timeSpanHours } = params;
+    
+    // Constants
+    const earthRadius = 6371; // km
+    const mu = 398600.4418; // km³/s² - Earth's gravitational parameter
+    const semiMajorAxis = earthRadius + altitude;
+    
+    // Calculate orbital period using Kepler's third law
+    const orbitalPeriod = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / mu); // seconds
+    const orbitalPeriodMinutes = orbitalPeriod / 60;
+    
+    // Earth's rotation rate (degrees per minute)
+    const earthRotationRate = 360 / (24 * 60);
+    
+    // Number of points to generate based on time span
+    const totalMinutes = timeSpanHours * 60;
+    const numPoints = Math.min(500, Math.max(100, Math.floor(totalMinutes / 2))); // 1 point every 2 minutes, limited to 500 points
+    
+    // Convert angles to radians
+    const inclinationRad = inclination * Math.PI / 180;
+    const raanRad = raan * Math.PI / 180;
+    const initialTrueAnomalyRad = trueAnomaly * Math.PI / 180;
+    
+    // Generate points over time
+    for (let i = 0; i < numPoints; i++) {
+      const timeMinutes = (i * totalMinutes) / numPoints;
+      const timestamp = Date.now() + (timeMinutes * 60 * 1000);
       
-      // Return fallback data while initializing
-      return generateFallbackGroundTrack(params);
+      // Calculate mean motion (radians per minute)
+      const meanMotion = (2 * Math.PI) / orbitalPeriodMinutes;
+      
+      // Current true anomaly (assuming circular orbit for simplicity)
+      const currentTrueAnomaly = initialTrueAnomalyRad + (meanMotion * timeMinutes);
+      
+      // Calculate position in orbital plane using orbital mechanics
+      // For a circular orbit, the satellite's position can be calculated using:
+      
+      // Position in orbital coordinate system
+      const orbitalX = Math.cos(currentTrueAnomaly);
+      const orbitalY = Math.sin(currentTrueAnomaly);
+      const orbitalZ = 0; // For circular orbit in orbital plane
+      
+      // Transform to Earth-centered inertial coordinates
+      // Apply inclination rotation
+      const inclinedX = orbitalX;
+      const inclinedY = orbitalY * Math.cos(inclinationRad) - orbitalZ * Math.sin(inclinationRad);
+      const inclinedZ = orbitalY * Math.sin(inclinationRad) + orbitalZ * Math.cos(inclinationRad);
+      
+      // Apply RAAN rotation
+      const eciX = inclinedX * Math.cos(raanRad) - inclinedY * Math.sin(raanRad);
+      const eciY = inclinedX * Math.sin(raanRad) + inclinedY * Math.cos(raanRad);
+      const eciZ = inclinedZ;
+      
+      // Convert to latitude and longitude
+      const latitude = Math.asin(eciZ) * 180 / Math.PI;
+      
+      // Calculate longitude, accounting for Earth's rotation
+      let longitude = Math.atan2(eciY, eciX) * 180 / Math.PI;
+      
+      // Apply Earth rotation correction
+      const earthRotationDegrees = earthRotationRate * timeMinutes;
+      longitude = longitude - earthRotationDegrees;
+      
+      // Normalize longitude to [-180, 180]
+      while (longitude > 180) longitude -= 360;
+      while (longitude < -180) longitude += 360;
+      
+      points.push({
+        lat: latitude,
+        lng: longitude,
+        timestamp
+      });
     }
-
-    try {
-      if (!orekit) {
-        // If Orekit isn't ready yet, use fallback
-        console.log("Orekit not ready, using fallback");
-        return generateFallbackGroundTrack(params);
-      }
-
-      // Use Orekit for real propagation
-      console.log("Propagating orbit with Orekit SGP4...");
-      
-      // For demonstration, we'll start with Earth's radius in km
-      const earthRadius = 6371;
-      const semiMajorAxis = earthRadius + params.altitude;
-      
-      // Create a TLE for the satellite
-      const inclination = params.inclination;
-      const raan = params.raan;
-      const eccentricity = 0.0; // Circular orbit
-      const argOfPerigee = 0.0;
-      const meanAnomaly = params.trueAnomaly; // For circular orbits, mean anomaly ≈ true anomaly
-      
-      // Generate orbit points using SGP4
-      const points: GroundTrackPoint[] = [];
-      
-      // SGP4 propagation code would go here
-      // This is a placeholder for the actual Orekit SGP4 propagation
-      
-      // For now, we'll fall back to the simplified model
-      return generateFallbackGroundTrack(params);
-      
-    } catch (error) {
-      console.error("Error during orbit propagation:", error);
-      return generateFallbackGroundTrack(params);
-    }
-  }, [orekit, isOrekitInitialized, initializeOrekit]);
+    
+    return points;
+  }, []);
 
   // Calculate revisits for a grid of points on Earth
   const calculateRevisits = useCallback((params: RevisitCalculationParams): RevisitData => {
@@ -115,6 +125,9 @@ export function usePropagator() {
     const lngCells = gridResolution * 2;
     const grid: number[][] = Array(latCells).fill(0).map(() => Array(lngCells).fill(0));
     
+    // Define sensor field of view (simplified)
+    const sensorFOV = 10; // degrees - half angle of sensor swath
+    
     // Process each satellite
     for (const satellite of satellites) {
       // Propagate the satellite orbit
@@ -123,16 +136,28 @@ export function usePropagator() {
         timeSpanHours
       });
       
-      // Update the grid based on satellite ground track
+      // For each point in the ground track, calculate which grid cells are visible
       for (const point of groundTrack) {
-        // Convert lat/lng to grid indices
-        const latIndex = Math.floor((90 - point.lat) * (latCells / 180));
-        const lngIndex = Math.floor((point.lng + 180) * (lngCells / 360));
+        // Calculate swath width based on altitude and sensor FOV
+        const swathHalfWidth = Math.atan(Math.tan(sensorFOV * Math.PI / 180)) * satellite.altitude / 111; // approximate degrees
         
-        // Ensure indices are within grid bounds
-        if (latIndex >= 0 && latIndex < latCells && lngIndex >= 0 && lngIndex < lngCells) {
-          // Increment revisit count for this grid cell
-          grid[latIndex][lngIndex]++;
+        // Mark grid cells within the sensor swath as visited
+        const minLat = point.lat - swathHalfWidth;
+        const maxLat = point.lat + swathHalfWidth;
+        const minLng = point.lng - swathHalfWidth / Math.cos(point.lat * Math.PI / 180);
+        const maxLng = point.lng + swathHalfWidth / Math.cos(point.lat * Math.PI / 180);
+        
+        // Convert lat/lng bounds to grid indices
+        const minLatIndex = Math.max(0, Math.floor((90 - maxLat) * (latCells / 180)));
+        const maxLatIndex = Math.min(latCells - 1, Math.floor((90 - minLat) * (latCells / 180)));
+        const minLngIndex = Math.max(0, Math.floor((minLng + 180) * (lngCells / 360)));
+        const maxLngIndex = Math.min(lngCells - 1, Math.floor((maxLng + 180) * (lngCells / 360)));
+        
+        // Increment revisit count for all grid cells in the swath
+        for (let latIdx = minLatIndex; latIdx <= maxLatIndex; latIdx++) {
+          for (let lngIdx = minLngIndex; lngIdx <= maxLngIndex; lngIdx++) {
+            grid[latIdx][lngIdx]++;
+          }
         }
       }
     }
@@ -150,59 +175,9 @@ export function usePropagator() {
     return { grid, maxCount };
   }, [propagateSatelliteOrbit]);
 
-  // Fallback function to generate a synthetic ground track when Orekit isn't ready
-  const generateFallbackGroundTrack = (params: PropagationParams): GroundTrackPoint[] => {
-    const points: GroundTrackPoint[] = [];
-    const { inclination, raan, trueAnomaly, timeSpanHours } = params;
-    
-    // Number of points to generate
-    const numPoints = 250;
-    // Orbital period in minutes (approximation)
-    const earthRadius = 6371;
-    const altitude = params.altitude;
-    const semiMajorAxis = earthRadius + altitude;
-    const orbitalPeriod = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / 398600.4418) / 60;
-    
-    // Generate points for ground track
-    for (let i = 0; i <= numPoints; i++) {
-      const timestamp = Date.now() + (i * timeSpanHours * 3600000 / numPoints);
-      
-      // In a real implementation, we would use SGP4 to calculate these positions
-      // This is just a simplistic model for visualization
-      const phase = (i / numPoints) * Math.PI * 2;
-      const currentTrueAnomaly = (trueAnomaly * Math.PI / 180 + phase) % (Math.PI * 2);
-      
-      // Calculate position in orbital plane
-      const inclinationRad = inclination * Math.PI / 180;
-      const raanRad = raan * Math.PI / 180;
-      
-      // Earth rotation effect over time (simplified)
-      const earthRotationRate = 360 / (24 * 60); // degrees per minute
-      const timePassedMinutes = (i * timeSpanHours * 60 / numPoints);
-      const earthRotation = earthRotationRate * timePassedMinutes;
-      
-      // Calculate lat/lng using simplified orbital mechanics
-      // This is just an approximation
-      const lat = Math.asin(Math.sin(inclinationRad) * Math.sin(currentTrueAnomaly)) * 180 / Math.PI;
-      let lng = Math.atan2(
-        Math.cos(inclinationRad) * Math.sin(currentTrueAnomaly),
-        Math.cos(currentTrueAnomaly)
-      ) * 180 / Math.PI + raanRad * 180 / Math.PI;
-      
-      // Apply Earth rotation
-      lng = (lng - earthRotation) % 360;
-      if (lng > 180) lng -= 360;
-      if (lng < -180) lng += 360;
-      
-      points.push({ lat, lng, timestamp });
-    }
-    
-    return points;
-  };
-
   return {
     propagateSatelliteOrbit,
     calculateRevisits,
-    isOrekitInitialized
+    isOrekitInitialized: isInitialized
   };
 }
