@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Info, Rocket, Satellite } from "lucide-react";
@@ -23,7 +22,7 @@ interface RevisitVisualizationProps {
       trueAnomaly: number;
     }>;
     timeSpan: number;
-  };
+  } | null;
 }
 
 const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
@@ -53,20 +52,28 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   });
   
   useEffect(() => {
+    console.log("RevisitVisualization useEffect - analysisData:", analysisData);
+    console.log("isAnalysisRunning:", isAnalysisRunning);
+    console.log("analysisProgress:", analysisProgress);
+    
     // Reset state when analysis starts
     if (isAnalysisRunning) {
       setHasResults(false);
       setSatellites([]);
+      console.log("Analysis running - resetting state");
     }
     
     // Set results when analysis completes and we have data
-    if (analysisProgress === 100 && !isAnalysisRunning && analysisData) {
+    if (analysisProgress === 100 && !isAnalysisRunning && analysisData && analysisData.satellites.length > 0) {
+      console.log("Analysis complete - setting results with satellites:", analysisData.satellites);
       setHasResults(true);
       setSatellites(analysisData.satellites);
       setSimulationTimeSpan(analysisData.timeSpan);
       
       // Calculate realistic revisit statistics based on actual constellation size
       const actualSatCount = analysisData.satellites.length;
+      console.log("Calculating stats for", actualSatCount, "satellites");
+      
       const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
       const baseRevisit = Math.max(24 - (actualSatCount * 0.8), 1.5);
       const maxGap = baseRevisit * 2.2;
@@ -93,45 +100,50 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   );
   
   // Enhanced space-themed loading display
-  const LoadingDisplay = () => (
-    <div className="flex flex-col items-center justify-center h-full p-8 bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg">
-      <div className="relative mb-8">
-        <Rocket className="h-16 w-16 text-blue-400 animate-pulse" />
-        <div className="absolute -top-2 -right-2">
-          <Satellite className="h-8 w-8 text-yellow-400 animate-bounce" />
+  const LoadingDisplay = () => {
+    const satelliteCount = analysisData?.satellites?.length || 0;
+    const timeSpan = analysisData?.timeSpan || 24;
+    
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg">
+        <div className="relative mb-8">
+          <Rocket className="h-16 w-16 text-blue-400 animate-pulse" />
+          <div className="absolute -top-2 -right-2">
+            <Satellite className="h-8 w-8 text-yellow-400 animate-bounce" />
+          </div>
+        </div>
+        
+        <h3 className="text-xl font-medium mb-6 text-white">Propagating Satellite Constellation</h3>
+        
+        <div className="w-full max-w-md mb-4">
+          <Progress value={analysisProgress} className="w-full h-3 bg-slate-700" />
+          <div className="flex justify-between text-sm text-slate-300 mt-2">
+            <span>Orbital Mechanics</span>
+            <span>{analysisProgress}%</span>
+          </div>
+        </div>
+        
+        <div className="space-y-2 text-center max-w-md">
+          <div className="flex items-center justify-center space-x-2 text-blue-300">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            <span className="text-sm">Calculating satellite positions using SGP4</span>
+          </div>
+          <div className="flex items-center justify-center space-x-2 text-green-300">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-75"></div>
+            <span className="text-sm">Computing ground track coverage</span>
+          </div>
+          <div className="flex items-center justify-center space-x-2 text-purple-300">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-150"></div>
+            <span className="text-sm">Generating revisit statistics</span>
+          </div>
+        </div>
+        
+        <div className="mt-6 text-xs text-slate-400 text-center">
+          <p>Simulating {satelliteCount} satellites over {timeSpan} hours</p>
         </div>
       </div>
-      
-      <h3 className="text-xl font-medium mb-6 text-white">Propagating Satellite Constellation</h3>
-      
-      <div className="w-full max-w-md mb-4">
-        <Progress value={analysisProgress} className="w-full h-3 bg-slate-700" />
-        <div className="flex justify-between text-sm text-slate-300 mt-2">
-          <span>Orbital Mechanics</span>
-          <span>{analysisProgress}%</span>
-        </div>
-      </div>
-      
-      <div className="space-y-2 text-center max-w-md">
-        <div className="flex items-center justify-center space-x-2 text-blue-300">
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-          <span className="text-sm">Calculating satellite positions using SGP4</span>
-        </div>
-        <div className="flex items-center justify-center space-x-2 text-green-300">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-75"></div>
-          <span className="text-sm">Computing ground track coverage</span>
-        </div>
-        <div className="flex items-center justify-center space-x-2 text-purple-300">
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-150"></div>
-          <span className="text-sm">Generating revisit statistics</span>
-        </div>
-      </div>
-      
-      <div className="mt-6 text-xs text-slate-400 text-center">
-        <p>Simulating {analysisData?.satellites.length || 0} satellites over {analysisData?.timeSpan || 24} hours</p>
-      </div>
-    </div>
-  );
+    );
+  };
   
   // Map & Animation tab content
   const MapAnimationTab = () => (

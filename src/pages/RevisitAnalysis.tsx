@@ -33,15 +33,20 @@ const RevisitAnalysis: React.FC = () => {
   } | null>(null);
   
   const handleRunAnalysis = (formData: any) => {
+    console.log("Starting analysis with form data:", formData);
+    
     // Start analysis process
     setIsAnalysisRunning(true);
     setAnalysisProgress(0);
     
     // Store the actual analysis data from the form
-    setAnalysisData({
+    const newAnalysisData = {
       satellites: formData.satellites || [],
       timeSpan: formData.timeSpan || 24
-    });
+    };
+    
+    console.log("Setting analysis data:", newAnalysisData);
+    setAnalysisData(newAnalysisData);
     
     // Mock progress updates - in a real implementation, this would be based on the
     // actual propagation progress from the Orekit SGP4 calculations
@@ -51,6 +56,7 @@ const RevisitAnalysis: React.FC = () => {
         if (newProgress >= 100) {
           clearInterval(interval);
           setIsAnalysisRunning(false);
+          console.log("Analysis complete, final data:", newAnalysisData);
           return 100;
         }
         return newProgress;
