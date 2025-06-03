@@ -20,18 +20,25 @@ const RevisitAnalysis: React.FC = () => {
   const [isAnalysisRunning, setIsAnalysisRunning] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("map");
-  const [analysisParameters, setAnalysisParameters] = useState({
-    satellites: [],
-    timeSpan: 24
-  });
+  const [analysisData, setAnalysisData] = useState<{
+    satellites: Array<{
+      id: string;
+      name: string;
+      altitude: number;
+      inclination: number;
+      raan: number;
+      trueAnomaly: number;
+    }>;
+    timeSpan: number;
+  } | null>(null);
   
   const handleRunAnalysis = (formData: any) => {
     // Start analysis process
     setIsAnalysisRunning(true);
     setAnalysisProgress(0);
     
-    // Store analysis parameters
-    setAnalysisParameters({
+    // Store the actual analysis data from the form
+    setAnalysisData({
       satellites: formData.satellites || [],
       timeSpan: formData.timeSpan || 24
     });
@@ -112,6 +119,7 @@ const RevisitAnalysis: React.FC = () => {
                   tab={activeTab}
                   isAnalysisRunning={isAnalysisRunning}
                   analysisProgress={analysisProgress}
+                  analysisData={analysisData}
                 />
               </CardContent>
             </Card>

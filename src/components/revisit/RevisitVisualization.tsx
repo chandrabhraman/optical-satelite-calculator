@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle, Info, Rocket, Satellite } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,12 +13,24 @@ interface RevisitVisualizationProps {
   tab: string;
   isAnalysisRunning: boolean;
   analysisProgress: number;
+  analysisData?: {
+    satellites: Array<{
+      id: string;
+      name: string;
+      altitude: number;
+      inclination: number;
+      raan: number;
+      trueAnomaly: number;
+    }>;
+    timeSpan: number;
+  };
 }
 
 const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   tab,
   isAnalysisRunning,
-  analysisProgress
+  analysisProgress,
+  analysisData
 }) => {
   const [hasResults, setHasResults] = useState(false);
   const [showGroundTracks, setShowGroundTracks] = useState(true);
@@ -46,37 +59,14 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       setSatellites([]);
     }
     
-    // Set results when analysis completes
-    if (analysisProgress === 100 && !isAnalysisRunning) {
+    // Set results when analysis completes and we have data
+    if (analysisProgress === 100 && !isAnalysisRunning && analysisData) {
       setHasResults(true);
-      
-      // Generate sample constellation for demonstration
-      const newSatellites = [];
-      const numSats = 6;
-      const numPlanes = 3;
-      const satsPerPlane = numSats / numPlanes;
-      
-      for (let plane = 0; plane < numPlanes; plane++) {
-        const raan = plane * (360 / numPlanes);
-        
-        for (let sat = 0; sat < satsPerPlane; sat++) {
-          const trueAnomaly = sat * (360 / satsPerPlane);
-          
-          newSatellites.push({
-            id: `sat-${plane * satsPerPlane + sat + 1}`,
-            name: `Satellite ${plane * satsPerPlane + sat + 1}`,
-            altitude: 500,
-            inclination: 98,
-            raan: raan,
-            trueAnomaly: trueAnomaly
-          });
-        }
-      }
-      
-      setSatellites(newSatellites);
+      setSatellites(analysisData.satellites);
+      setSimulationTimeSpan(analysisData.timeSpan);
       
       // Calculate realistic revisit statistics based on actual constellation size
-      const actualSatCount = newSatellites.length;
+      const actualSatCount = analysisData.satellites.length;
       const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
       const baseRevisit = Math.max(24 - (actualSatCount * 0.8), 1.5);
       const maxGap = baseRevisit * 2.2;
@@ -89,7 +79,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         coverage: parseFloat(baseCoverage.toFixed(1))
       });
     }
-  }, [isAnalysisRunning, analysisProgress]);
+  }, [isAnalysisRunning, analysisProgress, analysisData]);
   
   // Placeholder for when there are no results yet
   const NoResultsPlaceholder = () => (
@@ -102,18 +92,43 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     </div>
   );
   
-  // Display during analysis
+  // Enhanced space-themed loading display
   const LoadingDisplay = () => (
-    <div className="flex flex-col items-center justify-center h-full p-8">
-      <h3 className="text-xl font-medium mb-6">Running Orbital Analysis</h3>
-      <Progress value={analysisProgress} className="w-full h-2 mb-2" />
-      <p className="text-sm text-muted-foreground">
-        {analysisProgress}% complete
-      </p>
-      <div className="mt-8 max-w-md text-center">
-        <p className="text-muted-foreground">
-          Propagating satellite orbits using SGP4 and calculating revisit statistics...
-        </p>
+    <div className="flex flex-col items-center justify-center h-full p-8 bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg">
+      <div className="relative mb-8">
+        <Rocket className="h-16 w-16 text-blue-400 animate-pulse" />
+        <div className="absolute -top-2 -right-2">
+          <Satellite className="h-8 w-8 text-yellow-400 animate-bounce" />
+        </div>
+      </div>
+      
+      <h3 className="text-xl font-medium mb-6 text-white">Propagating Satellite Constellation</h3>
+      
+      <div className="w-full max-w-md mb-4">
+        <Progress value={analysisProgress} className="w-full h-3 bg-slate-700" />
+        <div className="flex justify-between text-sm text-slate-300 mt-2">
+          <span>Orbital Mechanics</span>
+          <span>{analysisProgress}%</span>
+        </div>
+      </div>
+      
+      <div className="space-y-2 text-center max-w-md">
+        <div className="flex items-center justify-center space-x-2 text-blue-300">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+          <span className="text-sm">Calculating satellite positions using SGP4</span>
+        </div>
+        <div className="flex items-center justify-center space-x-2 text-green-300">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-75"></div>
+          <span className="text-sm">Computing ground track coverage</span>
+        </div>
+        <div className="flex items-center justify-center space-x-2 text-purple-300">
+          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-150"></div>
+          <span className="text-sm">Generating revisit statistics</span>
+        </div>
+      </div>
+      
+      <div className="mt-6 text-xs text-slate-400 text-center">
+        <p>Simulating {analysisData?.satellites.length || 0} satellites over {analysisData?.timeSpan || 24} hours</p>
       </div>
     </div>
   );

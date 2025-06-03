@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -477,21 +478,24 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         </Button>
       </div>
 
-      {/* Fixed color bar for heatmap - matching exact heatmap colors */}
+      {/* Discrete color bar for heatmap with fixed color segments */}
       {isHeatmapActive && maxRevisitCount > 0 && (
         <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm p-3 rounded text-xs border">
           <div className="text-foreground font-medium mb-2">Revisit Count</div>
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-32 h-6 rounded border"
-              style={{
-                background: 'linear-gradient(to right, #0000ff 0%, #00ff00 20%, #ffff00 40%, #ff8000 60%, #ff0000 80%, #ff0000 100%)'
-              }}
-            ></div>
+          <div className="flex items-center gap-0">
+            <div className="w-6 h-6 bg-blue-500 border border-gray-300"></div>
+            <div className="w-6 h-6 bg-green-500 border border-gray-300"></div>
+            <div className="w-6 h-6 bg-yellow-500 border border-gray-300"></div>
+            <div className="w-6 h-6 bg-orange-500 border border-gray-300"></div>
+            <div className="w-6 h-6 bg-red-500 border border-gray-300"></div>
+            <div className="w-6 h-6 bg-red-600 border border-gray-300"></div>
           </div>
-          <div className="flex justify-between text-[10px] text-foreground mt-1">
+          <div className="flex justify-between text-[10px] text-foreground mt-1 w-36">
             <span>0</span>
-            <span>{Math.floor(maxRevisitCount/2)}</span>
+            <span>{Math.floor(maxRevisitCount * 0.2)}</span>
+            <span>{Math.floor(maxRevisitCount * 0.4)}</span>
+            <span>{Math.floor(maxRevisitCount * 0.6)}</span>
+            <span>{Math.floor(maxRevisitCount * 0.8)}</span>
             <span>{maxRevisitCount}</span>
           </div>
           <div className="text-[10px] text-muted-foreground mt-2">
