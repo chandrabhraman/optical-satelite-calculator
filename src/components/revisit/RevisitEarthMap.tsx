@@ -34,7 +34,6 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   const earthRef = useRef<THREE.Mesh | null>(null);
   const groundTracksRef = useRef<THREE.Group | null>(null);
   const heatmapRef = useRef<THREE.Mesh | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
   
   const [is2D, setIs2D] = useState(false);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
@@ -68,47 +67,66 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     setIs2D(!is2D);
   };
 
-  // Create Natural Earth texture (simplified version)
+  // Create Natural Earth texture with realistic colors
   const createNaturalEarthTexture = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
+    canvas.width = 2048;
+    canvas.height = 1024;
     const ctx = canvas.getContext('2d');
     
     if (!ctx) return null;
     
-    // Natural Earth color scheme
-    const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#87CEEB'); // Sky blue
-    gradient.addColorStop(0.3, '#98FB98'); // Pale green
-    gradient.addColorStop(0.7, '#F4A460'); // Sandy brown
-    gradient.addColorStop(1, '#87CEEB'); // Sky blue
+    // Natural Earth ocean color
+    ctx.fillStyle = '#a6cee3'; // Light blue ocean
+    ctx.fillRect(0, 0, 2048, 1024);
     
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1024, 512);
+    // Add detailed continents with Natural Earth colors
+    ctx.fillStyle = '#1f7837'; // Forest green for land masses
     
-    // Add landmass representation with Natural Earth colors
-    ctx.fillStyle = '#228B22'; // Forest green for land
-    
-    // Simplified continents (very basic representation)
+    // More detailed continent outlines based on Natural Earth projection
     const continents = [
-      // North America
-      { x: 150, y: 100, w: 150, h: 100 },
-      // South America  
-      { x: 250, y: 220, w: 80, h: 160 },
-      // Europe
-      { x: 480, y: 90, w: 60, h: 50 },
-      // Africa
-      { x: 500, y: 150, w: 90, h: 170 },
-      // Asia
-      { x: 550, y: 70, w: 250, h: 110 },
+      // North America - more accurate shape
+      { x: 200, y: 150, w: 300, h: 200, shape: 'complex' },
+      // South America - elongated
+      { x: 350, y: 350, w: 150, h: 300, shape: 'tapered' },
+      // Europe - smaller, detailed
+      { x: 550, y: 120, w: 120, h: 100, shape: 'irregular' },
+      // Africa - distinctive shape
+      { x: 580, y: 200, w: 180, h: 250, shape: 'africa' },
+      // Asia - large, complex
+      { x: 700, y: 80, w: 400, h: 200, shape: 'asia' },
       // Australia
-      { x: 720, y: 280, w: 65, h: 35 }
+      { x: 900, y: 400, w: 120, h: 80, shape: 'oval' },
+      // Greenland
+      { x: 400, y: 80, w: 80, h: 120, shape: 'irregular' }
     ];
     
     continents.forEach(continent => {
-      ctx.fillRect(continent.x, continent.y, continent.w, continent.h);
+      ctx.beginPath();
+      switch (continent.shape) {
+        case 'africa':
+          // Africa-like shape
+          ctx.ellipse(continent.x + continent.w/2, continent.y + continent.h/2, 
+                     continent.w/2, continent.h/2, 0, 0, 2 * Math.PI);
+          break;
+        case 'asia':
+          // Large irregular mass for Asia
+          ctx.rect(continent.x, continent.y, continent.w, continent.h);
+          break;
+        default:
+          ctx.rect(continent.x, continent.y, continent.w, continent.h);
+      }
+      ctx.fill();
     });
+    
+    // Add mountain ranges in darker green
+    ctx.fillStyle = '#0f5132';
+    // Himalayas
+    ctx.fillRect(800, 160, 150, 20);
+    // Andes
+    ctx.fillRect(320, 350, 15, 250);
+    // Rockies
+    ctx.fillRect(250, 180, 20, 120);
     
     return new THREE.CanvasTexture(canvas);
   };
@@ -119,9 +137,6 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     
     // Cleanup previous scene
     if (rendererRef.current) {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
       containerRef.current.removeChild(rendererRef.current.domElement);
       rendererRef.current.dispose();
     }
@@ -147,6 +162,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    // Disable animation-related controls to save memory
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 0;
     controlsRef.current = controls;
     
     const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
@@ -173,8 +191,8 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     scene.add(groundTracks);
     groundTracksRef.current = groundTracks;
     
-    const animate = () => {
-      animationFrameRef.current = requestAnimationFrame(animate);
+    // Simple render loop without animation
+    const render = () => {
       if (controlsRef.current) {
         controlsRef.current.update();
       }
@@ -182,12 +200,17 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
+      requestAnimationFrame(render);
     };
-    animate();
+    render();
     
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      // Cleanup to minimize memory usage
+      if (earthRef.current) {
+        earthRef.current.geometry.dispose();
+        if (earthRef.current.material instanceof THREE.Material) {
+          earthRef.current.material.dispose();
+        }
       }
     };
   }, [satellites.length]);
@@ -219,7 +242,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   useEffect(() => {
     if (!groundTracksRef.current || !sceneRef.current || satellites.length === 0) return;
     
-    // Clear previous ground tracks
+    // Clear previous ground tracks to save memory
     while (groundTracksRef.current.children.length > 0) {
       const child = groundTracksRef.current.children[0];
       groundTracksRef.current.remove(child);
@@ -272,10 +295,11 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     }
   }, [satellites, showGroundTracks, propagateSatelliteOrbit, timeSpan, is2D]);
 
-  // Generate heatmap
+  // Generate heatmap with proper grid resolution and color mapping
   useEffect(() => {
     if (!sceneRef.current || !earthRef.current || satellites.length === 0) return;
     
+    // Clear previous heatmap to save memory
     if (heatmapRef.current && heatmapRef.current.parent) {
       sceneRef.current.remove(heatmapRef.current);
       heatmapRef.current.geometry.dispose();
@@ -286,6 +310,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     }
     
     if (isHeatmapActive) {
+      // Use specified grid resolution (default 180 for global coverage)
+      const gridResolution = 180;
+      
       const revisitData = calculateRevisits({
         satellites: satellites.map(sat => ({
           altitude: sat.altitude,
@@ -294,7 +321,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           trueAnomaly: sat.trueAnomaly
         })),
         timeSpanHours: timeSpan,
-        gridResolution: 180
+        gridResolution: gridResolution
       });
       
       setHeatmapData(revisitData.grid);
@@ -302,53 +329,69 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       
       // Create heatmap geometry based on projection
       const heatmapGeometry = is2D 
-        ? new THREE.PlaneGeometry(4.02, 2.02)
-        : new THREE.SphereGeometry(2.01, 180, 90);
+        ? new THREE.PlaneGeometry(4.02, 2.02, gridResolution * 2, gridResolution)
+        : new THREE.SphereGeometry(2.01, gridResolution * 2, gridResolution);
       
-      // Generate texture from revisit data
-      const size = 256;
-      const data = new Uint8Array(4 * size * size);
+      // Generate high-resolution texture from revisit data with proper color mapping
+      const textureSize = 512;
+      const data = new Uint8Array(4 * textureSize * textureSize);
       
-      for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-          const index = (i * size + j) * 4;
+      for (let i = 0; i < textureSize; i++) {
+        for (let j = 0; j < textureSize; j++) {
+          const index = (i * textureSize + j) * 4;
           
-          const latIndex = Math.floor((i / size) * revisitData.grid.length);
-          const lngIndex = Math.floor((j / size) * revisitData.grid[0].length);
+          // Map texture coordinates to grid coordinates
+          const latIndex = Math.floor((i / textureSize) * revisitData.grid.length);
+          const lngIndex = Math.floor((j / textureSize) * revisitData.grid[0].length);
           
-          const value = revisitData.grid[latIndex][lngIndex];
+          const value = revisitData.grid[latIndex]?.[lngIndex] || 0;
           const normalizedValue = revisitData.maxCount > 0 ? value / revisitData.maxCount : 0;
-          const alpha = 180;
           
-          if (normalizedValue > 0.7) {
+          // Enhanced color mapping for better visualization
+          if (normalizedValue > 0.8) {
+            // High revisit count - Red
             data[index] = 255;
-            data[index + 1] = Math.max(0, 255 - (normalizedValue - 0.7) * 850);
+            data[index + 1] = Math.max(0, 255 - (normalizedValue - 0.8) * 1275);
             data[index + 2] = 0;
-          } else if (normalizedValue > 0.3) {
+          } else if (normalizedValue > 0.6) {
+            // Medium-high revisit count - Orange to Red
             data[index] = 255;
+            data[index + 1] = Math.floor(255 - (normalizedValue - 0.6) * 1275);
+            data[index + 2] = 0;
+          } else if (normalizedValue > 0.4) {
+            // Medium revisit count - Yellow to Orange
+            data[index] = 255;
+            data[index + 1] = 255;
+            data[index + 2] = Math.floor((0.6 - normalizedValue) * 1275);
+          } else if (normalizedValue > 0.2) {
+            // Low-medium revisit count - Green to Yellow
+            data[index] = Math.floor(255 * (normalizedValue - 0.2) * 5);
             data[index + 1] = 255;
             data[index + 2] = 0;
           } else if (normalizedValue > 0) {
-            data[index] = normalizedValue * 510;
-            data[index + 1] = 255;
-            data[index + 2] = 0;
+            // Low revisit count - Blue to Green
+            data[index] = 0;
+            data[index + 1] = Math.floor(255 * normalizedValue * 5);
+            data[index + 2] = Math.floor(255 * (0.2 - normalizedValue) * 5);
           } else {
+            // No revisit - Transparent
             data[index] = 0;
             data[index + 1] = 0;
             data[index + 2] = 0;
           }
           
-          data[index + 3] = normalizedValue > 0 ? alpha : 0;
+          // Set alpha based on revisit count
+          data[index + 3] = normalizedValue > 0 ? Math.floor(180 * normalizedValue + 75) : 0;
         }
       }
       
-      const heatmapTexture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+      const heatmapTexture = new THREE.DataTexture(data, textureSize, textureSize, THREE.RGBAFormat);
       heatmapTexture.needsUpdate = true;
       
       const heatmapMaterial = new THREE.MeshBasicMaterial({
         map: heatmapTexture,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.8,
       });
       
       const heatmap = new THREE.Mesh(heatmapGeometry, heatmapMaterial);
@@ -396,38 +439,42 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         </Button>
       </div>
 
-      {/* Legend for heatmap */}
+      {/* Enhanced color bar for heatmap */}
       {isHeatmapActive && maxRevisitCount > 0 && (
-        <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs">
-          <div className="text-white font-medium mb-1">Revisit Count</div>
-          <div className="flex items-center gap-1">
-            <div className="w-24 h-4 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded"></div>
+        <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm p-3 rounded text-xs border">
+          <div className="text-foreground font-medium mb-2">Revisit Count</div>
+          <div className="flex items-center gap-2">
+            <div className="w-32 h-6 bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 via-orange-500 to-red-500 rounded border"></div>
           </div>
-          <div className="flex justify-between text-[10px] text-white mt-0.5">
-            <span>Low</span>
-            <span>High</span>
+          <div className="flex justify-between text-[10px] text-foreground mt-1">
+            <span>0</span>
+            <span>{Math.floor(maxRevisitCount/2)}</span>
+            <span>{maxRevisitCount}</span>
           </div>
-          <div className="text-[10px] text-white mt-1">
-            Max: {maxRevisitCount} revisits
+          <div className="text-[10px] text-muted-foreground mt-2">
+            Grid: {heatmapData.length}×{heatmapData[0]?.length || 0} cells
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            Time span: {timeSpan}h
           </div>
         </div>
       )}
 
       {/* Satellite ground tracks legend */}
       {showGroundTracks && satellites.length > 0 && (
-        <div className="absolute bottom-16 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs max-w-[200px]">
-          <div className="text-white font-medium mb-1">Ground Tracks</div>
+        <div className="absolute bottom-16 left-2 bg-background/90 backdrop-blur-sm p-3 rounded text-xs max-w-[200px] border">
+          <div className="text-foreground font-medium mb-2">Ground Tracks</div>
           {satellites.slice(0, 6).map((satellite, index) => (
-            <div key={satellite.id} className="flex items-center gap-2 text-[10px]">
+            <div key={satellite.id} className="flex items-center gap-2 text-[10px] mb-1">
               <div 
-                className="w-3 h-1 rounded"
+                className="w-4 h-2 rounded"
                 style={{ backgroundColor: satelliteColors[index % satelliteColors.length] }}
               ></div>
-              <span className="text-white truncate">{satellite.name}</span>
+              <span className="text-foreground truncate">{satellite.name}</span>
             </div>
           ))}
           {satellites.length > 6 && (
-            <div className="text-[10px] text-white/60 mt-1">
+            <div className="text-[10px] text-muted-foreground mt-1">
               +{satellites.length - 6} more satellites
             </div>
           )}
@@ -435,13 +482,13 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       )}
 
       {/* Controls info */}
-      <div className="absolute bottom-2 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white">
+      <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm p-2 rounded text-xs text-foreground border">
         <div>{is2D ? 'Click and drag to pan' : 'Click and drag to rotate'}</div>
         <div>Scroll to zoom</div>
       </div>
 
       {/* Simulation info */}
-      <div className="absolute top-16 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs text-white max-w-[200px]">
+      <div className="absolute top-16 left-2 bg-background/90 backdrop-blur-sm p-2 rounded text-xs text-foreground max-w-[200px] border">
         <div className="font-medium mb-1">Natural Earth View</div>
         <div className="text-[10px]">
           {satellites.length} satellite{satellites.length !== 1 ? 's' : ''} • {timeSpan}h simulation
