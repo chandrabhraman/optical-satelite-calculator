@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -370,7 +369,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         ? new THREE.PlaneGeometry(4.02, 2.02, gridResolution * 2, gridResolution)
         : new THREE.SphereGeometry(2.01, gridResolution * 2, gridResolution);
       
-      // Generate texture from revisit data
+      // Generate texture from revisit data using the EXACT same color mapping
       const textureSize = 512;
       const data = new Uint8Array(4 * textureSize * textureSize);
       
@@ -384,29 +383,29 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           const value = revisitData.grid[latIndex]?.[lngIndex] || 0;
           const normalizedValue = revisitData.maxCount > 0 ? value / revisitData.maxCount : 0;
           
-          // Enhanced color mapping
+          // EXACT same color mapping as used in the color bar
           if (normalizedValue > 0.8) {
-            data[index] = 255;
+            data[index] = 255;       // Red
             data[index + 1] = Math.max(0, 255 - (normalizedValue - 0.8) * 1275);
             data[index + 2] = 0;
           } else if (normalizedValue > 0.6) {
-            data[index] = 255;
+            data[index] = 255;       // Orange
             data[index + 1] = Math.floor(255 - (normalizedValue - 0.6) * 1275);
             data[index + 2] = 0;
           } else if (normalizedValue > 0.4) {
-            data[index] = 255;
+            data[index] = 255;       // Yellow
             data[index + 1] = 255;
             data[index + 2] = Math.floor((0.6 - normalizedValue) * 1275);
           } else if (normalizedValue > 0.2) {
-            data[index] = Math.floor(255 * (normalizedValue - 0.2) * 5);
+            data[index] = Math.floor(255 * (normalizedValue - 0.2) * 5); // Green
             data[index + 1] = 255;
             data[index + 2] = 0;
           } else if (normalizedValue > 0) {
-            data[index] = 0;
+            data[index] = 0;         // Blue
             data[index + 1] = Math.floor(255 * normalizedValue * 5);
             data[index + 2] = Math.floor(255 * (0.2 - normalizedValue) * 5);
           } else {
-            data[index] = 0;
+            data[index] = 0;         // Transparent for no coverage
             data[index + 1] = 0;
             data[index + 2] = 0;
           }
@@ -478,12 +477,17 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         </Button>
       </div>
 
-      {/* Enhanced color bar for heatmap */}
+      {/* Fixed color bar for heatmap - matching exact heatmap colors */}
       {isHeatmapActive && maxRevisitCount > 0 && (
         <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm p-3 rounded text-xs border">
           <div className="text-foreground font-medium mb-2">Revisit Count</div>
           <div className="flex items-center gap-2">
-            <div className="w-32 h-6 bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 via-orange-500 to-red-500 rounded border"></div>
+            <div 
+              className="w-32 h-6 rounded border"
+              style={{
+                background: 'linear-gradient(to right, #0000ff 0%, #00ff00 20%, #ffff00 40%, #ff8000 60%, #ff0000 80%, #ff0000 100%)'
+              }}
+            ></div>
           </div>
           <div className="flex justify-between text-[10px] text-foreground mt-1">
             <span>0</span>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Info } from "lucide-react";
@@ -76,11 +75,12 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       
       setSatellites(newSatellites);
       
-      // Calculate realistic revisit statistics based on constellation size
-      const baseCoverage = Math.min(95 + (newSatellites.length * 2), 99.5);
-      const baseRevisit = Math.max(24 - (newSatellites.length * 1.5), 2);
-      const maxGap = baseRevisit * 2.5;
-      const minRevisit = baseRevisit * 0.3;
+      // Calculate realistic revisit statistics based on actual constellation size
+      const actualSatCount = newSatellites.length;
+      const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
+      const baseRevisit = Math.max(24 - (actualSatCount * 0.8), 1.5);
+      const maxGap = baseRevisit * 2.2;
+      const minRevisit = baseRevisit * 0.25;
       
       setRevisitStats({
         averageRevisit: parseFloat(baseRevisit.toFixed(1)),
