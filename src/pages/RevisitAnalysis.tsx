@@ -34,6 +34,14 @@ const RevisitAnalysis: React.FC = () => {
   
   const handleRunAnalysis = (formData: any) => {
     console.log("Starting analysis with form data:", formData);
+    console.log("Form data satellites:", formData.satellites);
+    console.log("Form data timeSpan:", formData.timeSpan);
+    
+    // Validate that we have satellites data
+    if (!formData.satellites || !Array.isArray(formData.satellites) || formData.satellites.length === 0) {
+      console.error("No satellites data received from form");
+      return;
+    }
     
     // Start analysis process
     setIsAnalysisRunning(true);
@@ -41,11 +49,12 @@ const RevisitAnalysis: React.FC = () => {
     
     // Store the actual analysis data from the form
     const newAnalysisData = {
-      satellites: formData.satellites || [],
+      satellites: formData.satellites,
       timeSpan: formData.timeSpan || 24
     };
     
-    console.log("Setting analysis data:", newAnalysisData);
+    console.log("Setting analysis data with satellites count:", newAnalysisData.satellites.length);
+    console.log("Full analysis data:", newAnalysisData);
     setAnalysisData(newAnalysisData);
     
     // Mock progress updates - in a real implementation, this would be based on the
