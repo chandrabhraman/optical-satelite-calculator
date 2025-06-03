@@ -24,35 +24,31 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   const [simulationTime, setSimulationTime] = useState(0);
   const [hasResults, setHasResults] = useState(false);
   const [showGroundTracks, setShowGroundTracks] = useState(true);
-  const [showSwaths, setShowSwaths] = useState(false);
-  const [showHeatmap, setShowHeatmap] = useState(true);
-  const [simulationTimeSpan, setSimulationTimeSpan] = useState(24); // 24 hours by default
-  const [satellites, setSatellites] = useState([
-    {
-      id: "sat-1",
-      name: "Satellite 1",
-      altitude: 500,
-      inclination: 98,
-      raan: 0,
-      trueAnomaly: 0
-    }
-  ]);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [simulationTimeSpan, setSimulationTimeSpan] = useState(24);
+  const [satellites, setSatellites] = useState<Array<{
+    id: string;
+    name: string;
+    altitude: number;
+    inclination: number;
+    raan: number;
+    trueAnomaly: number;
+  }>>([]);
   
   useEffect(() => {
-    // Reset playing state when analysis starts
+    // Reset state when analysis starts
     if (isAnalysisRunning) {
       setIsPlaying(false);
+      setHasResults(false);
+      setSatellites([]); // Clear satellites to minimize memory usage
     }
     
-    // Set hasResults when analysis completes
-    if (analysisProgress === 100) {
+    // Set results when analysis completes
+    if (analysisProgress === 100 && !isAnalysisRunning) {
       setHasResults(true);
       
-      // Generate realistic satellite constellation based on the analysis parameters
-      // This would normally come from the form data
+      // Generate sample constellation for demonstration
       const newSatellites = [];
-      
-      // Create a Walker Delta constellation (for demonstration)
       const numSats = 6;
       const numPlanes = 3;
       const satsPerPlane = numSats / numPlanes;
@@ -66,8 +62,8 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
           newSatellites.push({
             id: `sat-${plane * satsPerPlane + sat + 1}`,
             name: `Satellite ${plane * satsPerPlane + sat + 1}`,
-            altitude: 500, // km
-            inclination: 98, // degrees
+            altitude: 500,
+            inclination: 98,
             raan: raan,
             trueAnomaly: trueAnomaly
           });
@@ -119,11 +115,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     <div className="h-full flex flex-col">
       <div className="flex-1 relative bg-muted/30 rounded-md overflow-hidden">
         <RevisitEarthMap 
-          isAnalysisRunning={isAnalysisRunning}
+          satellites={hasResults ? satellites : []}
+          timeSpan={simulationTimeSpan}
           showGroundTracks={showGroundTracks}
           isHeatmapActive={showHeatmap}
-          satellites={satellites}
-          timeSpan={simulationTimeSpan}
         />
       </div>
       
@@ -165,17 +160,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
               Ground Tracks
             </Toggle>
             <Toggle 
-              aria-label="Show swaths"
-              pressed={showSwaths}
-              onPressedChange={setShowSwaths}
-            >
-              Sensor Swaths
-            </Toggle>
-            <Toggle 
               aria-label="Show heatmap" 
               pressed={showHeatmap}
               onPressedChange={setShowHeatmap}
-              defaultPressed
             >
               Revisit Heatmap
             </Toggle>
@@ -188,7 +175,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p className="text-xs">
-                    This visualization uses SGP4 propagation via Orekit.js for accurate 
+                    This visualization uses orbital mechanics calculations for accurate 
                     satellite orbit simulation. The heatmap shows revisit frequency 
                     over the simulation period.
                   </p>
@@ -208,11 +195,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         <>
           <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
             <RevisitEarthMap 
-              isAnalysisRunning={isAnalysisRunning}
-              isHeatmapActive={true}
-              showGroundTracks={false}
               satellites={satellites}
               timeSpan={simulationTimeSpan}
+              isHeatmapActive={true}
+              showGroundTracks={false}
             />
           </div>
           <div className="p-4">
@@ -227,7 +213,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 <div>Global Coverage: <span className="font-medium">98.7%</span></div>
               </AlertDescription>
               <div className="text-xs text-muted-foreground mt-2">
-                Statistics calculated using SGP4 propagation for {satellites.length} satellites over {simulationTimeSpan} hours.
+                Statistics calculated for {satellites.length} satellites over {simulationTimeSpan} hours.
               </div>
             </Alert>
           </div>
@@ -245,11 +231,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         <>
           <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
             <RevisitEarthMap 
-              isAnalysisRunning={isAnalysisRunning}
-              isHeatmapActive={true}
-              showGroundTracks={true}
               satellites={satellites}
               timeSpan={simulationTimeSpan}
+              isHeatmapActive={true}
+              showGroundTracks={true}
             />
           </div>
           <div className="p-4">
@@ -259,7 +244,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 Draw a polygon on the map to analyze revisit statistics for a specific area.
               </AlertDescription>
               <div className="text-xs text-muted-foreground mt-2">
-                Showing SGP4-based propagation for {satellites.length} satellites over {simulationTimeSpan} hours.
+                Analysis for {satellites.length} satellites over {simulationTimeSpan} hours.
               </div>
             </Alert>
           </div>

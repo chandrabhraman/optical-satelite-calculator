@@ -7,9 +7,6 @@ import { Button } from '@/components/ui/button';
 import { RotateCcw, Globe, Map } from 'lucide-react';
 
 interface RevisitEarthMapProps {
-  isAnalysisRunning?: boolean;
-  isHeatmapActive?: boolean;
-  showGroundTracks?: boolean;
   satellites?: Array<{
     id: string;
     name: string;
@@ -19,14 +16,15 @@ interface RevisitEarthMapProps {
     trueAnomaly: number;
   }>;
   timeSpan?: number;
+  isHeatmapActive?: boolean;
+  showGroundTracks?: boolean;
 }
 
 const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
-  isAnalysisRunning = false,
-  isHeatmapActive = false,
-  showGroundTracks = true,
   satellites = [],
-  timeSpan = 24
+  timeSpan = 24,
+  isHeatmapActive = false,
+  showGroundTracks = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -36,7 +34,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   const earthRef = useRef<THREE.Mesh | null>(null);
   const groundTracksRef = useRef<THREE.Group | null>(null);
   const heatmapRef = useRef<THREE.Mesh | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   
   const [is2D, setIs2D] = useState(false);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
@@ -46,16 +44,8 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
 
   // Satellite colors for ground tracks
   const satelliteColors = [
-    0xff4444, // Red
-    0x44ff44, // Green
-    0x4444ff, // Blue
-    0xffff44, // Yellow
-    0xff44ff, // Magenta
-    0x44ffff, // Cyan
-    0xff8844, // Orange
-    0x8844ff, // Purple
-    0x44ff88, // Light Green
-    0xff4488, // Pink
+    '#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff',
+    '#44ffff', '#ff8844', '#8844ff', '#44ff88', '#ff4488'
   ];
 
   // Clear heatmap data and visualization
@@ -65,6 +55,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     
     if (heatmapRef.current && sceneRef.current) {
       sceneRef.current.remove(heatmapRef.current);
+      heatmapRef.current.geometry.dispose();
+      if (heatmapRef.current.material instanceof THREE.Material) {
+        heatmapRef.current.material.dispose();
+      }
       heatmapRef.current = null;
     }
   };
@@ -72,115 +66,65 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   // Toggle between 3D globe and 2D Mercator projection
   const toggleProjection = () => {
     setIs2D(!is2D);
-    
-    if (!is2D) {
-      // Switch to 2D mode
-      if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, 0, 10);
-        controlsRef.current.enableRotate = false;
-        controlsRef.current.update();
-      }
-    } else {
-      // Switch to 3D mode
-      if (cameraRef.current && controlsRef.current) {
-        cameraRef.current.position.set(0, 0, 5);
-        controlsRef.current.enableRotate = true;
-        controlsRef.current.update();
-      }
-    }
   };
 
-  // Create 2D Mercator canvas
-  const create2DCanvas = () => {
-    if (!canvasRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
-      canvasRef.current = canvas;
-    }
+  // Create Natural Earth texture (simplified version)
+  const createNaturalEarthTexture = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
     
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
     
-    // Clear canvas
-    ctx.fillStyle = '#1a1a2e';
+    // Natural Earth color scheme
+    const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+    gradient.addColorStop(0, '#87CEEB'); // Sky blue
+    gradient.addColorStop(0.3, '#98FB98'); // Pale green
+    gradient.addColorStop(0.7, '#F4A460'); // Sandy brown
+    gradient.addColorStop(1, '#87CEEB'); // Sky blue
+    
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 1024, 512);
     
-    // Draw Natural Earth style map (simplified)
-    ctx.fillStyle = '#2d4a22';
-    // Draw simplified continents
-    drawSimplifiedContinents(ctx);
+    // Add landmass representation with Natural Earth colors
+    ctx.fillStyle = '#228B22'; // Forest green for land
     
-    return canvasRef.current;
+    // Simplified continents (very basic representation)
+    const continents = [
+      // North America
+      { x: 150, y: 100, w: 150, h: 100 },
+      // South America  
+      { x: 250, y: 220, w: 80, h: 160 },
+      // Europe
+      { x: 480, y: 90, w: 60, h: 50 },
+      // Africa
+      { x: 500, y: 150, w: 90, h: 170 },
+      // Asia
+      { x: 550, y: 70, w: 250, h: 110 },
+      // Australia
+      { x: 720, y: 280, w: 65, h: 35 }
+    ];
+    
+    continents.forEach(continent => {
+      ctx.fillRect(continent.x, continent.y, continent.w, continent.h);
+    });
+    
+    return new THREE.CanvasTexture(canvas);
   };
 
-  const drawSimplifiedContinents = (ctx: CanvasRenderingContext2D) => {
-    // Simplified continent shapes for Natural Earth style
-    ctx.fillStyle = '#2d4a22'; // Natural green
-    
-    // North America
-    ctx.beginPath();
-    ctx.moveTo(150, 100);
-    ctx.lineTo(300, 80);
-    ctx.lineTo(350, 150);
-    ctx.lineTo(320, 200);
-    ctx.lineTo(200, 180);
-    ctx.closePath();
-    ctx.fill();
-    
-    // South America
-    ctx.beginPath();
-    ctx.moveTo(250, 220);
-    ctx.lineTo(300, 250);
-    ctx.lineTo(280, 350);
-    ctx.lineTo(260, 380);
-    ctx.lineTo(240, 300);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Europe
-    ctx.beginPath();
-    ctx.moveTo(480, 100);
-    ctx.lineTo(520, 90);
-    ctx.lineTo(540, 120);
-    ctx.lineTo(500, 140);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Africa
-    ctx.beginPath();
-    ctx.moveTo(500, 150);
-    ctx.lineTo(580, 140);
-    ctx.lineTo(590, 250);
-    ctx.lineTo(550, 320);
-    ctx.lineTo(480, 280);
-    ctx.lineTo(490, 200);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Asia
-    ctx.beginPath();
-    ctx.moveTo(550, 80);
-    ctx.lineTo(750, 70);
-    ctx.lineTo(800, 120);
-    ctx.lineTo(780, 180);
-    ctx.lineTo(600, 160);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Australia
-    ctx.beginPath();
-    ctx.moveTo(720, 280);
-    ctx.lineTo(780, 275);
-    ctx.lineTo(785, 300);
-    ctx.lineTo(750, 310);
-    ctx.closePath();
-    ctx.fill();
-  };
-
-  // Initialize Three.js scene
+  // Initialize Three.js scene only when needed
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || satellites.length === 0) return;
+    
+    // Cleanup previous scene
+    if (rendererRef.current) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      containerRef.current.removeChild(rendererRef.current.domElement);
+      rendererRef.current.dispose();
+    }
     
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -214,30 +158,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     
     // Create Earth with Natural Earth texture
     const earthGeometry = new THREE.SphereGeometry(2, 64, 32);
-    
-    // Create a canvas for Natural Earth style texture
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    
-    if (ctx) {
-      // Natural Earth color scheme
-      const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-      gradient.addColorStop(0, '#87CEEB'); // Sky blue (poles)
-      gradient.addColorStop(0.3, '#98FB98'); // Pale green
-      gradient.addColorStop(0.7, '#F4A460'); // Sandy brown
-      gradient.addColorStop(1, '#87CEEB'); // Sky blue (poles)
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 1024, 512);
-      
-      // Add some landmass representation
-      ctx.fillStyle = '#228B22';
-      drawSimplifiedContinents(ctx);
-    }
-    
-    const earthTexture = new THREE.CanvasTexture(canvas);
+    const earthTexture = createNaturalEarthTexture();
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: earthTexture,
       specular: 0x222222,
@@ -253,15 +174,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     groundTracksRef.current = groundTracks;
     
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameRef.current = requestAnimationFrame(animate);
       if (controlsRef.current) {
         controlsRef.current.update();
-      }
-      
-      // Update projection if in 2D mode
-      if (is2D && earthRef.current) {
-        earthRef.current.rotation.x = 0;
-        earthRef.current.rotation.z = 0;
       }
       
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
@@ -270,37 +185,51 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     };
     animate();
     
-    const handleResize = () => {
-      if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-      
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      
-      cameraRef.current.aspect = width / height;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(width, height);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
     return () => {
-      window.removeEventListener('resize', handleResize);
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [satellites.length]);
+
+  // Update projection mode
+  useEffect(() => {
+    if (!earthRef.current || !cameraRef.current || !controlsRef.current) return;
+    
+    if (is2D) {
+      // Switch to 2D Mercator view
+      earthRef.current.geometry.dispose();
+      earthRef.current.geometry = new THREE.PlaneGeometry(4, 2);
+      
+      cameraRef.current.position.set(0, 0, 10);
+      controlsRef.current.enableRotate = false;
+      controlsRef.current.update();
+    } else {
+      // Switch to 3D globe view
+      earthRef.current.geometry.dispose();
+      earthRef.current.geometry = new THREE.SphereGeometry(2, 64, 32);
+      
+      cameraRef.current.position.set(0, 0, 5);
+      controlsRef.current.enableRotate = true;
+      controlsRef.current.update();
+    }
+  }, [is2D]);
 
   // Update ground tracks when satellites change
   useEffect(() => {
-    if (!groundTracksRef.current || !sceneRef.current || isAnalysisRunning) return;
+    if (!groundTracksRef.current || !sceneRef.current || satellites.length === 0) return;
     
     // Clear previous ground tracks
     while (groundTracksRef.current.children.length > 0) {
-      groundTracksRef.current.remove(groundTracksRef.current.children[0]);
+      const child = groundTracksRef.current.children[0];
+      groundTracksRef.current.remove(child);
+      if (child instanceof THREE.Line) {
+        child.geometry.dispose();
+        child.material.dispose();
+      }
     }
     
-    if (showGroundTracks && satellites.length > 0) {
+    if (showGroundTracks) {
       satellites.forEach((satellite, index) => {
         const groundTrackPoints = propagateSatelliteOrbit({
           altitude: satellite.altitude,
@@ -341,75 +270,22 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         groundTracksRef.current?.add(line);
       });
     }
-  }, [satellites, showGroundTracks, isAnalysisRunning, propagateSatelliteOrbit, timeSpan, is2D]);
-
-  // Update camera and Earth based on projection mode
-  useEffect(() => {
-    if (!earthRef.current || !cameraRef.current || !controlsRef.current) return;
-    
-    if (is2D) {
-      // Switch to 2D view
-      earthRef.current.geometry = new THREE.PlaneGeometry(4, 2);
-      
-      // Update texture for 2D
-      const canvas2D = create2DCanvas();
-      if (canvas2D) {
-        const texture2D = new THREE.CanvasTexture(canvas2D);
-        if (earthRef.current.material instanceof THREE.MeshPhongMaterial) {
-          earthRef.current.material.map = texture2D;
-          earthRef.current.material.needsUpdate = true;
-        }
-      }
-      
-      cameraRef.current.position.set(0, 0, 10);
-      controlsRef.current.enableRotate = false;
-      controlsRef.current.update();
-    } else {
-      // Switch to 3D view
-      earthRef.current.geometry = new THREE.SphereGeometry(2, 64, 32);
-      
-      // Restore 3D texture
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-      
-      if (ctx) {
-        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-        gradient.addColorStop(0, '#87CEEB');
-        gradient.addColorStop(0.3, '#98FB98');
-        gradient.addColorStop(0.7, '#F4A460');
-        gradient.addColorStop(1, '#87CEEB');
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 1024, 512);
-        
-        ctx.fillStyle = '#228B22';
-        drawSimplifiedContinents(ctx);
-      }
-      
-      const earthTexture = new THREE.CanvasTexture(canvas);
-      if (earthRef.current.material instanceof THREE.MeshPhongMaterial) {
-        earthRef.current.material.map = earthTexture;
-        earthRef.current.material.needsUpdate = true;
-      }
-      
-      cameraRef.current.position.set(0, 0, 5);
-      controlsRef.current.enableRotate = true;
-      controlsRef.current.update();
-    }
-  }, [is2D]);
+  }, [satellites, showGroundTracks, propagateSatelliteOrbit, timeSpan, is2D]);
 
   // Generate heatmap
   useEffect(() => {
-    if (!sceneRef.current || !earthRef.current) return;
+    if (!sceneRef.current || !earthRef.current || satellites.length === 0) return;
     
     if (heatmapRef.current && heatmapRef.current.parent) {
       sceneRef.current.remove(heatmapRef.current);
+      heatmapRef.current.geometry.dispose();
+      if (heatmapRef.current.material instanceof THREE.Material) {
+        heatmapRef.current.material.dispose();
+      }
       heatmapRef.current = null;
     }
     
-    if (isHeatmapActive && satellites.length > 0) {
+    if (isHeatmapActive) {
       const revisitData = calculateRevisits({
         satellites: satellites.map(sat => ({
           altitude: sat.altitude,
@@ -484,6 +360,18 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     }
   }, [isHeatmapActive, satellites, calculateRevisits, timeSpan, is2D]);
   
+  // Don't render anything if no satellites
+  if (satellites.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+        <div className="text-center">
+          <Globe className="h-16 w-16 mx-auto mb-4 opacity-50" />
+          <p>Run analysis to see satellite visualization</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden relative">
       {/* Control buttons */}
@@ -504,12 +392,12 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           className="bg-background/70 backdrop-blur-sm"
         >
           {is2D ? <Globe className="h-4 w-4 mr-1" /> : <Map className="h-4 w-4 mr-1" />}
-          {is2D ? '3D Globe' : '2D Map'}
+          {is2D ? '3D Globe' : '2D Mercator'}
         </Button>
       </div>
 
-      {/* Legend */}
-      {isHeatmapActive && (
+      {/* Legend for heatmap */}
+      {isHeatmapActive && maxRevisitCount > 0 && (
         <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs">
           <div className="text-white font-medium mb-1">Revisit Count</div>
           <div className="flex items-center gap-1">
@@ -525,7 +413,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         </div>
       )}
 
-      {/* Satellite legend */}
+      {/* Satellite ground tracks legend */}
       {showGroundTracks && satellites.length > 0 && (
         <div className="absolute bottom-16 left-2 bg-background/70 backdrop-blur-sm p-2 rounded text-xs max-w-[200px]">
           <div className="text-white font-medium mb-1">Ground Tracks</div>
@@ -533,7 +421,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
             <div key={satellite.id} className="flex items-center gap-2 text-[10px]">
               <div 
                 className="w-3 h-1 rounded"
-                style={{ backgroundColor: `#${satelliteColors[index % satelliteColors.length].toString(16).padStart(6, '0')}` }}
+                style={{ backgroundColor: satelliteColors[index % satelliteColors.length] }}
               ></div>
               <span className="text-white truncate">{satellite.name}</span>
             </div>
