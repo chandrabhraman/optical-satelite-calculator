@@ -30,6 +30,7 @@ const RevisitAnalysis: React.FC = () => {
       trueAnomaly: number;
     }>;
     timeSpan: number;
+    gridCellSize: string;
   } | null>(null);
   
   const handleRunAnalysis = (formData: any) => {
@@ -75,7 +76,8 @@ const RevisitAnalysis: React.FC = () => {
     // Store the analysis data with generated satellites
     const newAnalysisData = {
       satellites: satellites,
-      timeSpan: 24 // Use fixed 24 hours for now
+      timeSpan: 24, // Use fixed 24 hours for now
+      gridCellSize: formData.gridCellSize
     };
     
     console.log("Setting analysis data with satellites count:", newAnalysisData.satellites.length);

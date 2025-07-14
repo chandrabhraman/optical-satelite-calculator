@@ -22,6 +22,7 @@ interface RevisitVisualizationProps {
       trueAnomaly: number;
     }>;
     timeSpan: number;
+    gridCellSize: string;
   } | null;
 }
 
@@ -69,6 +70,12 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       setHasResults(true);
       setSatellites(analysisData.satellites);
       setSimulationTimeSpan(analysisData.timeSpan);
+      
+      // Set grid size based on analysis form selection
+      if (analysisData.gridCellSize) {
+        const gridValue = parseFloat(analysisData.gridCellSize.replace('deg', ''));
+        setGridSize(gridValue);
+      }
       
       // Calculate realistic revisit statistics based on actual constellation size
       const actualSatCount = analysisData.satellites.length;
@@ -180,10 +187,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 <SelectValue placeholder="Grid Size" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="0.5">0.5° × 0.5°</SelectItem>
                 <SelectItem value="1">1° × 1°</SelectItem>
                 <SelectItem value="2">2° × 2°</SelectItem>
                 <SelectItem value="5">5° × 5°</SelectItem>
-                <SelectItem value="10">10° × 10°</SelectItem>
               </SelectContent>
             </Select>
             <TooltipProvider>
