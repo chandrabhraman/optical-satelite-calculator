@@ -78,99 +78,22 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     }
   };
 
-  // Create high-quality Natural Earth texture based on the WebGL Earth reference
-  const createNaturalEarthTexture = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 2048;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) return null;
-    
-    // Natural Earth color palette
-    const oceanColor = '#4a90e2';  // Blue ocean
-    const landColor = '#8fbc8f';   // Light sea green for lowlands
-    const mountainColor = '#8b7355'; // Brown for mountains
-    const desertColor = '#deb887';  // Burlywood for deserts
-    const iceColor = '#f0f8ff';    // Alice blue for ice caps
-    
-    // Base ocean layer
-    ctx.fillStyle = oceanColor;
-    ctx.fillRect(0, 0, 2048, 1024);
-    
-    // Draw continents with more realistic Natural Earth colors and shapes
-    // North America
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(300, 200, 180, 120, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Add Rocky Mountains
-    ctx.fillStyle = mountainColor;
-    ctx.fillRect(280, 180, 25, 140);
-    
-    // South America
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(380, 450, 80, 180, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Andes Mountains
-    ctx.fillStyle = mountainColor;
-    ctx.fillRect(350, 350, 15, 200);
-    
-    // Europe
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(580, 180, 90, 60, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Africa
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(600, 350, 100, 150, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Sahara Desert
-    ctx.fillStyle = desertColor;
-    ctx.fillRect(560, 280, 120, 60);
-    
-    // Asia
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(900, 220, 200, 100, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Himalayas
-    ctx.fillStyle = mountainColor;
-    ctx.fillRect(820, 200, 80, 20);
-    
-    // Australia
-    ctx.fillStyle = landColor;
-    ctx.beginPath();
-    ctx.ellipse(1000, 450, 80, 50, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Antarctica
-    ctx.fillStyle = iceColor;
-    ctx.fillRect(0, 900, 2048, 124);
-    
-    // Greenland
-    ctx.fillStyle = iceColor;
-    ctx.beginPath();
-    ctx.ellipse(420, 120, 50, 80, 0, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Add texture and detail with subtle gradients
-    const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 2048, 1024);
-    
-    return new THREE.CanvasTexture(canvas);
+  // Load high-quality Natural Earth texture from downloaded file
+  const loadNaturalEarthTexture = () => {
+    const loader = new THREE.TextureLoader();
+    return loader.load('/textures/earth_daymap_2k.jpg', 
+      (texture) => {
+        console.log('Natural Earth texture loaded successfully');
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading Natural Earth texture:', error);
+      }
+    );
   };
 
   // Initialize Three.js scene only when needed
@@ -215,7 +138,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     
     // Create Earth with high-quality Natural Earth texture
     const earthGeometry = new THREE.SphereGeometry(2, 128, 64);
-    const earthTexture = createNaturalEarthTexture();
+    const earthTexture = loadNaturalEarthTexture();
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: earthTexture,
       specular: 0x111111,
