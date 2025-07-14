@@ -129,12 +129,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     controls.dampingFactor = 0.05;
     controlsRef.current = controls;
     
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+    // Uniform lighting for analysis (no shadows)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
-    
-    const light = new THREE.DirectionalLight(0xffffff, 0.8);
-    light.position.set(1, 1, 1);
-    scene.add(light);
     
     // Create Earth with high-quality Natural Earth texture
     const earthGeometry = new THREE.SphereGeometry(2, 128, 64);
