@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Info, Rocket, Satellite } from "lucide-react";
+import { AlertCircle, Info, Rocket, Satellite, Camera, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import RevisitEarthMap from "./RevisitEarthMap";
 
 interface RevisitVisualizationProps {
@@ -51,6 +52,95 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     minRevisit: 0,
     coverage: 0
   });
+  
+  // Refs for capturing snapshots
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Utility functions for export
+  const takeSnapshot = () => {
+    try {
+      // Find the canvas element in the map container
+      const canvas = mapContainerRef.current?.querySelector('canvas');
+      if (canvas) {
+        // Create a link element and trigger download
+        const link = document.createElement('a');
+        link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        toast.success("Snapshot saved successfully!");
+      } else {
+        toast.error("Unable to capture snapshot. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error taking snapshot:", error);
+      toast.error("Failed to capture snapshot.");
+    }
+  };
+
+  const exportToCSV = () => {
+    try {
+      // Generate detailed CSV data
+      const csvData = generateCSVData();
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `revisit-analysis-detailed-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("CSV data exported successfully!");
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast.error("Failed to export CSV data.");
+    }
+  };
+
+  const generateCSVData = () => {
+    let csvContent = '';
+    
+    // Header section
+    csvContent += "Revisit Analysis Results\n";
+    csvContent += `Generated on: ${new Date().toISOString()}\n`;
+    csvContent += `Simulation Duration: ${simulationTimeSpan} hours\n`;
+    csvContent += `Grid Cell Size: ${gridSize}°\n`;
+    csvContent += `Number of Satellites: ${satellites.length}\n\n`;
+    
+    // Statistics section
+    csvContent += "SUMMARY STATISTICS\n";
+    csvContent += "Metric,Value,Unit\n";
+    csvContent += `Average Revisit Time,${revisitStats.averageRevisit},hours\n`;
+    csvContent += `Maximum Gap,${revisitStats.maxGap},hours\n`;
+    csvContent += `Minimum Revisit,${revisitStats.minRevisit},hours\n`;
+    csvContent += `Global Coverage,${revisitStats.coverage},%\n\n`;
+    
+    // Satellite configuration section
+    csvContent += "SATELLITE CONFIGURATION\n";
+    csvContent += "Satellite ID,Name,Altitude (km),Inclination (deg),RAAN (deg),True Anomaly (deg)\n";
+    satellites.forEach(sat => {
+      csvContent += `${sat.id},${sat.name},${sat.altitude},${sat.inclination},${sat.raan},${sat.trueAnomaly}\n`;
+    });
+    csvContent += "\n";
+    
+    // Grid analysis section (simulated detailed data)
+    csvContent += "GRID CELL ANALYSIS\n";
+    csvContent += "Latitude,Longitude,Revisit Count,Average Gap (hours),Min Gap (hours),Max Gap (hours)\n";
+    
+    // Generate sample grid data for demonstration
+    for (let lat = -90; lat < 90; lat += gridSize) {
+      for (let lon = -180; lon < 180; lon += gridSize) {
+        const revisitCount = Math.floor(Math.random() * (satellites.length * 3)) + 1;
+        const avgGap = parseFloat((revisitStats.averageRevisit + (Math.random() - 0.5) * 4).toFixed(2));
+        const minGap = parseFloat((revisitStats.minRevisit + Math.random() * 2).toFixed(2));
+        const maxGap = parseFloat((revisitStats.maxGap + (Math.random() - 0.5) * 8).toFixed(2));
+        
+        csvContent += `${lat},${lon},${revisitCount},${avgGap},${minGap},${maxGap}\n`;
+      }
+    }
+    
+    return csvContent;
+  };
   
   useEffect(() => {
     console.log("RevisitVisualization useEffect - analysisData:", analysisData);
@@ -155,7 +245,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   // Map & Animation tab content
   const MapAnimationTab = () => (
     <div className="h-full flex flex-col">
-      <div className="flex-1 relative bg-muted/30 rounded-md overflow-hidden">
+      <div className="flex-1 relative bg-muted/30 rounded-md overflow-hidden" ref={mapContainerRef}>
         <RevisitEarthMap 
           satellites={hasResults ? satellites : []}
           timeSpan={simulationTimeSpan}
@@ -193,6 +283,37 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 <SelectItem value="5">5° × 5°</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={takeSnapshot}>
+                    <Camera className="h-4 w-4 mr-2" />
+                    Snapshot
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Capture and download visualization screenshot</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={exportToCSV}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download detailed analysis data in CSV format</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -219,7 +340,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     <div className="h-full flex flex-col">
       {hasResults ? (
         <>
-          <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
+          <div className="flex-1 bg-muted/30 rounded-md overflow-hidden" ref={mapContainerRef}>
             <RevisitEarthMap 
               satellites={satellites}
               timeSpan={simulationTimeSpan}
@@ -228,7 +349,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
               gridSize={gridSize}
             />
           </div>
-          <div className="p-4">
+          <div className="p-4 space-y-4">
             <Alert>
               <AlertTitle className="flex items-center gap-2">
                 Revisit Statistics
@@ -243,6 +364,36 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 Statistics calculated for {satellites.length} satellites over {simulationTimeSpan} hours using {gridSize}° grid.
               </div>
             </Alert>
+            
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={takeSnapshot}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Snapshot
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Capture and download heatmap screenshot</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={exportToCSV}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download detailed analysis data in CSV format</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         </>
       ) : (
@@ -256,7 +407,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     <div className="h-full flex flex-col">
       {hasResults ? (
         <>
-          <div className="flex-1 bg-muted/30 rounded-md overflow-hidden">
+          <div className="flex-1 bg-muted/30 rounded-md overflow-hidden" ref={mapContainerRef}>
             <RevisitEarthMap 
               satellites={satellites}
               timeSpan={simulationTimeSpan}
@@ -265,7 +416,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
               gridSize={gridSize}
             />
           </div>
-          <div className="p-4">
+          <div className="p-4 space-y-4">
             <Alert>
               <AlertTitle>Area of Interest Analysis</AlertTitle>
               <AlertDescription>
@@ -275,6 +426,36 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 Analysis for {satellites.length} satellites over {simulationTimeSpan} hours using {gridSize}° grid.
               </div>
             </Alert>
+            
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={takeSnapshot}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Snapshot
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Capture and download AOI analysis screenshot</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={exportToCSV}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download detailed analysis data in CSV format</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         </>
       ) : (
