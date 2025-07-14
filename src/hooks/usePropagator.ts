@@ -57,7 +57,7 @@ export function usePropagator() {
     
     // Number of points to generate based on time span
     const totalMinutes = timeSpanHours * 60;
-    const numPoints = Math.min(1000, Math.max(100, Math.floor(totalMinutes / 2))); // 1 point every 2 minutes
+    const numPoints = Math.min(2000, Math.max(200, Math.floor(totalMinutes * 2))); // 1 point every 30 seconds for continuous coverage
     
     // Convert orbital elements from degrees to radians
     const inclinationRad = inclination * Math.PI / 180;
@@ -135,40 +135,51 @@ export function usePropagator() {
         timeSpanHours
       });
       
-      // For each point in the ground track, calculate sensor coverage
-      for (const point of groundTrack) {
-        // Calculate sensor swath width based on altitude and FOV
-        const swathHalfWidth = Math.atan(Math.tan(sensorFOV * Math.PI / 180)) * satellite.altitude / 111; // approximate degrees
+      // For each consecutive pair of points, interpolate coverage along the track
+      for (let i = 0; i < groundTrack.length; i++) {
+        const point = groundTrack[i];
+        const nextPoint = groundTrack[i + 1];
         
-        // Determine geographic bounds of sensor coverage
-        const minLat = Math.max(-90, point.lat - swathHalfWidth);
-        const maxLat = Math.min(90, point.lat + swathHalfWidth);
-        const latCosine = Math.cos(point.lat * Math.PI / 180);
-        const minLng = point.lng - swathHalfWidth / Math.max(0.1, latCosine);
-        const maxLng = point.lng + swathHalfWidth / Math.max(0.1, latCosine);
+        // Calculate sensor swath width based on altitude and FOV (120 km total swath width)
+        const swathHalfWidth = 60 / 111; // 60 km = half of 120 km swath, converted to degrees
         
-        // Convert geographic bounds to grid cell indices
-        const minLatIndex = Math.max(0, Math.floor((90 - maxLat) * (latCells / 180)));
-        const maxLatIndex = Math.min(latCells - 1, Math.floor((90 - minLat) * (latCells / 180)));
+        // Generate coverage points along the ground track segment
+        const segmentPoints = nextPoint ? 
+          interpolateGroundTrackSegment(point, nextPoint, swathHalfWidth) : 
+          [{ lat: point.lat, lng: point.lng, swathHalfWidth }];
         
-        // Handle longitude wrapping around 180/-180 boundary
-        let minLngIndex = Math.floor((minLng + 180) * (lngCells / 360));
-        let maxLngIndex = Math.floor((maxLng + 180) * (lngCells / 360));
-        
-        // Increment revisit count for all grid cells within sensor swath
-        for (let latIdx = minLatIndex; latIdx <= maxLatIndex; latIdx++) {
-          if (minLngIndex <= maxLngIndex) {
-            // Normal case: no longitude wrapping
-            for (let lngIdx = Math.max(0, minLngIndex); lngIdx <= Math.min(lngCells - 1, maxLngIndex); lngIdx++) {
-              grid[latIdx][lngIdx]++;
-            }
-          } else {
-            // Handle longitude wrapping around the date line
-            for (let lngIdx = Math.max(0, minLngIndex); lngIdx < lngCells; lngIdx++) {
-              grid[latIdx][lngIdx]++;
-            }
-            for (let lngIdx = 0; lngIdx <= Math.min(lngCells - 1, maxLngIndex); lngIdx++) {
-              grid[latIdx][lngIdx]++;
+        // Apply coverage for each interpolated point
+        for (const coveragePoint of segmentPoints) {
+          // Determine geographic bounds of sensor coverage
+          const minLat = Math.max(-90, coveragePoint.lat - coveragePoint.swathHalfWidth);
+          const maxLat = Math.min(90, coveragePoint.lat + coveragePoint.swathHalfWidth);
+          const latCosine = Math.cos(coveragePoint.lat * Math.PI / 180);
+          const minLng = coveragePoint.lng - coveragePoint.swathHalfWidth / Math.max(0.1, latCosine);
+          const maxLng = coveragePoint.lng + coveragePoint.swathHalfWidth / Math.max(0.1, latCosine);
+          
+          // Convert geographic bounds to grid cell indices
+          const minLatIndex = Math.max(0, Math.floor((90 - maxLat) * (latCells / 180)));
+          const maxLatIndex = Math.min(latCells - 1, Math.floor((90 - minLat) * (latCells / 180)));
+          
+          // Handle longitude wrapping around 180/-180 boundary
+          let minLngIndex = Math.floor((minLng + 180) * (lngCells / 360));
+          let maxLngIndex = Math.floor((maxLng + 180) * (lngCells / 360));
+          
+          // Increment revisit count for all grid cells within sensor swath
+          for (let latIdx = minLatIndex; latIdx <= maxLatIndex; latIdx++) {
+            if (minLngIndex <= maxLngIndex) {
+              // Normal case: no longitude wrapping
+              for (let lngIdx = Math.max(0, minLngIndex); lngIdx <= Math.min(lngCells - 1, maxLngIndex); lngIdx++) {
+                grid[latIdx][lngIdx]++;
+              }
+            } else {
+              // Handle longitude wrapping around the date line
+              for (let lngIdx = Math.max(0, minLngIndex); lngIdx < lngCells; lngIdx++) {
+                grid[latIdx][lngIdx]++;
+              }
+              for (let lngIdx = 0; lngIdx <= Math.min(lngCells - 1, maxLngIndex); lngIdx++) {
+                grid[latIdx][lngIdx]++;
+              }
             }
           }
         }
@@ -187,6 +198,39 @@ export function usePropagator() {
     
     return { grid, maxCount };
   }, [propagateSatelliteOrbit]);
+
+  // Helper function to interpolate coverage points between ground track points
+  const interpolateGroundTrackSegment = useCallback((
+    point1: GroundTrackPoint, 
+    point2: GroundTrackPoint, 
+    swathHalfWidth: number
+  ) => {
+    const points = [];
+    const steps = 5; // Interpolate 5 points between each ground track point for continuous coverage
+    
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const lat = point1.lat + t * (point2.lat - point1.lat);
+      let lng = point1.lng + t * (point2.lng - point1.lng);
+      
+      // Handle longitude wrapping around 180/-180 boundary
+      if (Math.abs(point2.lng - point1.lng) > 180) {
+        if (point2.lng > point1.lng) {
+          lng = point1.lng + t * (point2.lng - 360 - point1.lng);
+        } else {
+          lng = point1.lng + t * (point2.lng + 360 - point1.lng);
+        }
+      }
+      
+      // Normalize longitude to [-180, 180] range
+      while (lng > 180) lng -= 360;
+      while (lng < -180) lng += 360;
+      
+      points.push({ lat, lng, swathHalfWidth });
+    }
+    
+    return points;
+  }, []);
 
   return {
     propagateSatelliteOrbit,
