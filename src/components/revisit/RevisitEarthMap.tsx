@@ -219,14 +219,29 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         });
         
         const lineColor = satelliteColors[index % satelliteColors.length];
-        const trackPoints = [];
-        
-        for (const point of groundTrackPoints) {
-          if (is2D) {
+        if (is2D) {
+          // 2D Mercator: render as single continuous line
+          const trackPoints = [];
+          for (const point of groundTrackPoints) {
             const x = (point.lng + 180) * (4 / 360) - 2;
             const y = (90 - point.lat) * (2 / 180) - 1;
             trackPoints.push(new THREE.Vector3(x, y, 0.01));
-          } else {
+          }
+          
+          const lineGeometry = new THREE.BufferGeometry().setFromPoints(trackPoints);
+          const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: lineColor,
+            linewidth: 2
+          });
+          const line = new THREE.Line(lineGeometry, lineMaterial);
+          groundTracksRef.current?.add(line);
+        } else {
+          // 3D Globe: segment the track to handle longitude wrapping
+          const segments = [];
+          let currentSegment = [];
+          
+          for (let i = 0; i < groundTrackPoints.length; i++) {
+            const point = groundTrackPoints[i];
             const phi = (90 - point.lat) * Math.PI / 180;
             const theta = (point.lng + 180) * Math.PI / 180;
             
@@ -234,17 +249,45 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
             const y = 2.01 * Math.cos(phi);
             const z = 2.01 * Math.sin(phi) * Math.sin(theta);
             
-            trackPoints.push(new THREE.Vector3(x, y, z));
+            const currentPoint = new THREE.Vector3(x, y, z);
+            
+            // Check for longitude discontinuity (wrap around)
+            if (i > 0) {
+              const prevPoint = groundTrackPoints[i - 1];
+              const lngDiff = Math.abs(point.lng - prevPoint.lng);
+              
+              // If longitude difference is greater than 180°, start new segment
+              if (lngDiff > 180) {
+                if (currentSegment.length > 1) {
+                  segments.push([...currentSegment]);
+                }
+                currentSegment = [currentPoint];
+              } else {
+                currentSegment.push(currentPoint);
+              }
+            } else {
+              currentSegment.push(currentPoint);
+            }
           }
+          
+          // Add the last segment
+          if (currentSegment.length > 1) {
+            segments.push(currentSegment);
+          }
+          
+          // Create lines for each segment
+          segments.forEach(segmentPoints => {
+            if (segmentPoints.length > 1) {
+              const lineGeometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
+              const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: lineColor,
+                linewidth: 2
+              });
+              const line = new THREE.Line(lineGeometry, lineMaterial);
+              groundTracksRef.current?.add(line);
+            }
+          });
         }
-        
-        const lineGeometry = new THREE.BufferGeometry().setFromPoints(trackPoints);
-        const lineMaterial = new THREE.LineBasicMaterial({ 
-          color: lineColor,
-          linewidth: 2
-        });
-        const line = new THREE.Line(lineGeometry, lineMaterial);
-        groundTracksRef.current?.add(line);
       });
     }
     
