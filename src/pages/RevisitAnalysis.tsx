@@ -73,10 +73,15 @@ const RevisitAnalysis: React.FC = () => {
     setIsAnalysisRunning(true);
     setAnalysisProgress(0);
     
+    // Calculate time span from start and end dates
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+    const timeSpanHours = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+    
     // Store the analysis data with generated satellites
     const newAnalysisData = {
       satellites: satellites,
-      timeSpan: 24, // Use fixed 24 hours for now
+      timeSpan: timeSpanHours,
       gridCellSize: formData.gridCellSize
     };
     
