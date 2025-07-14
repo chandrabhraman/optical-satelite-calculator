@@ -77,8 +77,13 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   
   // Submit handler
   const onSubmit = (data: any) => {
-    console.log("Form submitted:", data);
+    console.log("=== FORM SUBMISSION DEBUG ===");
+    console.log("Form submitted with data:", data);
+    console.log("Total satellites:", data.totalSatellites);
+    console.log("Constellation type:", data.constellationType);
+    console.log("Calling onRunAnalysis...");
     onRunAnalysis(data);
+    console.log("onRunAnalysis called");
   };
 
   return (
