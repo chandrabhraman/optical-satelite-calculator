@@ -62,34 +62,28 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       // Find the canvas element in the map container
       const canvas = mapContainerRef.current?.querySelector('canvas');
       if (canvas) {
-        // Force a render if the canvas is from Three.js
-        const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        if (context) {
-          // This is a WebGL canvas, capture it properly
-          const dataURL = canvas.toDataURL('image/png');
-          if (dataURL && dataURL !== 'data:,') {
-            const link = document.createElement('a');
-            link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
-            link.href = dataURL;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            toast.success("Snapshot saved successfully!");
-          } else {
-            toast.error("Canvas appears to be empty. Please wait for the visualization to load.");
+        // Wait a frame to ensure the scene is fully rendered
+        requestAnimationFrame(() => {
+          try {
+            const dataURL = canvas.toDataURL('image/png', 1.0);
+            if (dataURL && dataURL !== 'data:,' && !dataURL.includes('data:,')) {
+              const link = document.createElement('a');
+              link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
+              link.href = dataURL;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              toast.success("Snapshot saved successfully!");
+            } else {
+              toast.error("Canvas appears to be empty. Please wait for the visualization to fully load.");
+            }
+          } catch (captureError) {
+            console.error("Error capturing canvas:", captureError);
+            toast.error("Failed to capture snapshot. Try again in a moment.");
           }
-        } else {
-          // Regular 2D canvas
-          const link = document.createElement('a');
-          link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
-          link.href = canvas.toDataURL('image/png');
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          toast.success("Snapshot saved successfully!");
-        }
+        });
       } else {
-        toast.error("Unable to find visualization canvas. Please ensure the 3D view is active.");
+        toast.error("Unable to find visualization canvas. Please ensure the visualization is loaded.");
       }
     } catch (error) {
       console.error("Error taking snapshot:", error);

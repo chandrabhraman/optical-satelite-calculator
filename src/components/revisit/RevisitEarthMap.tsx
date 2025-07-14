@@ -153,13 +153,15 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     scene.add(groundTracks);
     groundTracksRef.current = groundTracks;
     
-    // Simple render loop
+    // Render loop with forced render on each frame for snapshot capability
     const render = () => {
       if (controlsRef.current) {
         controlsRef.current.update();
       }
       
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        // Clear and render the scene
+        rendererRef.current.clear();
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
       requestAnimationFrame(render);
