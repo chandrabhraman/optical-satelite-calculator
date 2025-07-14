@@ -59,32 +59,80 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
   // Utility functions for export
   const takeSnapshot = () => {
     try {
-      // Find the canvas element in the map container
-      const canvas = mapContainerRef.current?.querySelector('canvas');
-      if (canvas) {
-        // Wait a frame to ensure the scene is fully rendered
-        requestAnimationFrame(() => {
-          try {
-            const dataURL = canvas.toDataURL('image/png', 1.0);
-            if (dataURL && dataURL !== 'data:,' && !dataURL.includes('data:,')) {
+      // Get the entire visualization container to capture both canvas and overlays
+      const container = mapContainerRef.current;
+      if (!container) {
+        toast.error("Unable to find visualization container.");
+        return;
+      }
+
+      // Wait a frame to ensure the scene is fully rendered
+      requestAnimationFrame(async () => {
+        try {
+          // Import html2canvas dynamically
+          const html2canvas = (await import('html2canvas')).default;
+          
+          // Capture the entire container including overlays
+          const canvas = await html2canvas(container, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#0f172a', // Dark background to match space theme
+            scale: 1,
+            logging: false,
+            onclone: (clonedDoc) => {
+              // Ensure WebGL canvas is captured properly
+              const webglCanvas = clonedDoc.querySelector('canvas');
+              if (webglCanvas) {
+                webglCanvas.style.display = 'block';
+              }
+            }
+          });
+
+          // Convert to blob and download
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
               link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
-              link.href = dataURL;
+              link.href = url;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
+              URL.revokeObjectURL(url);
               toast.success("Snapshot saved successfully!");
             } else {
-              toast.error("Canvas appears to be empty. Please wait for the visualization to fully load.");
+              toast.error("Failed to create snapshot blob.");
             }
-          } catch (captureError) {
-            console.error("Error capturing canvas:", captureError);
-            toast.error("Failed to capture snapshot. Try again in a moment.");
+          }, 'image/png', 1.0);
+          
+        } catch (captureError) {
+          console.error("Error capturing with html2canvas:", captureError);
+          
+          // Fallback to canvas-only capture
+          const webglCanvas = container.querySelector('canvas');
+          if (webglCanvas) {
+            try {
+              const dataURL = webglCanvas.toDataURL('image/png', 1.0);
+              if (dataURL && dataURL !== 'data:,' && !dataURL.includes('data:,')) {
+                const link = document.createElement('a');
+                link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;
+                link.href = dataURL;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success("Snapshot saved successfully! (Note: legends may not be included)");
+              } else {
+                toast.error("Canvas appears to be empty. Please wait for the visualization to fully load.");
+              }
+            } catch (fallbackError) {
+              console.error("Fallback capture failed:", fallbackError);
+              toast.error("Failed to capture snapshot. Try again in a moment.");
+            }
+          } else {
+            toast.error("Unable to find visualization canvas.");
           }
-        });
-      } else {
-        toast.error("Unable to find visualization canvas. Please ensure the visualization is loaded.");
-      }
+        }
+      });
     } catch (error) {
       console.error("Error taking snapshot:", error);
       toast.error("Failed to capture snapshot. The visualization may not be ready yet.");
