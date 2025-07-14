@@ -118,7 +118,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     camera.position.z = 5;
     cameraRef.current = camera;
     
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      preserveDrawingBuffer: true 
+    });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setClearColor(0x000011); // Deep space color
     containerRef.current.appendChild(renderer.domElement);
