@@ -34,27 +34,51 @@ const RevisitAnalysis: React.FC = () => {
   
   const handleRunAnalysis = (formData: any) => {
     console.log("Starting analysis with form data:", formData);
-    console.log("Form data satellites:", formData.satellites);
-    console.log("Form data timeSpan:", formData.timeSpan);
     
-    // Validate that we have satellites data
-    if (!formData.satellites || !Array.isArray(formData.satellites) || formData.satellites.length === 0) {
-      console.error("No satellites data received from form");
-      return;
+    // Generate satellites array based on form data
+    const satellites = [];
+    const numSatellites = formData.totalSatellites || 1;
+    
+    for (let i = 0; i < numSatellites; i++) {
+      let satellite = {
+        id: `sat_${i + 1}`,
+        name: `Satellite ${i + 1}`,
+        altitude: formData.altitude || 550,
+        inclination: formData.inclination || 97.6,
+        raan: formData.raan || 0,
+        trueAnomaly: 0
+      };
+      
+      // Adjust parameters based on constellation type
+      if (formData.constellationType === "train") {
+        // For train constellation, space satellites in mean anomaly
+        satellite.trueAnomaly = i * (formData.inPlaneSpacing || 30);
+      } else if (formData.constellationType === "walker") {
+        // For walker constellation, distribute across planes
+        const satellitesPerPlane = Math.floor(numSatellites / (formData.planes || 1));
+        const planeIndex = Math.floor(i / satellitesPerPlane);
+        const satInPlane = i % satellitesPerPlane;
+        
+        satellite.raan = (formData.raan || 0) + (planeIndex * 180 / (formData.planes || 1));
+        satellite.trueAnomaly = satInPlane * (360 / satellitesPerPlane) + (planeIndex * (formData.phasing || 0));
+      }
+      
+      satellites.push(satellite);
     }
+    
+    console.log("Generated satellites:", satellites);
     
     // Start analysis process
     setIsAnalysisRunning(true);
     setAnalysisProgress(0);
     
-    // Store the actual analysis data from the form
+    // Store the analysis data with generated satellites
     const newAnalysisData = {
-      satellites: formData.satellites,
-      timeSpan: formData.timeSpan || 24
+      satellites: satellites,
+      timeSpan: 24 // Use fixed 24 hours for now
     };
     
     console.log("Setting analysis data with satellites count:", newAnalysisData.satellites.length);
-    console.log("Full analysis data:", newAnalysisData);
     setAnalysisData(newAnalysisData);
     
     // Mock progress updates - in a real implementation, this would be based on the
