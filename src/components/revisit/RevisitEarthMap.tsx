@@ -220,8 +220,8 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         
         const lineColor = satelliteColors[index % satelliteColors.length];
         
+        // Only show ground tracks in 2D view
         if (is2D) {
-          // For 2D, use continuous lines as before
           const trackPoints = [];
           for (const point of groundTrackPoints) {
             const x = (point.lng + 180) * (4 / 360) - 2;
@@ -236,39 +236,8 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           });
           const line = new THREE.Line(lineGeometry, lineMaterial);
           groundTracksRef.current?.add(line);
-        } else {
-          // For 3D, create dashed line segments to avoid longitude wrapping artifacts
-          const segmentLength = 5; // Create segments every 5 points
-          const dashLength = 3; // 3 points per dash
-          const gapLength = 2; // 2 points gap between dashes
-          
-          for (let i = 0; i < groundTrackPoints.length - 1; i += segmentLength) {
-            const segmentPoints = [];
-            const endIndex = Math.min(i + dashLength, groundTrackPoints.length);
-            
-            for (let j = i; j < endIndex; j++) {
-              const point = groundTrackPoints[j];
-              const phi = (90 - point.lat) * Math.PI / 180;
-              const theta = (point.lng + 180) * Math.PI / 180;
-              
-              const x = -2.01 * Math.sin(phi) * Math.cos(theta);
-              const y = 2.01 * Math.cos(phi);
-              const z = 2.01 * Math.sin(phi) * Math.sin(theta);
-              
-              segmentPoints.push(new THREE.Vector3(x, y, z));
-            }
-            
-            if (segmentPoints.length > 1) {
-              const segmentGeometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
-              const segmentMaterial = new THREE.LineBasicMaterial({ 
-                color: lineColor,
-                linewidth: 2
-              });
-              const segmentLine = new THREE.Line(segmentGeometry, segmentMaterial);
-              groundTracksRef.current?.add(segmentLine);
-            }
-          }
         }
+        // No ground tracks in 3D view for simplicity
       });
     }
     
