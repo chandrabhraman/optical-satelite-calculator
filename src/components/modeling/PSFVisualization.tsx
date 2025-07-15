@@ -148,9 +148,16 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
             
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profileData}>
-                  <XAxis dataKey="radius" hide />
-                  <YAxis hide />
+                <LineChart data={profileData} margin={{ top: 10, right: 10, left: 40, bottom: 40 }}>
+                  <XAxis 
+                    dataKey="radius" 
+                    tick={{ fontSize: 10 }}
+                    label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5, style: { fontSize: '10px' } }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 10 }}
+                    label={{ value: 'Intensity', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="intensity" 
