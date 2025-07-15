@@ -229,9 +229,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
               </CardHeader>
                <CardContent className="p-4">
                  <div id="mtf-curves-chart" className="w-full">
-                   <div className="w-full h-80 overflow-hidden">
+                   <div className="w-full h-72 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <LineChart data={mtfData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <LineChart data={mtfData} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis 
                            dataKey="frequency" 
@@ -291,24 +291,24 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                      </ResponsiveContainer>
                    </div>
 
-                   <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                     <div className="flex items-center gap-2">
-                       <div className="w-3 h-0.5 bg-primary"></div>
-                       <span>Overall MTF</span>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <div className="w-3 h-0.5 bg-chart-1 border-dashed border-t"></div>
-                       <span>Optics</span>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <div className="w-3 h-0.5 bg-chart-2 border-dashed border-t"></div>
-                       <span>Detector</span>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <div className="w-3 h-0.5 bg-chart-3 border-dotted border-t"></div>
-                       <span>Motion</span>
-                     </div>
-                   </div>
+                    <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-0.5 bg-primary"></div>
+                        <span>Overall MTF</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-0.5 bg-chart-1" style={{borderTop: '2px dashed hsl(var(--chart-1))', height: '1px'}}></div>
+                        <span>Optics</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-0.5 bg-chart-2" style={{borderTop: '2px dashed hsl(var(--chart-2))', height: '1px'}}></div>
+                        <span>Detector</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-0.5 bg-chart-3" style={{borderTop: '2px dotted hsl(var(--chart-3))', height: '1px'}}></div>
+                        <span>Motion</span>
+                      </div>
+                    </div>
                  </div>
               </CardContent>
             </Card>
@@ -335,9 +335,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
               </CardHeader>
                <CardContent className="p-4">
                  <div id="mtf-breakdown-chart" className="w-full">
-                   <div className="w-full h-80 overflow-hidden">
+                   <div className="w-full h-72 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <BarChart data={breakdownData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <BarChart data={breakdownData} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis dataKey="category" />
                          <YAxis 
@@ -363,17 +363,17 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                      </ResponsiveContainer>
                    </div>
 
-                   <div className="mt-4 space-y-3">
-                     <div className="grid grid-cols-2 gap-2 text-xs">
-                       <div className="flex items-center gap-2">
-                         <div className="w-3 h-3 bg-chart-1/80 rounded"></div>
-                         <span>MTF @ 50 cycles/mm</span>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <div className="w-3 h-3 bg-chart-2/80 rounded"></div>
-                         <span>MTF @ Nyquist freq.</span>
-                       </div>
-                     </div>
+                    <div className="mt-2 space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-3 bg-chart-1 rounded opacity-80"></div>
+                          <span>MTF @ 50 cycles/mm</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-3 bg-chart-2 rounded opacity-80"></div>
+                          <span>MTF @ Nyquist freq.</span>
+                        </div>
+                      </div>
 
                      <div className="p-3 bg-muted/30 rounded text-xs space-y-1">
                        <p className="font-medium">Component Analysis:</p>

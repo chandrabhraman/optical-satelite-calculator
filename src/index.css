@@ -36,6 +36,13 @@
     --radius: 0.5rem;
 
     --sensor-field: 120 70% 85%;
+    
+    /* Chart colors for data visualization */
+    --chart-1: 120 80% 60%;
+    --chart-2: 200 80% 60%;
+    --chart-3: 280 80% 60%;
+    --chart-4: 40 80% 60%;
+    --chart-5: 340 80% 60%;
   }
 
   * {
