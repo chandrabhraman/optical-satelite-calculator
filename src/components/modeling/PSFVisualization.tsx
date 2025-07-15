@@ -188,8 +188,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                   Intensity distribution vs. radius from PSF center
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-full">
-                <ResponsiveContainer width="100%" height={300}>
+               <CardContent className="h-full">
+                 <div className="h-80">
+                   <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={profileData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis 
@@ -199,12 +200,12 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                     <YAxis 
                       label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
                     />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        typeof value === 'number' ? value.toFixed(3) : value,
-                        name === 'intensity' ? 'Intensity' : name
-                      ]}
-                      labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
+                     <Tooltip 
+                       formatter={(value, name) => [
+                         typeof value === 'number' ? value.toFixed(2) : value,
+                         name === 'intensity' ? 'Intensity' : name
+                       ]}
+                       labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
                     />
                     <Area
                       type="monotone"
@@ -214,8 +215,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                       fillOpacity={0.3}
                       strokeWidth={2}
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
+                   </AreaChart>
+                   </ResponsiveContainer>
+                 </div>
                 
                 <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
@@ -239,8 +241,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                   Cumulative energy containment vs. radius
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-full">
-                <ResponsiveContainer width="100%" height={300}>
+               <CardContent className="h-full">
+                 <div className="h-80">
+                   <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={encircledEnergyData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis 
@@ -261,8 +264,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                       strokeWidth={2}
                       dot={false}
                     />
-                  </LineChart>
-                </ResponsiveContainer>
+                   </LineChart>
+                   </ResponsiveContainer>
+                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-4">
                   <div className="text-center p-2 bg-muted/30 rounded">

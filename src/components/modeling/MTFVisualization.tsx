@@ -173,8 +173,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                   Modulation Transfer Function vs. spatial frequency
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-full">
-                <ResponsiveContainer width="100%" height={300}>
+               <CardContent className="h-full">
+                 <div className="h-80">
+                   <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={mtfData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis 
@@ -192,8 +193,8 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                         name === 'optics' ? 'Optics MTF' :
                         name === 'detector' ? 'Detector MTF' :
                         name === 'motion' ? 'Motion MTF' : name
-                      ]}
-                      labelFormatter={(label) => `Frequency: ${Number(label).toFixed(1)} cycles/mm`}
+                       ]}
+                       labelFormatter={(label) => `Frequency: ${Number(label).toFixed(2)} cycles/mm`}
                     />
                     <Line
                       type="monotone"
@@ -230,8 +231,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                       dot={false}
                       name="Motion"
                     />
-                  </LineChart>
-                </ResponsiveContainer>
+                   </LineChart>
+                   </ResponsiveContainer>
+                 </div>
 
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                   <div className="flex items-center gap-2">
@@ -263,8 +265,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                   Individual contribution of each system component
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-full">
-                <ResponsiveContainer width="100%" height={300}>
+               <CardContent className="h-full">
+                 <div className="h-80">
+                   <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={breakdownData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="category" />
@@ -287,8 +290,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                       name="@ Nyquist"
                       opacity={0.7}
                     />
-                  </BarChart>
-                </ResponsiveContainer>
+                   </BarChart>
+                   </ResponsiveContainer>
+                 </div>
 
                 <div className="mt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-xs">
