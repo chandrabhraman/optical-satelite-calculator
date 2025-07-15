@@ -125,10 +125,11 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
             
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mtfData} margin={{ top: 15, right: 15, left: 60, bottom: 55 }}>
+                <LineChart data={mtfData} margin={{ top: 15, right: 15, left: 75, bottom: 55 }}>
                   <XAxis 
                     dataKey="frequency" 
                     tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => Number(value).toFixed(2)}
                     label={{ value: 'Frequency (cycles/mm)', position: 'insideBottom', offset: -5, style: { fontSize: '10px' } }}
                   />
                   <YAxis 

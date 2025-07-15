@@ -148,10 +148,11 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
             
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profileData} margin={{ top: 15, right: 15, left: 60, bottom: 55 }}>
+                <LineChart data={profileData} margin={{ top: 15, right: 15, left: 75, bottom: 55 }}>
                   <XAxis 
                     dataKey="radius" 
                     tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => Number(value).toFixed(2)}
                     label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5, style: { fontSize: '10px' } }}
                   />
                   <YAxis 
