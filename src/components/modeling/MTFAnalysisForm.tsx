@@ -224,7 +224,12 @@ const MTFAnalysisForm: React.FC<MTFAnalysisFormProps> = ({
           {(() => {
             const altitude = 400000; // 400km
             const groundVelocity = inputs.platformVelocity * (altitude / (altitude + inputs.focalLength * 1e-3));
-            const motionBlurPixels = (groundVelocity * inputs.integrationTime) / (inputs.pixelSize * 1e-6);
+            // Calculate Ground Sample Distance (GSD) in meters
+            const gsd = (altitude * inputs.pixelSize * 1e-6) / inputs.focalLength;
+            // Motion blur distance in meters
+            const motionBlurDistance = groundVelocity * inputs.integrationTime;
+            // Motion blur in pixels
+            const motionBlurPixels = motionBlurDistance / gsd;
             
             return (
               <div className="p-2 bg-muted/30 border border-border rounded-md">

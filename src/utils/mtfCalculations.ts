@@ -161,8 +161,14 @@ const calculateMotionMTF = (frequencies: number[], inputs: MTFInputs): number[] 
   const altitude = 400000; // Assume 400km altitude for LEO
   const groundVelocity = platformVelocity * (altitude / (altitude + focalLength * 1e-3));
   
+  // Calculate Ground Sample Distance (GSD) in meters
+  const gsd = (altitude * pixelSize * 1e-6) / focalLength;
+  
+  // Motion blur distance in meters
+  const motionBlurDistance = groundVelocity * integrationTime;
+  
   // Motion blur in pixels
-  const motionBlurPixels = (groundVelocity * integrationTime) / (pixelSize * 1e-6);
+  const motionBlurPixels = motionBlurDistance / gsd;
   
   return frequencies.map(freq => {
     if (freq === 0 || motionBlurPixels === 0) return 1.0;
