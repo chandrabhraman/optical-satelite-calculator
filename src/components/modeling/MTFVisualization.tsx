@@ -123,9 +123,9 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
               </div>
             </div>
             
-            <div className="h-48">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mtfData} margin={{ top: 10, right: 10, left: 55, bottom: 50 }}>
+                <LineChart data={mtfData} margin={{ top: 15, right: 15, left: 60, bottom: 55 }}>
                   <XAxis 
                     dataKey="frequency" 
                     tick={{ fontSize: 10 }}

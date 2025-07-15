@@ -146,9 +146,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
               </div>
             </div>
             
-            <div className="h-48">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profileData} margin={{ top: 10, right: 10, left: 55, bottom: 50 }}>
+                <LineChart data={profileData} margin={{ top: 15, right: 15, left: 60, bottom: 55 }}>
                   <XAxis 
                     dataKey="radius" 
                     tick={{ fontSize: 10 }}
