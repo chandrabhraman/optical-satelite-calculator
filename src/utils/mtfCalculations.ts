@@ -161,7 +161,7 @@ const calculateMotionMTF = (frequencies: number[], inputs: MTFInputs): number[] 
   const groundVelocity = platformVelocity * (altitude / (altitude + focalLength * 1e-3));
   
   // Calculate Ground Sample Distance (GSD) in meters
-  const gsd = (altitude * pixelSize * 1e-6) / focalLength;
+  const gsd = (altitude * pixelSize * 1e-6) / (focalLength * 1e-3);
   
   // Motion blur distance in meters
   const motionBlurDistance = groundVelocity * integrationTime;
