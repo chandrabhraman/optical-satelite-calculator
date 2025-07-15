@@ -1,10 +1,12 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from "recharts";
 import { PSFInputs, PSFResults } from "@/utils/modelingTypes";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Target, Zap, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Eye, Target, Zap, Activity, Camera } from "lucide-react";
+import { toast } from "sonner";
 
 interface PSFVisualizationProps {
   inputs: PSFInputs;
@@ -57,16 +59,63 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
     const maxRadius = results.psfFWHM * 2.5;
     const step = maxRadius / points;
     const sigma = results.psfFWHM / (2 * Math.sqrt(2 * Math.log(2)));
+    
+    // Calculate diffraction limit for reference
+    const diffractionLimit = 1.22 * inputs.wavelength * 1e-9 * inputs.focalLength / inputs.aperture * 1e6; // in μm
 
     return Array.from({ length: points }, (_, i) => {
       const r = i * step;
       const intensity = Math.exp(-(r * r) / (2 * sigma * sigma));
+      // Add diffraction limit reference line
+      const diffractionIntensity = r <= diffractionLimit ? Math.exp(-(r * r) / (2 * (diffractionLimit/2.355) * (diffractionLimit/2.355))) : null;
       return {
         radius: r,
         intensity: intensity,
+        diffractionLimit: diffractionIntensity,
         fwhm: r === results.psfFWHM / 2 ? 0.5 : null
       };
     });
+  };
+
+  const handleSnapshot = async (containerId: string, filename: string) => {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      toast.error("Unable to find visualization container.");
+      return;
+    }
+
+    try {
+      // Import html2canvas dynamically
+      const html2canvas = (await import('html2canvas')).default;
+      
+      const canvas = await html2canvas(container, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = filename;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast.success("Snapshot saved successfully!");
+        } else {
+          toast.error("Failed to create snapshot blob.");
+        }
+      }, 'image/png', 1.0);
+      
+    } catch (error) {
+      console.error("Error capturing snapshot:", error);
+      toast.error("Failed to capture snapshot. Please try again.");
+    }
   };
 
   const profileData = generateProfileData();
@@ -183,53 +232,76 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
           <TabsContent value="profile" className="h-full">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle className="text-base">PSF Radial Profile</CardTitle>
+                <CardTitle className="text-base flex items-center justify-between">
+                  PSF Radial Profile
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => handleSnapshot('psf-profile-chart', `psf-radial-profile-${new Date().toISOString().split('T')[0]}.png`)}
+                    className="gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Snapshot
+                  </Button>
+                </CardTitle>
                 <CardDescription>
                   Intensity distribution vs. radius from PSF center
                 </CardDescription>
               </CardHeader>
                <CardContent className="p-4">
-                 <div className="w-full h-80 overflow-hidden">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <AreaChart data={profileData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                       <XAxis 
-                         dataKey="radius" 
-                         tickFormatter={(value) => Number(value).toFixed(2)}
-                         label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
-                       />
-                       <YAxis 
-                         label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
-                       />
-                       <Tooltip 
-                         formatter={(value, name) => [
-                           typeof value === 'number' ? value.toFixed(2) : value,
-                           name === 'intensity' ? 'Intensity' : name
-                         ]}
-                         labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
-                       />
-                       <Area
-                         type="monotone"
-                         dataKey="intensity"
-                         stroke="hsl(var(--primary))"
-                         fill="hsl(var(--primary))"
-                         fillOpacity={0.3}
-                         strokeWidth={2}
-                       />
-                     </AreaChart>
-                   </ResponsiveContainer>
+                 <div id="psf-profile-chart" className="w-full">
+                   <div className="w-full h-80 overflow-hidden">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <AreaChart data={profileData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                         <XAxis 
+                           dataKey="radius" 
+                           tickFormatter={(value) => Number(value).toFixed(2)}
+                           label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
+                         />
+                         <YAxis 
+                           label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
+                         />
+                         <Tooltip 
+                           formatter={(value, name) => [
+                             typeof value === 'number' ? value.toFixed(2) : value,
+                             name === 'intensity' ? 'Intensity' : 
+                             name === 'diffractionLimit' ? 'Diffraction Limit' : name
+                           ]}
+                           labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
+                         />
+                         <Area
+                           type="monotone"
+                           dataKey="intensity"
+                           stroke="hsl(var(--primary))"
+                           fill="hsl(var(--primary))"
+                           fillOpacity={0.3}
+                           strokeWidth={2}
+                         />
+                         <Line
+                           type="monotone"
+                           dataKey="diffractionLimit"
+                           stroke="hsl(var(--chart-2))"
+                           strokeWidth={2}
+                           strokeDasharray="5 5"
+                           dot={false}
+                           connectNulls={false}
+                         />
+                       </AreaChart>
+                     </ResponsiveContainer>
+                   </div>
+                  
+                   <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                     <div className="flex items-center gap-2">
+                       <div className="w-3 h-3 bg-primary/50 border border-primary rounded"></div>
+                       <span>FWHM: {results.psfFWHM.toFixed(2)} μm</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <div className="w-3 h-0.5 bg-chart-2 border-dashed border-t"></div>
+                       <span>Diffraction limit reference</span>
+                     </div>
+                   </div>
                  </div>
-                
-                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-primary/50 border border-primary rounded"></div>
-                    <span>FWHM: {results.psfFWHM.toFixed(2)} μm</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500/50 border border-green-500 rounded"></div>
-                    <span>Diffraction limit reference</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -237,53 +309,66 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
           <TabsContent value="encircled" className="h-full">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle className="text-base">Encircled Energy Analysis</CardTitle>
+                <CardTitle className="text-base flex items-center justify-between">
+                  Encircled Energy Analysis
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => handleSnapshot('psf-encircled-chart', `psf-encircled-energy-${new Date().toISOString().split('T')[0]}.png`)}
+                    className="gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Snapshot
+                  </Button>
+                </CardTitle>
                 <CardDescription>
                   Cumulative energy containment vs. radius
                 </CardDescription>
               </CardHeader>
                <CardContent className="p-4">
-                 <div className="w-full h-80 overflow-hidden">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <LineChart data={encircledEnergyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                       <XAxis 
-                         dataKey="radius" 
-                         tickFormatter={(value) => Number(value).toFixed(2)}
-                         label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
-                       />
-                       <YAxis 
-                         label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft' }}
-                       />
-                       <Tooltip 
-                         formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Energy']}
-                         labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
-                       />
-                       <Line
-                         type="monotone"
-                         dataKey="energy"
-                         stroke="hsl(var(--primary))"
-                         strokeWidth={2}
-                         dot={false}
-                       />
-                     </LineChart>
-                   </ResponsiveContainer>
-                 </div>
+                 <div id="psf-encircled-chart" className="w-full">
+                   <div className="w-full h-80 overflow-hidden">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <LineChart data={encircledEnergyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                         <XAxis 
+                           dataKey="radius" 
+                           tickFormatter={(value) => Number(value).toFixed(2)}
+                           label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
+                         />
+                         <YAxis 
+                           label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft' }}
+                         />
+                         <Tooltip 
+                           formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Energy']}
+                           labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
+                         />
+                         <Line
+                           type="monotone"
+                           dataKey="energy"
+                           stroke="hsl(var(--primary))"
+                           strokeWidth={2}
+                           dot={false}
+                         />
+                       </LineChart>
+                     </ResponsiveContainer>
+                   </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-4">
-                  <div className="text-center p-2 bg-muted/30 rounded">
-                    <p className="text-xs text-muted-foreground">50% Energy</p>
-                    <p className="font-semibold">{results.encircledEnergy.ee50.toFixed(2)} μm</p>
-                  </div>
-                  <div className="text-center p-2 bg-muted/30 rounded">
-                    <p className="text-xs text-muted-foreground">80% Energy</p>
-                    <p className="font-semibold">{results.encircledEnergy.ee80.toFixed(2)} μm</p>
-                  </div>
-                  <div className="text-center p-2 bg-muted/30 rounded">
-                    <p className="text-xs text-muted-foreground">95% Energy</p>
-                    <p className="font-semibold">{results.encircledEnergy.ee95.toFixed(2)} μm</p>
-                  </div>
-                </div>
+                   <div className="mt-4 grid grid-cols-3 gap-4">
+                     <div className="text-center p-2 bg-muted/30 rounded">
+                       <p className="text-xs text-muted-foreground">50% Energy</p>
+                       <p className="font-semibold">{results.encircledEnergy.ee50.toFixed(2)} μm</p>
+                     </div>
+                     <div className="text-center p-2 bg-muted/30 rounded">
+                       <p className="text-xs text-muted-foreground">80% Energy</p>
+                       <p className="font-semibold">{results.encircledEnergy.ee80.toFixed(2)} μm</p>
+                     </div>
+                     <div className="text-center p-2 bg-muted/30 rounded">
+                       <p className="text-xs text-muted-foreground">95% Energy</p>
+                       <p className="font-semibold">{results.encircledEnergy.ee95.toFixed(2)} μm</p>
+                     </div>
+                   </div>
+                 </div>
               </CardContent>
             </Card>
           </TabsContent>
