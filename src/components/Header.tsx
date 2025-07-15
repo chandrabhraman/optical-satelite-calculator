@@ -44,6 +44,17 @@ const Header: React.FC = () => {
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
+            
+            <NavigationMenuItem>
+              <Link to="/modeling">
+                <NavigationMenuLink className={cn(
+                  navigationMenuTriggerStyle(),
+                  location.pathname === "/modeling" && "bg-primary/20"
+                )}>
+                  Modeling
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       </div>
