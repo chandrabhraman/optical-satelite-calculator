@@ -114,30 +114,30 @@ const Modeling = () => {
                     Real-time analysis and visualization of optical system performance
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="h-full">
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+                <CardContent className="h-[calc(100vh-12rem)] min-h-[600px]">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                     <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="psf">PSF Analysis</TabsTrigger>
                       <TabsTrigger value="mtf">MTF Analysis</TabsTrigger>
                       <TabsTrigger value="combined">Combined View</TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="psf" className="mt-6 h-full">
+                    <TabsContent value="psf" className="mt-6 flex-1">
                       <PSFVisualization 
                         inputs={psfInputs}
                         results={psfResults}
                       />
                     </TabsContent>
                     
-                    <TabsContent value="mtf" className="mt-6 h-full">
+                    <TabsContent value="mtf" className="mt-6 flex-1">
                       <MTFVisualization 
                         inputs={mtfInputs}
                         results={mtfResults}
                       />
                     </TabsContent>
                     
-                    <TabsContent value="combined" className="mt-6 h-full">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <TabsContent value="combined" className="mt-6 flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-[400px]">
                         <PSFVisualization 
                           inputs={psfInputs}
                           results={psfResults}

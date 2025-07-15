@@ -146,9 +146,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
               </div>
             </div>
             
-            <div className="h-32">
+            <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profileData} margin={{ top: 10, right: 10, left: 40, bottom: 40 }}>
+                <LineChart data={profileData} margin={{ top: 10, right: 10, left: 55, bottom: 50 }}>
                   <XAxis 
                     dataKey="radius" 
                     tick={{ fontSize: 10 }}
@@ -156,7 +156,7 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                   />
                   <YAxis 
                     tick={{ fontSize: 10 }}
-                    label={{ value: 'Intensity', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                    label={{ value: 'Intensity', angle: -90, position: 'insideLeft', textAnchor: 'middle', style: { fontSize: '10px' } }}
                   />
                   <Line 
                     type="monotone" 
@@ -267,7 +267,7 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                            label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
                          />
                           <YAxis 
-                            label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft', textAnchor: 'middle' }}
+                            label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft', textAnchor: 'middle', offset: 10 }}
                           />
                          <Tooltip 
                            formatter={(value, name) => [
@@ -343,9 +343,9 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                            tickFormatter={(value) => Number(value).toFixed(2)}
                            label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
                          />
-                         <YAxis 
-                           label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft' }}
-                         />
+                          <YAxis 
+                            label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft', textAnchor: 'middle', offset: 10 }}
+                          />
                          <Tooltip 
                            formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Energy']}
                            labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
