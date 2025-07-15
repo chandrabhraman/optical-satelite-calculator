@@ -115,9 +115,9 @@ const MTFAnalysisForm: React.FC<MTFAnalysisFormProps> = ({
             </div>
           </div>
 
-          <div className="p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <div className="p-2 bg-muted/30 border border-border rounded-md">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-blue-800 dark:text-blue-200">Nyquist Frequency:</span>
+              <span className="text-foreground">Nyquist Frequency:</span>
               <Badge variant="outline" className="text-xs">
                 {nyquistFreq.toFixed(1)} cycles/mm
               </Badge>
@@ -227,15 +227,15 @@ const MTFAnalysisForm: React.FC<MTFAnalysisFormProps> = ({
             const motionBlurPixels = (groundVelocity * inputs.integrationTime) / (inputs.pixelSize * 1e-6);
             
             return (
-              <div className="p-2 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-md">
+              <div className="p-2 bg-muted/30 border border-border rounded-md">
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ground Velocity:</span>
-                    <span>{(groundVelocity / 1000).toFixed(2)} km/s</span>
+                    <span className="text-foreground">{(groundVelocity / 1000).toFixed(2)} km/s</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Motion Blur:</span>
-                    <span>
+                    <span className="text-foreground">
                       {motionBlurPixels.toFixed(2)} pixels
                       {motionBlurPixels > 1 && (
                         <Badge variant="destructive" className="ml-2 text-xs">Significant</Badge>
