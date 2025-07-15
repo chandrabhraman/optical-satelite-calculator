@@ -173,65 +173,66 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                   Modulation Transfer Function vs. spatial frequency
                 </CardDescription>
               </CardHeader>
-               <CardContent className="h-full">
-                 <div className="h-80">
+               <CardContent className="p-4">
+                 <div className="w-full h-80 overflow-hidden">
                    <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={mtfData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis 
-                      dataKey="frequency" 
-                      label={{ value: 'Spatial Frequency (cycles/mm)', position: 'insideBottom', offset: -5 }}
-                    />
-                    <YAxis 
-                      domain={[0, 1]}
-                      label={{ value: 'MTF', angle: -90, position: 'insideLeft' }}
-                    />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        `${(Number(value) * 100).toFixed(1)}%`,
-                        name === 'overall' ? 'Overall MTF' :
-                        name === 'optics' ? 'Optics MTF' :
-                        name === 'detector' ? 'Detector MTF' :
-                        name === 'motion' ? 'Motion MTF' : name
-                       ]}
-                       labelFormatter={(label) => `Frequency: ${Number(label).toFixed(2)} cycles/mm`}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="overall"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={3}
-                      dot={false}
-                      name="Overall"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="optics"
-                      stroke="hsl(var(--chart-1))"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      name="Optics"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="detector"
-                      stroke="hsl(var(--chart-2))"
-                      strokeWidth={2}
-                      strokeDasharray="3 3"
-                      dot={false}
-                      name="Detector"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="motion"
-                      stroke="hsl(var(--chart-3))"
-                      strokeWidth={2}
-                      strokeDasharray="1 1"
-                      dot={false}
-                      name="Motion"
-                    />
-                   </LineChart>
+                     <LineChart data={mtfData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                       <XAxis 
+                         dataKey="frequency" 
+                         tickFormatter={(value) => Number(value).toFixed(2)}
+                         label={{ value: 'Spatial Frequency (cycles/mm)', position: 'insideBottom', offset: -5 }}
+                       />
+                       <YAxis 
+                         domain={[0, 1]}
+                         label={{ value: 'MTF', angle: -90, position: 'insideLeft' }}
+                       />
+                       <Tooltip 
+                         formatter={(value, name) => [
+                           `${(Number(value) * 100).toFixed(1)}%`,
+                           name === 'overall' ? 'Overall MTF' :
+                           name === 'optics' ? 'Optics MTF' :
+                           name === 'detector' ? 'Detector MTF' :
+                           name === 'motion' ? 'Motion MTF' : name
+                         ]}
+                         labelFormatter={(label) => `Frequency: ${Number(label).toFixed(2)} cycles/mm`}
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="overall"
+                         stroke="hsl(var(--primary))"
+                         strokeWidth={3}
+                         dot={false}
+                         name="Overall"
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="optics"
+                         stroke="hsl(var(--chart-1))"
+                         strokeWidth={2}
+                         strokeDasharray="5 5"
+                         dot={false}
+                         name="Optics"
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="detector"
+                         stroke="hsl(var(--chart-2))"
+                         strokeWidth={2}
+                         strokeDasharray="3 3"
+                         dot={false}
+                         name="Detector"
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="motion"
+                         stroke="hsl(var(--chart-3))"
+                         strokeWidth={2}
+                         strokeDasharray="1 1"
+                         dot={false}
+                         name="Motion"
+                       />
+                     </LineChart>
                    </ResponsiveContainer>
                  </div>
 
@@ -265,32 +266,32 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                   Individual contribution of each system component
                 </CardDescription>
               </CardHeader>
-               <CardContent className="h-full">
-                 <div className="h-80">
+               <CardContent className="p-4">
+                 <div className="w-full h-80 overflow-hidden">
                    <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={breakdownData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="category" />
-                    <YAxis 
-                      domain={[0, 1]}
-                      label={{ value: 'MTF', angle: -90, position: 'insideLeft' }}
-                    />
-                    <Tooltip 
-                      formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'MTF']}
-                    />
-                    <Bar 
-                      dataKey="mtf50" 
-                      fill="hsl(var(--primary))" 
-                      name="@ 50 cycles/mm"
-                      opacity={0.7}
-                    />
-                    <Bar 
-                      dataKey="mtfNyquist" 
-                      fill="hsl(var(--chart-1))" 
-                      name="@ Nyquist"
-                      opacity={0.7}
-                    />
-                   </BarChart>
+                     <BarChart data={breakdownData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                       <XAxis dataKey="category" />
+                       <YAxis 
+                         domain={[0, 1]}
+                         label={{ value: 'MTF', angle: -90, position: 'insideLeft' }}
+                       />
+                       <Tooltip 
+                         formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'MTF']}
+                       />
+                       <Bar 
+                         dataKey="mtf50" 
+                         fill="hsl(var(--primary))" 
+                         name="@ 50 cycles/mm"
+                         opacity={0.7}
+                       />
+                       <Bar 
+                         dataKey="mtfNyquist" 
+                         fill="hsl(var(--chart-1))" 
+                         name="@ Nyquist"
+                         opacity={0.7}
+                       />
+                     </BarChart>
                    </ResponsiveContainer>
                  </div>
 

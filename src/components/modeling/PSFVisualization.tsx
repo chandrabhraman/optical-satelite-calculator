@@ -188,34 +188,35 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                   Intensity distribution vs. radius from PSF center
                 </CardDescription>
               </CardHeader>
-               <CardContent className="h-full">
-                 <div className="h-80">
+               <CardContent className="p-4">
+                 <div className="w-full h-80 overflow-hidden">
                    <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={profileData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis 
-                      dataKey="radius" 
-                      label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
-                    />
-                    <YAxis 
-                      label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
-                    />
-                     <Tooltip 
-                       formatter={(value, name) => [
-                         typeof value === 'number' ? value.toFixed(2) : value,
-                         name === 'intensity' ? 'Intensity' : name
-                       ]}
-                       labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="intensity"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
-                      fillOpacity={0.3}
-                      strokeWidth={2}
-                    />
-                   </AreaChart>
+                     <AreaChart data={profileData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                       <XAxis 
+                         dataKey="radius" 
+                         tickFormatter={(value) => Number(value).toFixed(2)}
+                         label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
+                       />
+                       <YAxis 
+                         label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
+                       />
+                       <Tooltip 
+                         formatter={(value, name) => [
+                           typeof value === 'number' ? value.toFixed(2) : value,
+                           name === 'intensity' ? 'Intensity' : name
+                         ]}
+                         labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
+                       />
+                       <Area
+                         type="monotone"
+                         dataKey="intensity"
+                         stroke="hsl(var(--primary))"
+                         fill="hsl(var(--primary))"
+                         fillOpacity={0.3}
+                         strokeWidth={2}
+                       />
+                     </AreaChart>
                    </ResponsiveContainer>
                  </div>
                 
@@ -241,30 +242,31 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                   Cumulative energy containment vs. radius
                 </CardDescription>
               </CardHeader>
-               <CardContent className="h-full">
-                 <div className="h-80">
+               <CardContent className="p-4">
+                 <div className="w-full h-80 overflow-hidden">
                    <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={encircledEnergyData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis 
-                      dataKey="radius" 
-                      label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
-                    />
-                    <YAxis 
-                      label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft' }}
-                    />
-                    <Tooltip 
-                      formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Energy']}
-                      labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="energy"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                   </LineChart>
+                     <LineChart data={encircledEnergyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                       <XAxis 
+                         dataKey="radius" 
+                         tickFormatter={(value) => Number(value).toFixed(2)}
+                         label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
+                       />
+                       <YAxis 
+                         label={{ value: 'Encircled Energy (%)', angle: -90, position: 'insideLeft' }}
+                       />
+                       <Tooltip 
+                         formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Energy']}
+                         labelFormatter={(label) => `Radius: ${Number(label).toFixed(2)} μm`}
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="energy"
+                         stroke="hsl(var(--primary))"
+                         strokeWidth={2}
+                         dot={false}
+                       />
+                     </LineChart>
                    </ResponsiveContainer>
                  </div>
 
