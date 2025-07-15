@@ -182,13 +182,13 @@ const ModelingResults: React.FC<ModelingResultsProps> = ({
         {psfResults && mtfResults && activeAnalysis === 'combined' && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                <div className="text-muted-foreground">PSF Quality</div>
-                <div className="font-semibold">{(psfResults.strehlRatio * 100).toFixed(1)}%</div>
+              <div className="text-center p-3 bg-primary/10 border border-primary/20 rounded">
+                <div className="text-foreground font-medium">PSF Quality</div>
+                <div className="font-bold text-primary">{(psfResults.strehlRatio * 100).toFixed(1)}%</div>
               </div>
-              <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded">
-                <div className="text-muted-foreground">MTF Quality</div>
-                <div className="font-semibold">{mtfResults.mtf50.toFixed(1)} cycles/mm</div>
+              <div className="text-center p-3 bg-secondary/10 border border-secondary/20 rounded">
+                <div className="text-foreground font-medium">MTF Quality</div>
+                <div className="font-bold text-secondary-foreground">{mtfResults.mtf50.toFixed(1)} cycles/mm</div>
               </div>
             </div>
 

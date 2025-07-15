@@ -252,16 +252,16 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                  <div id="psf-profile-chart" className="w-full">
                    <div className="w-full h-80 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <AreaChart data={profileData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <AreaChart data={profileData} margin={{ top: 20, right: 30, left: 60, bottom: 80 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis 
                            dataKey="radius" 
                            tickFormatter={(value) => Number(value).toFixed(2)}
                            label={{ value: 'Radius (μm)', position: 'insideBottom', offset: -5 }}
                          />
-                         <YAxis 
-                           label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft' }}
-                         />
+                          <YAxis 
+                            label={{ value: 'Normalized Intensity', angle: -90, position: 'insideLeft', textAnchor: 'middle' }}
+                          />
                          <Tooltip 
                            formatter={(value, name) => [
                              typeof value === 'number' ? value.toFixed(2) : value,
@@ -329,7 +329,7 @@ const PSFVisualization: React.FC<PSFVisualizationProps> = ({ inputs, results, co
                  <div id="psf-encircled-chart" className="w-full">
                    <div className="w-full h-80 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <LineChart data={encircledEnergyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                       <LineChart data={encircledEnergyData} margin={{ top: 20, right: 30, left: 60, bottom: 80 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis 
                            dataKey="radius" 

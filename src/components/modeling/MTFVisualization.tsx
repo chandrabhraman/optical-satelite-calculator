@@ -231,7 +231,7 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                  <div id="mtf-curves-chart" className="w-full">
                    <div className="w-full h-72 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <LineChart data={mtfData} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
+                       <LineChart data={mtfData} margin={{ top: 20, right: 30, left: 60, bottom: 80 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis 
                            dataKey="frequency" 
@@ -337,7 +337,7 @@ const MTFVisualization: React.FC<MTFVisualizationProps> = ({ inputs, results, co
                  <div id="mtf-breakdown-chart" className="w-full">
                    <div className="w-full h-72 overflow-hidden">
                      <ResponsiveContainer width="100%" height="100%">
-                       <BarChart data={breakdownData} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
+                       <BarChart data={breakdownData} margin={{ top: 20, right: 30, left: 60, bottom: 80 }}>
                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                          <XAxis dataKey="category" />
                          <YAxis 
