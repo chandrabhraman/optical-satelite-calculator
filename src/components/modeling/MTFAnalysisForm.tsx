@@ -204,28 +204,43 @@ const MTFAnalysisForm: React.FC<MTFAnalysisFormProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="integration" className="text-xs font-medium">
-                Integration Time (s)
+              <Label htmlFor="altitude" className="text-xs font-medium">
+                Altitude (m)
               </Label>
               <Input
-                id="integration"
+                id="altitude"
                 type="number"
-                value={inputs.integrationTime}
-                onChange={(e) => updateInput('integrationTime', parseFloat(e.target.value))}
-                step="0.0001"
-                min="0.0001"
-                max="0.01"
+                value={inputs.altitude}
+                onChange={(e) => updateInput('altitude', parseFloat(e.target.value))}
+                step="10000"
+                min="200000"
+                max="2000000"
                 className="h-8"
               />
             </div>
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="integration" className="text-xs font-medium">
+              Integration Time (s)
+            </Label>
+            <Input
+              id="integration"
+              type="number"
+              value={inputs.integrationTime}
+              onChange={(e) => updateInput('integrationTime', parseFloat(e.target.value))}
+              step="0.0001"
+              min="0.0001"
+              max="0.01"
+              className="h-8"
+            />
+          </div>
 
           {/* Motion blur calculation display */}
           {(() => {
-            const altitude = 400000; // 400km
-            const groundVelocity = inputs.platformVelocity * (altitude / (altitude + inputs.focalLength * 1e-3));
+            const groundVelocity = inputs.platformVelocity * (inputs.altitude / (inputs.altitude + inputs.focalLength * 1e-3));
             // Calculate Ground Sample Distance (GSD) in meters
-            const gsd = (altitude * inputs.pixelSize * 1e-6) / inputs.focalLength;
+            const gsd = (inputs.altitude * inputs.pixelSize * 1e-6) / inputs.focalLength;
             // Motion blur distance in meters
             const motionBlurDistance = groundVelocity * inputs.integrationTime;
             // Motion blur in pixels

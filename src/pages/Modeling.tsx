@@ -27,6 +27,7 @@ const Modeling = () => {
     electronicNoise: 50,
     platformVelocity: 7500,
     integrationTime: 0.001,
+    altitude: 400000, // 400km LEO default
   });
 
   const [psfResults, setPsfResults] = useState<PSFResults | null>(null);

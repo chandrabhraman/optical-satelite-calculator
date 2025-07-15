@@ -15,6 +15,7 @@ export interface MTFInputs extends PSFInputs {
   electronicNoise: number; // electrons RMS
   platformVelocity: number; // m/s
   integrationTime: number; // seconds
+  altitude: number; // meters (satellite altitude)
 }
 
 export interface AberrationData {

@@ -155,10 +155,9 @@ const calculateDetectorMTF = (frequencies: number[], inputs: MTFInputs): number[
 };
 
 const calculateMotionMTF = (frequencies: number[], inputs: MTFInputs): number[] => {
-  const { platformVelocity, integrationTime, focalLength, pixelSize } = inputs;
+  const { platformVelocity, integrationTime, focalLength, pixelSize, altitude } = inputs;
   
   // Calculate ground velocity
-  const altitude = 400000; // Assume 400km altitude for LEO
   const groundVelocity = platformVelocity * (altitude / (altitude + focalLength * 1e-3));
   
   // Calculate Ground Sample Distance (GSD) in meters
