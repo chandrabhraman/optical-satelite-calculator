@@ -19,7 +19,7 @@ const RevisitAnalysis: React.FC = () => {
   // State for handling analysis results
   const [isAnalysisRunning, setIsAnalysisRunning] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState("map");
+  const [activeTab, setActiveTab] = useState("heatmap");
   const [analysisData, setAnalysisData] = useState<{
     satellites: Array<{
       id: string;
