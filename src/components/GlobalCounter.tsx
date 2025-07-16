@@ -20,10 +20,10 @@ const GlobalCounter = ({ localCount }: GlobalCounterProps) => {
   useEffect(() => {
     const fetchGlobalCount = async () => {
       try {
-        const response = await fetch('https://api.countapi.xyz/get/satellite-calculator/calculations');
+        const response = await fetch('https://api.counterapi.dev/v2/opticalsatellitetools/opticalsatellitetools');
         const data = await response.json();
-        if (data && data.value !== undefined) {
-          const fetchedCount = data.value;
+        if (data && data.count !== undefined) {
+          const fetchedCount = data.count;
           setGlobalCount(fetchedCount);
           localStorage.setItem('satellite-calculator-count', fetchedCount.toString());
         }
@@ -43,10 +43,10 @@ const GlobalCounter = ({ localCount }: GlobalCounterProps) => {
       
       const updateGlobalCount = async () => {
         try {
-          const response = await fetch('https://api.countapi.xyz/hit/satellite-calculator/calculations');
+          const response = await fetch('https://api.counterapi.dev/v2/opticalsatellitetools/opticalsatellitetools/up');
           const data = await response.json();
-          if (data && data.value !== undefined) {
-            const newCount = data.value;
+          if (data && data.count !== undefined) {
+            const newCount = data.count;
             setGlobalCount(newCount);
             localStorage.setItem('satellite-calculator-count', newCount.toString());
           } else {
