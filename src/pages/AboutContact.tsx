@@ -1,25 +1,33 @@
 
-import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { ChevronLeft, Github, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import Footer from "@/components/Footer";
+import { SEOHead } from "@/components/SEOHead";
+import { metaDescriptions } from "@/utils/seoUtils";
 
 const AboutContact = () => {
+  const breadcrumbs = [
+    { name: "Home", url: "/" },
+    { name: "About & Contact", url: "/about-contact" }
+  ];
+
   return (
     <div className="min-h-screen space-gradient text-foreground">
-      <Helmet>
-        <title>About & Contact | Satellite Optical Sensor Calculator</title>
-        <meta name="description" content="Learn about the Satellite Optical Sensor Calculator tool, our mission, and how to contact us for support and collaboration." />
-        <meta name="keywords" content="satellite sensor calculator, earth observation, remote sensing, satellite engineering support, contact satellite tools" />
-        <script 
-          async 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3334194678637115" 
-          crossOrigin="anonymous" 
-        />
-      </Helmet>
+      <SEOHead
+        title="About & Contact | Satellite Optical Sensor Calculator"
+        description={metaDescriptions.about}
+        keywords={["satellite sensor calculator", "earth observation", "remote sensing", "satellite engineering support", "contact satellite tools"]}
+        canonical="https://opticalsatellitetools.space/about-contact"
+        structuredData={[
+          {
+            type: 'BreadcrumbList',
+            breadcrumbs: breadcrumbs
+          }
+        ]}
+      />
       
       <div className="container mx-auto py-8 pb-24">
         <div className="mb-10">

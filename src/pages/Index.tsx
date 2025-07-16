@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import CalculatorForm from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import SatelliteVisualization from "@/components/SatelliteVisualization";
@@ -13,6 +12,8 @@ import { useToast } from "@/components/ui/use-toast";
 import ShareDialog from "@/components/ShareDialog";
 import GlobalCounter from "@/components/GlobalCounter";
 import Footer from "@/components/Footer";
+import { SEOHead } from "@/components/SEOHead";
+import { toolKeywords, metaDescriptions } from "@/utils/seoUtils";
 
 const Index = () => {
   const [inputs, setInputs] = useState<SensorInputs | null>(null);
@@ -102,26 +103,53 @@ const Index = () => {
     setShareDialogOpen(true);
   };
 
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Satellite Optical Sensor Calculator",
-    "applicationCategory": "ScientificApplication",
-    "operatingSystem": "Web",
-    "description": "Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.",
-    "keywords": "satellite optical sensor, GSD calculator, ground sample distance, satellite imaging, earth observation, remote sensing, sensor field coverage, satellite engineering, orbital parameters, sensor footprint, satellite visualization",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
+  const faqItems = [
+    {
+      question: "What is Ground Sample Distance (GSD) and why is it important?",
+      answer: "Ground Sample Distance (GSD) is the distance between two adjacent pixel centers measured on the ground. It determines the spatial resolution of satellite imagery and directly affects the level of detail that can be observed in the images."
+    },
+    {
+      question: "How accurate are these satellite sensor calculations?",
+      answer: "Our calculator provides approximate calculations suitable for preliminary design and educational purposes. For mission-critical applications, detailed optical modeling and professional validation are recommended."
+    },
+    {
+      question: "Can I use this calculator for commercial satellite projects?",
+      answer: "Yes, this tool is useful for initial analysis and conceptual design phases. However, we recommend professional optical analysis software for final design validation and mission planning."
+    },
+    {
+      question: "What orbital parameters affect sensor performance?",
+      answer: "Key orbital parameters include altitude, inclination, off-nadir angle, and ground track patterns. These affect coverage area, revisit time, and achievable ground sample distance."
     }
-  };
+  ];
+
+  const breadcrumbs = [
+    { name: "Home", url: "/" },
+    { name: "Satellite Calculator", url: "/" }
+  ];
 
   return (
     <>
-      <Helmet>
-        <title>Satellite Optical Sensor Calculator | Precision Engineering Tools</title>
-      </Helmet>
+      <SEOHead
+        title="Satellite Optical Sensor Calculator | Professional GSD & Coverage Analysis"
+        description={metaDescriptions.home}
+        keywords={toolKeywords.calculator}
+        structuredData={[
+          {
+            type: 'Calculator',
+            name: 'Satellite Optical Sensor Calculator',
+            description: metaDescriptions.home,
+            url: 'https://opticalsatellitetools.space/'
+          },
+          {
+            type: 'FAQ',
+            faqItems: faqItems
+          },
+          {
+            type: 'BreadcrumbList',
+            breadcrumbs: breadcrumbs
+          }
+        ]}
+      />
       
       <main className="min-h-screen space-gradient text-foreground">
         <div className="container mx-auto py-8 pb-12">

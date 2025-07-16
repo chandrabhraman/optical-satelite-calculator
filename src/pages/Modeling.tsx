@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PSFAnalysisForm from "@/components/modeling/PSFAnalysisForm";
@@ -8,6 +7,8 @@ import PSFVisualization from "@/components/modeling/PSFVisualization";
 import MTFVisualization from "@/components/modeling/MTFVisualization";
 import ModelingResults from "@/components/modeling/ModelingResults";
 import { PSFInputs, MTFInputs, PSFResults, MTFResults } from "@/utils/modelingTypes";
+import { SEOHead } from "@/components/SEOHead";
+import { toolKeywords, metaDescriptions } from "@/utils/seoUtils";
 
 const Modeling = () => {
   const [psfInputs, setPsfInputs] = useState<PSFInputs>({
@@ -34,12 +35,47 @@ const Modeling = () => {
   const [mtfResults, setMtfResults] = useState<MTFResults | null>(null);
   const [activeTab, setActiveTab] = useState("psf");
 
+  const breadcrumbs = [
+    { name: "Home", url: "/" },
+    { name: "Modeling", url: "/modeling" }
+  ];
+
+  const faqItems = [
+    {
+      question: "What is PSF analysis used for in satellite optics?",
+      answer: "Point Spread Function (PSF) analysis characterizes how a point source of light is spread by an optical system, helping evaluate image sharpness and optical quality."
+    },
+    {
+      question: "How does MTF affect satellite image quality?",
+      answer: "Modulation Transfer Function (MTF) measures how well an optical system preserves contrast at different spatial frequencies, directly impacting image detail and resolution."
+    }
+  ];
+
   return (
     <>
-      <Helmet>
-        <title>Advanced Optical Modeling - PSF & MTF Analysis</title>
-        <meta name="description" content="Advanced point spread function and modular transfer function analysis for satellite optical sensors" />
-      </Helmet>
+      <SEOHead
+        title="Advanced Optical Modeling - PSF & MTF Analysis"
+        description={metaDescriptions.modeling}
+        keywords={toolKeywords.modeling}
+        canonical="https://opticalsatellitetools.space/modeling"
+        structuredData={[
+          {
+            type: 'WebApplication',
+            name: 'Satellite Optical Modeling Tool',
+            description: metaDescriptions.modeling,
+            url: 'https://opticalsatellitetools.space/modeling',
+            applicationCategory: 'UtilityApplication'
+          },
+          {
+            type: 'BreadcrumbList',
+            breadcrumbs: breadcrumbs
+          },
+          {
+            type: 'FAQ',
+            faqItems: faqItems
+          }
+        ]}
+      />
 
       <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
         <div className="container mx-auto px-4 py-8">

@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { 
   Card, 
   CardContent,
@@ -14,6 +13,8 @@ import RevisitAnalysisForm from "@/components/revisit/RevisitAnalysisForm";
 import RevisitVisualization from "@/components/revisit/RevisitVisualization";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RocketIcon } from "lucide-react";
+import { SEOHead } from "@/components/SEOHead";
+import { toolKeywords, metaDescriptions } from "@/utils/seoUtils";
 
 const RevisitAnalysis: React.FC = () => {
   // State for handling analysis results
@@ -112,15 +113,47 @@ const RevisitAnalysis: React.FC = () => {
     }, 300);
   };
 
+  const breadcrumbs = [
+    { name: "Home", url: "/" },
+    { name: "Revisit Analysis", url: "/revisit-analysis" }
+  ];
+
+  const faqItems = [
+    {
+      question: "What is satellite revisit time?",
+      answer: "Revisit time is the time interval between consecutive observations of the same location by a satellite. It depends on orbital parameters, sensor characteristics, and mission requirements."
+    },
+    {
+      question: "How do I optimize coverage for my mission?",
+      answer: "Coverage optimization involves adjusting orbital altitude, inclination, constellation size, and phasing to achieve desired revisit times and global coverage patterns."
+    }
+  ];
+
   return (
     <>
-      <Helmet>
-        <title>Revisit Analysis | Satellite Optical Sensor Calculator</title>
-        <meta 
-          name="description" 
-          content="Design and analyze satellite constellations to understand revisit characteristics and coverage patterns using SGP4 propagation." 
-        />
-      </Helmet>
+      <SEOHead
+        title="Satellite Revisit Analysis | Ground Track & Coverage Pattern Analysis"
+        description={metaDescriptions.revisit}
+        keywords={toolKeywords.revisit}
+        canonical="https://opticalsatellitetools.space/revisit-analysis"
+        structuredData={[
+          {
+            type: 'WebApplication',
+            name: 'Satellite Revisit Analysis Tool',
+            description: metaDescriptions.revisit,
+            url: 'https://opticalsatellitetools.space/revisit-analysis',
+            applicationCategory: 'UtilityApplication'
+          },
+          {
+            type: 'BreadcrumbList',
+            breadcrumbs: breadcrumbs
+          },
+          {
+            type: 'FAQ',
+            faqItems: faqItems
+          }
+        ]}
+      />
       
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-8 font-serif">Satellite Revisit Analysis</h1>
