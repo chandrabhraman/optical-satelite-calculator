@@ -75,6 +75,15 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const [orbitType, setOrbitType] = useState("sso");
   const [constellationType, setConstellationType] = useState("single");
   
+  // Update inclination default when orbit type changes
+  React.useEffect(() => {
+    if (orbitType === "geo") {
+      form.setValue("inclination", 0);
+    } else if (orbitType === "sso") {
+      form.setValue("inclination", 97.6);
+    }
+  }, [orbitType, form]);
+  
   // Submit handler
   const onSubmit = (data: any) => {
     console.log("=== FORM SUBMISSION DEBUG ===");
