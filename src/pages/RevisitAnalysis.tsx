@@ -155,16 +155,25 @@ const RevisitAnalysis: React.FC = () => {
         ]}
       />
       
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8 font-serif">Satellite Revisit Analysis</h1>
-        
-        <Alert className="mb-4">
-          <RocketIcon className="h-4 w-4" />
-          <AlertDescription>
-            Using SGP4 orbit propagator for accurate satellite positioning calculations.
-            Analysis displays realistic ground tracks and revisit statistics.
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen space-gradient">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent mb-4">
+              Satellite Revisit Analysis
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Comprehensive analysis of satellite ground tracks, coverage patterns, and revisit times 
+              using SGP4 orbit propagator for accurate positioning calculations.
+            </p>
+          </div>
+          
+          <Alert className="mb-6 glassmorphism border-primary/20">
+            <RocketIcon className="h-4 w-4" />
+            <AlertDescription>
+              Using SGP4 orbit propagator for accurate satellite positioning calculations.
+              Analysis displays realistic ground tracks and revisit statistics.
+            </AlertDescription>
+          </Alert>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Input Form */}
@@ -210,6 +219,7 @@ const RevisitAnalysis: React.FC = () => {
                 />
               </CardContent>
             </Card>
+          </div>
           </div>
         </div>
       </div>

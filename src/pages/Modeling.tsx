@@ -77,7 +77,7 @@ const Modeling = () => {
         ]}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
+      <div className="min-h-screen space-gradient">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent mb-4">
@@ -92,7 +92,7 @@ const Modeling = () => {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Input Panel */}
             <div className="lg:col-span-2 space-y-6">
-              <Card>
+              <Card className="glassmorphism">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-primary"></div>
@@ -140,7 +140,7 @@ const Modeling = () => {
 
             {/* Visualization Panel */}
             <div className="lg:col-span-3">
-              <Card className="h-full">
+              <Card className="h-full glassmorphism">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-primary"></div>
