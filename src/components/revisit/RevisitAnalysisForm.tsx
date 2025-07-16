@@ -282,22 +282,41 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
           )}
           
           {orbitType === "geo" && (
-            <FormField
-              control={form.control}
-              name="longitudeGEO"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Longitude (°E)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Sub-satellite point longitude (East positive)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="longitudeGEO"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Longitude (°E)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Sub-satellite point longitude (East positive)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="inclination"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Inclination (°)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Orbital inclination (0° for equatorial)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           )}
         </div>
         
