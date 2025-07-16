@@ -50,8 +50,16 @@ const RevisitAnalysis: React.FC = () => {
         trueAnomaly: 0
       };
       
+      // Handle GEO orbit type
+      if (formData.orbitType === "geo") {
+        satellite.altitude = 35786; // GEO altitude in km
+        satellite.inclination = formData.inclination || 0; // Use form inclination or default to 0
+        // Convert longitude to RAAN (longitude is the sub-satellite point)
+        satellite.raan = formData.longitudeGEO || 0;
+        satellite.trueAnomaly = 0; // GEO satellites are typically at 0 true anomaly
+      }
       // Adjust parameters based on constellation type
-      if (formData.constellationType === "train") {
+      else if (formData.constellationType === "train") {
         // For train constellation, space satellites in mean anomaly
         satellite.trueAnomaly = i * (formData.inPlaneSpacing || 30);
       } else if (formData.constellationType === "walker") {
