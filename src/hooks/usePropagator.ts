@@ -246,9 +246,9 @@ export function usePropagator() {
       minRevisits: minCount,
       maxRevisits: maxCount,
       averageRevisits: parseFloat(averageRevisits.toFixed(1)),
-      averageRevisitTime: parseFloat(averageRevisitTime.toFixed(1)),
-      maxGap: parseFloat(maxGap.toFixed(1)),
-      minRevisitTime: parseFloat(minRevisitTime.toFixed(1))
+      averageRevisitTime: parseFloat(averageRevisitTime.toFixed(2)), // Changed to 2 decimal places
+      maxGap: parseFloat(maxGap.toFixed(2)), // Changed to 2 decimal places
+      minRevisitTime: parseFloat(minRevisitTime.toFixed(2)) // Changed to 2 decimal places
     };
     
     return { grid, maxCount, statistics };
