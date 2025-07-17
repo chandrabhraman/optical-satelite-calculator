@@ -28,6 +28,17 @@ interface GroundTrackPoint {
 interface RevisitData {
   grid: number[][];
   maxCount: number;
+  statistics: {
+    totalCells: number;
+    coveredCells: number;
+    coverage: number;
+    minRevisits: number;
+    maxRevisits: number;
+    averageRevisits: number;
+    averageRevisitTime: number;
+    maxGap: number;
+    minRevisitTime: number;
+  };
 }
 
 /**
@@ -186,17 +197,57 @@ export function usePropagator() {
       }
     }
     
-    // Find maximum revisit count for normalization
+    // Calculate comprehensive statistics from the grid
     let maxCount = 0;
+    let minCount = Number.MAX_SAFE_INTEGER;
+    let totalRevisits = 0;
+    let coveredCells = 0;
+    const totalCells = latCells * lngCells;
+    
     for (let i = 0; i < latCells; i++) {
       for (let j = 0; j < lngCells; j++) {
-        if (grid[i][j] > maxCount) {
-          maxCount = grid[i][j];
+        const cellCount = grid[i][j];
+        if (cellCount > 0) {
+          coveredCells++;
+          totalRevisits += cellCount;
+          if (cellCount > maxCount) {
+            maxCount = cellCount;
+          }
+          if (cellCount < minCount) {
+            minCount = cellCount;
+          }
         }
       }
     }
     
-    return { grid, maxCount };
+    // If no cells covered, set minCount to 0
+    if (coveredCells === 0) {
+      minCount = 0;
+    }
+    
+    // Calculate time-based statistics
+    const coverage = (coveredCells / totalCells) * 100;
+    const averageRevisits = coveredCells > 0 ? totalRevisits / coveredCells : 0;
+    
+    // Calculate time statistics based on revisit counts and time span
+    // Average time between revisits = timeSpan / revisitCount
+    const averageRevisitTime = averageRevisits > 0 ? timeSpanHours / averageRevisits : timeSpanHours;
+    const minRevisitTime = maxCount > 0 ? timeSpanHours / maxCount : timeSpanHours;
+    const maxGap = minCount > 0 ? timeSpanHours / minCount : timeSpanHours;
+    
+    const statistics = {
+      totalCells,
+      coveredCells,
+      coverage: parseFloat(coverage.toFixed(1)),
+      minRevisits: minCount,
+      maxRevisits: maxCount,
+      averageRevisits: parseFloat(averageRevisits.toFixed(1)),
+      averageRevisitTime: parseFloat(averageRevisitTime.toFixed(1)),
+      maxGap: parseFloat(maxGap.toFixed(1)),
+      minRevisitTime: parseFloat(minRevisitTime.toFixed(1))
+    };
+    
+    return { grid, maxCount, statistics };
   }, [propagateSatelliteOrbit]);
 
   // Helper function to interpolate coverage points between ground track points

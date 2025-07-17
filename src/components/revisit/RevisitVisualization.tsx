@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { usePropagator } from "@/hooks/usePropagator";
 import RevisitEarthMap from "./RevisitEarthMap";
 
 interface RevisitVisualizationProps {
@@ -50,8 +51,12 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     averageRevisit: 0,
     maxGap: 0,
     minRevisit: 0,
-    coverage: 0
+    coverage: 0,
+    isCalculating: false
   });
+  
+  // Get the propagator hook for calculations
+  const { calculateRevisits } = usePropagator();
   
   // Refs for capturing snapshots
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -229,21 +234,48 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         setGridSize(gridValue);
       }
       
-      // Calculate realistic revisit statistics based on actual constellation size
-      const actualSatCount = analysisData.satellites.length;
-      console.log("Calculating stats for", actualSatCount, "satellites");
+      // Calculate real statistics from orbital mechanics
+      setRevisitStats(prev => ({ ...prev, isCalculating: true }));
       
-      const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
-      const baseRevisit = Math.max(24 - (actualSatCount * 0.8), 1.5);
-      const maxGap = baseRevisit * 2.2;
-      const minRevisit = baseRevisit * 0.25;
-      
-      setRevisitStats({
-        averageRevisit: parseFloat(baseRevisit.toFixed(1)),
-        maxGap: parseFloat(maxGap.toFixed(1)),
-        minRevisit: parseFloat(minRevisit.toFixed(1)),
-        coverage: parseFloat(baseCoverage.toFixed(1))
-      });
+      try {
+        // Calculate actual revisit data using orbital mechanics
+        const revisitData = calculateRevisits({
+          satellites: analysisData.satellites.map(sat => ({
+            altitude: sat.altitude,
+            inclination: sat.inclination,
+            raan: sat.raan,
+            trueAnomaly: sat.trueAnomaly
+          })),
+          timeSpanHours: analysisData.timeSpan,
+          gridResolution: parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5')
+        });
+        
+        console.log("Real statistics calculated:", revisitData.statistics);
+        
+        setRevisitStats({
+          averageRevisit: revisitData.statistics.averageRevisitTime,
+          maxGap: revisitData.statistics.maxGap,
+          minRevisit: revisitData.statistics.minRevisitTime,
+          coverage: revisitData.statistics.coverage,
+          isCalculating: false
+        });
+      } catch (error) {
+        console.error("Error calculating statistics:", error);
+        // Fallback to approximate calculations if real calculation fails
+        const actualSatCount = analysisData.satellites.length;
+        const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
+        const baseRevisit = Math.max(24 - (actualSatCount * 0.8), 1.5);
+        const maxGap = baseRevisit * 2.2;
+        const minRevisit = baseRevisit * 0.25;
+        
+        setRevisitStats({
+          averageRevisit: parseFloat(baseRevisit.toFixed(1)),
+          maxGap: parseFloat(maxGap.toFixed(1)),
+          minRevisit: parseFloat(minRevisit.toFixed(1)),
+          coverage: parseFloat(baseCoverage.toFixed(1)),
+          isCalculating: false
+        });
+      }
     }
   }, [isAnalysisRunning, analysisProgress, analysisData]);
   
@@ -417,10 +449,18 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 Revisit Statistics
               </AlertTitle>
               <AlertDescription className="grid grid-cols-2 gap-2 mt-2">
-                <div>Average Revisit Time: <span className="font-medium">{revisitStats.averageRevisit} hours</span></div>
-                <div>Maximum Gap: <span className="font-medium">{revisitStats.maxGap} hours</span></div>
-                <div>Minimum Revisit: <span className="font-medium">{revisitStats.minRevisit} hours</span></div>
-                <div>Global Coverage: <span className="font-medium">{revisitStats.coverage}%</span></div>
+                <div>Average Revisit Time: <span className="font-medium">
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.averageRevisit} hours`}
+                </span></div>
+                <div>Maximum Gap: <span className="font-medium">
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.maxGap} hours`}
+                </span></div>
+                <div>Minimum Revisit: <span className="font-medium">
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.minRevisit} hours`}
+                </span></div>
+                <div>Global Coverage: <span className="font-medium">
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.coverage}%`}
+                </span></div>
               </AlertDescription>
               <div className="text-xs text-muted-foreground mt-2">
                 Statistics calculated for {satellites.length} satellites over {simulationTimeSpan} hours using {gridSize}° grid.
