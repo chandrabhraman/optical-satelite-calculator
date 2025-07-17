@@ -237,6 +237,8 @@ export function usePropagator() {
     const minRevisitTime = maxCount > 1 ? timeSpanHours / (maxCount - 1) : timeSpanHours;
     const maxGap = minCount > 1 && minCount !== Number.MAX_SAFE_INTEGER ? timeSpanHours / (minCount - 1) : timeSpanHours;
     
+    console.log('Calculated times:', { averageRevisitTime, minRevisitTime, maxGap });
+    
     const statistics = {
       totalCells,
       coveredCells,
