@@ -247,7 +247,7 @@ export function usePropagator() {
     }
     
     // Calculate statistics from revisit times
-    const averageRevisitTime = totalRevisits > 0 ? timeSpanHours / totalRevisits : timeSpanHours;
+    const averageRevisitTime = totalRevisits > 0 ? timeSpanHours * coveredCells / totalRevisits : timeSpanHours;
     
     const minRevisitTime = revisitTimes.length > 0 ? 
       Math.min(...revisitTimes) : 
