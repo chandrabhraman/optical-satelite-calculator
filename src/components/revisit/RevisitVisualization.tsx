@@ -251,6 +251,7 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         });
         
         console.log("Real statistics calculated:", revisitData.statistics);
+        console.log("Setting minRevisit to:", revisitData.statistics.minRevisitTime);
         
         setRevisitStats({
           averageRevisit: revisitData.statistics.averageRevisitTime,
