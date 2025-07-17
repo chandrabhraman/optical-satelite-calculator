@@ -247,9 +247,7 @@ export function usePropagator() {
     }
     
     // Calculate statistics from revisit times
-    const averageRevisitTime = revisitTimes.length > 0 ? 
-      revisitTimes.reduce((sum, time) => sum + time, 0) / revisitTimes.length : 
-      timeSpanHours;
+    const averageRevisitTime = totalRevisits > 0 ? timeSpanHours / totalRevisits : timeSpanHours;
     
     const minRevisitTime = revisitTimes.length > 0 ? 
       Math.min(...revisitTimes) : 
@@ -270,7 +268,8 @@ export function usePropagator() {
       averageRevisits: parseFloat(averageRevisits.toFixed(1)),
       averageRevisitTime: parseFloat(averageRevisitTime.toFixed(2)), // Changed to 2 decimal places
       maxGap: parseFloat(maxGap.toFixed(2)), // Changed to 2 decimal places
-      minRevisitTime: parseFloat(minRevisitTime.toFixed(2)) // Changed to 2 decimal places
+      minRevisitTime: parseFloat(minRevisitTime.toFixed(2)), // Changed to 2 decimal places
+      timeSpanHours
     };
     
     return { grid, maxCount, statistics };

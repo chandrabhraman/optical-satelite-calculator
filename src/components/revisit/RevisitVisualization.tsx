@@ -449,6 +449,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                 Revisit Statistics
               </AlertTitle>
               <AlertDescription className="grid grid-cols-2 gap-2 mt-2">
+                <div>Time Span (hours): <span className="font-medium">
+                  {revisitStats.isCalculating ? "Calculating..." : `${simulationTimeSpan} hours`}
+                </span></div>
                 <div>Average Revisit Time: <span className="font-medium">
                   {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.averageRevisit} hours`}
                 </span></div>
