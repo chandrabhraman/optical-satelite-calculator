@@ -238,6 +238,8 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       setRevisitStats(prev => ({ ...prev, isCalculating: true }));
       
       try {
+        console.log("Starting real calculation with satellites:", analysisData.satellites);
+        
         // Calculate actual revisit data using orbital mechanics
         const revisitData = calculateRevisits({
           satellites: analysisData.satellites.map(sat => ({
@@ -252,16 +254,24 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         
         console.log("Real statistics calculated:", revisitData.statistics);
         console.log("Setting minRevisit to:", revisitData.statistics.minRevisitTime);
+        console.log("Setting averageRevisit to:", revisitData.statistics.averageRevisitTime);
+        console.log("Setting maxGap to:", revisitData.statistics.maxGap);
         
-        setRevisitStats({
+        const newStats = {
           averageRevisit: revisitData.statistics.averageRevisitTime,
           maxGap: revisitData.statistics.maxGap,
           minRevisit: revisitData.statistics.minRevisitTime,
           coverage: revisitData.statistics.coverage,
           isCalculating: false
-        });
+        };
+        
+        console.log("About to set revisit stats to:", newStats);
+        setRevisitStats(newStats);
+        console.log("Set revisit stats successfully");
+        
       } catch (error) {
         console.error("Error calculating statistics:", error);
+        console.log("Using fallback calculations due to error");
         // Fallback to approximate calculations if real calculation fails
         const actualSatCount = analysisData.satellites.length;
         const baseCoverage = Math.min(95 + (actualSatCount * 0.5), 99.8);
