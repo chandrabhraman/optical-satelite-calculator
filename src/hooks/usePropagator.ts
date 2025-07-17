@@ -232,14 +232,32 @@ export function usePropagator() {
     console.log('Debug stats:', { timeSpanHours, averageRevisits, maxCount, minCount, totalRevisits, coveredCells });
     
     // Calculate time statistics based on revisit counts and time span
-    // Average revisit time: total simulation time / average revisits per cell
-    const averageRevisitTime = averageRevisits > 0 ? timeSpanHours / averageRevisits : timeSpanHours;
+    // Collect revisit times for all cells with more than 1 revisit
+    const revisitTimes: number[] = [];
     
-    // Minimum revisit time: time between revisits for the most frequently visited cell
-    const minRevisitTime = maxCount > 1 ? timeSpanHours / (maxCount - 1) : timeSpanHours;
+    for (let i = 0; i < latCells; i++) {
+      for (let j = 0; j < lngCells; j++) {
+        const cellCount = grid[i][j];
+        if (cellCount > 1) {
+          // Time between revisits for this cell
+          const timeBetweenRevisits = timeSpanHours / (cellCount - 1);
+          revisitTimes.push(timeBetweenRevisits);
+        }
+      }
+    }
     
-    // Maximum gap: time between revisits for the least frequently visited cell  
-    const maxGap = minCount > 1 && minCount !== Number.MAX_SAFE_INTEGER ? timeSpanHours / (minCount - 1) : timeSpanHours;
+    // Calculate statistics from revisit times
+    const averageRevisitTime = revisitTimes.length > 0 ? 
+      revisitTimes.reduce((sum, time) => sum + time, 0) / revisitTimes.length : 
+      timeSpanHours;
+    
+    const minRevisitTime = revisitTimes.length > 0 ? 
+      Math.min(...revisitTimes) : 
+      timeSpanHours;
+      
+    const maxGap = revisitTimes.length > 0 ? 
+      Math.max(...revisitTimes) : 
+      timeSpanHours;
     
     console.log('Calculated times:', { averageRevisitTime, minRevisitTime, maxGap });
     
