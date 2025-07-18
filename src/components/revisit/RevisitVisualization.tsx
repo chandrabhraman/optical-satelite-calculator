@@ -269,6 +269,11 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
         setRevisitStats(newStats);
         console.log("Set revisit stats successfully");
         
+        // Debug: Check if values are being overwritten
+        setTimeout(() => {
+          console.log("Revisit stats after 100ms:", revisitStats);
+        }, 100);
+        
       } catch (error) {
         console.error("Error calculating statistics:", error);
         console.log("Using fallback calculations due to error");
