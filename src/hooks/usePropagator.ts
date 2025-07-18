@@ -131,8 +131,9 @@ export function usePropagator() {
     const { satellites, timeSpanHours, gridResolution } = params;
     
     // Initialize global grid (latitude × longitude)
-    const latCells = gridResolution;
-    const lngCells = gridResolution * 2; // More longitude cells due to Earth's geometry
+    // gridResolution is in degrees, so calculate number of cells needed
+    const latCells = Math.ceil(180 / gridResolution); // Number of latitude cells for global coverage
+    const lngCells = Math.ceil(360 / gridResolution); // Number of longitude cells for global coverage
     const grid: number[][] = Array(latCells).fill(0).map(() => Array(lngCells).fill(0));
     
     // Sensor parameters
@@ -229,7 +230,7 @@ export function usePropagator() {
     const coverage = (coveredCells / totalCells) * 100;
     const averageRevisits = coveredCells > 0 ? totalRevisits / coveredCells : 0;
     
-    console.log('Debug stats:', { timeSpanHours, averageRevisits, maxCount, minCount, totalRevisits, coveredCells });
+    console.log('Debug stats:', { timeSpanHours, averageRevisits, maxCount, minCount, totalRevisits, coveredCells, totalCells, latCells, lngCells, gridResolution });
     
     // Calculate time statistics based on revisit counts and time span
     // Collect revisit times for all cells with more than 1 revisit
