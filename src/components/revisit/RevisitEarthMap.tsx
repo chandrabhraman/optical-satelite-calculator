@@ -284,9 +284,13 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       setHeatmapData(revisitData.grid);
       setMaxRevisitCount(revisitData.maxCount);
       
+      // Calculate proper segments for geometry based on grid resolution
+      const latSegments = Math.ceil(180 / gridResolution); // Number of latitude segments
+      const lngSegments = Math.ceil(360 / gridResolution); // Number of longitude segments
+      
       const heatmapGeometry = is2D 
-        ? new THREE.PlaneGeometry(4.02, 2.02, gridResolution * 2, gridResolution)
-        : new THREE.SphereGeometry(2.01, gridResolution * 2, gridResolution);
+        ? new THREE.PlaneGeometry(4.02, 2.02, lngSegments, latSegments)
+        : new THREE.SphereGeometry(2.01, lngSegments, latSegments);
       
       // Generate texture from revisit data using the EXACT same color mapping
       const textureSize = 512;
