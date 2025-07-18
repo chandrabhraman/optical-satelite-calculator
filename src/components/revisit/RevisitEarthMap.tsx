@@ -267,8 +267,8 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     }
     
     if (isHeatmapActive) {
-      // Calculate grid resolution based on grid size
-      const gridResolution = Math.floor(180 / gridSize);
+      // Use grid size directly as the resolution in degrees
+      const gridResolution = gridSize;
       
       const revisitData = calculateRevisits({
         satellites: satellites.map(sat => ({

@@ -469,13 +469,13 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
                   {revisitStats.isCalculating ? "Calculating..." : `${simulationTimeSpan} hours`}
                 </span></div>
                 <div>Average Revisit Time: <span className="font-medium">
-                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.averageRevisit} hours`}
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.averageRevisit.toFixed(2)} hours`}
                 </span></div>
                 <div>Maximum Gap: <span className="font-medium">
-                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.maxGap} hours`}
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.maxGap.toFixed(2)} hours`}
                 </span></div>
                 <div>Minimum Revisit: <span className="font-medium">
-                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.minRevisit} hours`}
+                  {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.minRevisit.toFixed(2)} hours`}
                 </span></div>
                 <div>Global Coverage: <span className="font-medium">
                   {revisitStats.isCalculating ? "Calculating..." : `${revisitStats.coverage}%`}
