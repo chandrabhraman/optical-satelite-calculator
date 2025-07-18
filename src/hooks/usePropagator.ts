@@ -257,20 +257,30 @@ export function usePropagator() {
       Math.max(...revisitTimes) : 
       timeSpanHours;
     
-    console.log('Calculated times:', { averageRevisitTime, minRevisitTime, maxGap });
-    
-    const statistics = {
-      totalCells,
-      coveredCells,
-      coverage: parseFloat(coverage.toFixed(1)),
-      minRevisits: minCount,
-      maxRevisits: maxCount,
-      averageRevisits: parseFloat(averageRevisits.toFixed(1)),
-      averageRevisitTime: parseFloat(averageRevisitTime.toFixed(2)), // Changed to 2 decimal places
-      maxGap: parseFloat(maxGap.toFixed(2)), // Changed to 2 decimal places
-      minRevisitTime: parseFloat(minRevisitTime.toFixed(2)), // Changed to 2 decimal places
-      timeSpanHours
-    };
+     console.log('Calculated times:', { averageRevisitTime, minRevisitTime, maxGap });
+     
+     // Debug the formatting issue
+     console.log('Before formatting:', { 
+       averageRevisitTime, 
+       formatted: parseFloat(averageRevisitTime.toFixed(2)),
+       minRevisitTime,
+       minFormatted: parseFloat(minRevisitTime.toFixed(2)),
+       maxGap,
+       maxFormatted: parseFloat(maxGap.toFixed(2))
+     });
+     
+     const statistics = {
+       totalCells,
+       coveredCells,
+       coverage: parseFloat(coverage.toFixed(1)),
+       minRevisits: minCount,
+       maxRevisits: maxCount,
+       averageRevisits: parseFloat(averageRevisits.toFixed(1)),
+       averageRevisitTime, // Use raw value instead of formatted
+       maxGap, // Use raw value instead of formatted
+       minRevisitTime, // Use raw value instead of formatted
+       timeSpanHours
+     };
     
     return { grid, maxCount, statistics };
   }, [propagateSatelliteOrbit]);
