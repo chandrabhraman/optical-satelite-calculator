@@ -17,11 +17,13 @@ import {
   SelectValue, 
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { parseTLE, calculateLTAN, calculateGEOLongitude } from "@/utils/tleParser";
 
 // Define prop types
 interface RevisitAnalysisFormProps {
@@ -50,6 +52,9 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       // Add longitude field for GEO orbit type
       longitudeGEO: 0,
       
+      // TLE input
+      tleInput: "",
+      
       // Constellation defaults
       constellationType: "single",
       totalSatellites: 1,
@@ -74,6 +79,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   // Dynamic form state
   const [orbitType, setOrbitType] = useState("sso");
   const [constellationType, setConstellationType] = useState("single");
+  const [tleError, setTleError] = useState<string | null>(null);
   
   // Update inclination default when orbit type changes
   React.useEffect(() => {
@@ -83,6 +89,39 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       form.setValue("inclination", 97.6);
     }
   }, [orbitType, form]);
+
+  // Handle TLE parsing and auto-populate fields
+  const handleTLEParse = (tleInput: string) => {
+    setTleError(null);
+    
+    if (!tleInput.trim()) {
+      return;
+    }
+
+    try {
+      const tleData = parseTLE(tleInput);
+      const { parsed } = tleData;
+
+      // Always set common fields
+      form.setValue("altitude", Math.round(parsed.altitude));
+      form.setValue("inclination", Number(parsed.inclination.toFixed(2)));
+      form.setValue("argOfPerigee", Number(parsed.argOfPerigee.toFixed(2)));
+      form.setValue("meanAnomaly", Number(parsed.meanAnomaly.toFixed(2)));
+
+      // Set orbit-specific fields based on orbit type
+      if (orbitType === "sso") {
+        const ltan = calculateLTAN(parsed.raan, parsed.epochYear, parsed.epochDay);
+        form.setValue("ltan", ltan);
+      } else if (orbitType === "leo") {
+        form.setValue("raan", Number(parsed.raan.toFixed(2)));
+      } else if (orbitType === "geo") {
+        const longitude = calculateGEOLongitude(parsed.raan, parsed.argOfPerigee, parsed.meanAnomaly);
+        form.setValue("longitudeGEO", Number(longitude.toFixed(2)));
+      }
+    } catch (error) {
+      setTleError(error.message);
+    }
+  };
   
   // Submit handler
   const onSubmit = (data: any) => {
@@ -90,6 +129,13 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
     console.log("Form submitted with data:", data);
     console.log("Total satellites:", data.totalSatellites);
     console.log("Constellation type:", data.constellationType);
+    console.log("Grid cell size:", data.gridCellSize);
+    
+    // Warn about performance for super high resolution
+    if (data.gridCellSize === "0.01deg") {
+      console.warn("Super high resolution grid selected - this may take longer to calculate");
+    }
+    
     console.log("Calling onRunAnalysis...");
     onRunAnalysis(data);
     console.log("onRunAnalysis called");
@@ -134,6 +180,40 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
               </FormItem>
             )}
           />
+          
+          {/* TLE Input for Single Satellite */}
+          {constellationType === "single" && (
+            <FormField
+              control={form.control}
+              name="tleInput"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>TLE Input (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="ISS (ZARYA)&#10;1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927&#10;2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537"
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        handleTLEParse(e.target.value);
+                      }}
+                      rows={4}
+                      className="font-mono text-sm"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Paste Three-line TLE data (satellite name + 2 data lines) to auto-populate orbital parameters
+                  </FormDescription>
+                  {tleError && (
+                    <div className="text-sm text-red-600 mt-1">
+                      Error: {tleError}
+                    </div>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           
           {/* Dynamic fields based on orbit type */}
           {orbitType === "sso" && (
@@ -552,13 +632,16 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="0.01deg">0.01° × 0.01° (Super high resolution)</SelectItem>
                       <SelectItem value="0.5deg">0.5° × 0.5° (High resolution)</SelectItem>
                       <SelectItem value="1deg">1° × 1° (Standard)</SelectItem>
                       <SelectItem value="2deg">2° × 2° (Fast calculation)</SelectItem>
                       <SelectItem value="5deg">5° × 5° (Rough estimate)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Resolution of analysis grid</FormDescription>
+                  <FormDescription>
+                    Resolution of analysis grid. Super high resolution may take significantly longer.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
