@@ -48,13 +48,23 @@ export function parseTLE(tleString: string): TLEData | null {
     const epochDay = parseFloat(line1.substring(20, 32));
     
     // Parse Line 2
-    const inclination = parseFloat(line2.substring(8, 16));
-    const raan = parseFloat(line2.substring(17, 25));
-    const eccentricityStr = '0.' + line2.substring(26, 33);
+    const inclinationStr = line2.substring(8, 16).trim();
+    const raanStr = line2.substring(17, 25).trim();
+    const eccentricityStr = '0.' + line2.substring(26, 33).trim();
+    const argOfPerigeeStr = line2.substring(34, 42).trim();
+    const meanAnomalyStr = line2.substring(43, 51).trim();
+    const meanMotionStr = line2.substring(52, 63).trim();
+    
+    console.log('TLE Line 2:', line2);
+    console.log('RAAN substring (17-25):', `"${raanStr}"`);
+    console.log('RAAN parsed:', parseFloat(raanStr));
+    
+    const inclination = parseFloat(inclinationStr);
+    const raan = parseFloat(raanStr);
     const eccentricity = parseFloat(eccentricityStr);
-    const argOfPerigee = parseFloat(line2.substring(34, 42));
-    const meanAnomaly = parseFloat(line2.substring(43, 51));
-    const meanMotion = parseFloat(line2.substring(52, 63)); // revolutions per day
+    const argOfPerigee = parseFloat(argOfPerigeeStr);
+    const meanAnomaly = parseFloat(meanAnomalyStr);
+    const meanMotion = parseFloat(meanMotionStr); // revolutions per day
 
     // Calculate semi-major axis and altitude
     const meanMotionRadPerSec = (meanMotion * 2 * Math.PI) / (24 * 3600); // rad/s
