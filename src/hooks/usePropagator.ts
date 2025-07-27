@@ -1,5 +1,6 @@
 
 import { useState, useCallback } from 'react';
+import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians } from '../utils/orbitalUtils';
 
 // Define interfaces for our propagator
 interface SatelliteParams {
@@ -71,9 +72,21 @@ export function usePropagator() {
     const numPoints = Math.min(2000, Math.max(200, Math.floor(totalMinutes * 2))); // 1 point every 30 seconds for continuous coverage
     
     // Convert orbital elements from degrees to radians
-    const inclinationRad = inclination * Math.PI / 180;
-    const raanRad = raan * Math.PI / 180;
-    const initialTrueAnomalyRad = trueAnomaly * Math.PI / 180;
+    const inclinationRad = toRadians(inclination);
+    const raanRad = toRadians(raan);
+    const initialTrueAnomalyRad = toRadians(trueAnomaly);
+    
+    // Earth's rotation rate in radians per minute
+    const earthRotationRateRadPerMin = toRadians(earthRotationRate);
+    
+    console.log('Orbit propagation params:', {
+      altitude,
+      inclination,
+      raan,
+      trueAnomaly,
+      semiMajorAxis,
+      orbitalPeriodMinutes
+    });
     
     // Generate ground track points over time
     for (let i = 0; i < numPoints; i++) {
@@ -86,39 +99,40 @@ export function usePropagator() {
       // Current true anomaly (for circular orbit approximation)
       const currentTrueAnomaly = initialTrueAnomalyRad + (meanMotion * timeMinutes);
       
-      // Calculate satellite position in orbital coordinate system
-      const orbitalX = Math.cos(currentTrueAnomaly);
-      const orbitalY = Math.sin(currentTrueAnomaly);
-      const orbitalZ = 0; // Circular orbit in orbital plane
+      // Use proper orbital mechanics from orbitalUtils.ts
+      // Calculate ECI position using consistent coordinate transformation
+      const eciPosition = calculateSatelliteECIPosition(
+        semiMajorAxis,
+        0, // eccentricity (circular orbit)
+        inclinationRad,
+        raanRad,
+        0, // argument of perigee (circular orbit)
+        currentTrueAnomaly
+      );
       
-      // Transform to Earth-centered inertial (ECI) coordinates
-      // Step 1: Apply inclination rotation around X-axis
-      const inclinedX = orbitalX;
-      const inclinedY = orbitalY * Math.cos(inclinationRad) - orbitalZ * Math.sin(inclinationRad);
-      const inclinedZ = orbitalY * Math.sin(inclinationRad) + orbitalZ * Math.cos(inclinationRad);
+      // Convert ECI to ECEF with Earth rotation correction
+      // Earth rotation angle for this time point
+      const earthRotationAngle = earthRotationRateRadPerMin * timeMinutes;
+      const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
       
-      // Step 2: Apply RAAN rotation around Z-axis
-      const eciX = inclinedX * Math.cos(raanRad) - inclinedY * Math.sin(raanRad);
-      const eciY = inclinedX * Math.sin(raanRad) + inclinedY * Math.cos(raanRad);
-      const eciZ = inclinedZ;
+      // Convert ECEF to geodetic coordinates (lat, lng, alt)
+      const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
       
-      // Convert ECI coordinates to geodetic latitude and longitude
-      const latitude = Math.asin(eciZ) * 180 / Math.PI;
-      
-      // Calculate longitude with Earth rotation correction
-      let longitude = Math.atan2(eciY, eciX) * 180 / Math.PI;
-      
-      // Apply Earth rotation: subtract rotation that occurred during this time
-      const earthRotationDegrees = earthRotationRate * timeMinutes;
-      longitude = longitude - earthRotationDegrees;
-      
-      // Normalize longitude to [-180, 180] range
-      while (longitude > 180) longitude -= 360;
-      while (longitude < -180) longitude += 360;
+      // Add debug logging for first few points
+      if (i < 3) {
+        console.log(`Point ${i}:`, {
+          timeMinutes,
+          currentTrueAnomaly: currentTrueAnomaly * 180 / Math.PI,
+          eciPosition,
+          earthRotationAngle: earthRotationAngle * 180 / Math.PI,
+          ecefPosition,
+          geodetic
+        });
+      }
       
       points.push({
-        lat: latitude,
-        lng: longitude,
+        lat: geodetic.lat,
+        lng: geodetic.lng,
         timestamp
       });
     }
