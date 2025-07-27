@@ -115,7 +115,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       } else if (orbitType === "leo") {
         form.setValue("raan", Number(parsed.raan.toFixed(2)));
       } else if (orbitType === "geo") {
-        const longitude = calculateGEOLongitude(parsed.raan, parsed.argOfPerigee, parsed.meanAnomaly);
+        const longitude = calculateGEOLongitude(parsed.raan, parsed.argOfPerigee, parsed.meanAnomaly, parsed.altitude, parsed.epochYear, parsed.epochDay);
         form.setValue("longitudeGEO", Number(longitude.toFixed(2)));
       }
     } catch (error) {

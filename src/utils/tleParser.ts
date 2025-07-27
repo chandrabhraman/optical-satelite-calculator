@@ -131,7 +131,7 @@ export function calculateLTAN(raan: number, epochYear: number, epochDay: number)
  * This calculates the actual longitude where the satellite appears above Earth's surface
  * by using proper coordinate transformations from ECI to ECEF to geodetic coordinates
  */
-export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786): number {
+export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number): number {
   // Constants for GEO orbit
   const EARTH_RADIUS = 6371; // km
   const semiMajorAxis = EARTH_RADIUS + altitude;
@@ -152,12 +152,21 @@ export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAn
     meanAnomalyRad // For circular orbits, mean anomaly ≈ true anomaly
   );
   
-  // Convert ECI to ECEF with proper Earth rotation for TLE epoch
-  // Calculate GMST for the TLE epoch time (referenced to J2000)
+  // Convert ECI to ECEF with proper Earth rotation for actual TLE epoch
+  // Parse TLE epoch time and calculate GMST referenced to J2000
   const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
-  const currentTime = new Date(); // Use current time as approximation for TLE epoch
-  const minutesSinceJ2000 = (currentTime.getTime() - j2000Epoch.getTime()) / (1000 * 60);
-  const earthRotationRate = 360 / (24 * 60); // degrees per minute
+  
+  // Convert TLE epoch to actual date (use default current time if epoch not provided)
+  let tleEpochDate: Date;
+  if (epochYear && epochDay) {
+    tleEpochDate = new Date(epochYear, 0, 1); // Start of year
+    tleEpochDate.setTime(tleEpochDate.getTime() + (epochDay - 1) * 24 * 60 * 60 * 1000); // Add days
+  } else {
+    tleEpochDate = new Date(); // Fallback to current time
+  }
+  
+  const minutesSinceJ2000 = (tleEpochDate.getTime() - j2000Epoch.getTime()) / (1000 * 60);
+  const earthRotationRate = 360 / (24 * 60); // degrees per minute (sidereal day ≈ solar day for approximation)
   const earthRotationRateRadPerMin = toRadians(earthRotationRate);
   const earthRotationAngle = earthRotationRateRadPerMin * minutesSinceJ2000;
   const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
