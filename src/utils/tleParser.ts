@@ -153,7 +153,7 @@ export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAn
   );
   
   // Convert ECI to ECEF with proper Earth rotation for actual TLE epoch
-  // Parse TLE epoch time and calculate GMST referenced to J2000
+  // Calculate proper GMST using standard astronomical formulas
   const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
   
   // Convert TLE epoch to actual date (use default current time if epoch not provided)
@@ -165,10 +165,25 @@ export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAn
     tleEpochDate = new Date(); // Fallback to current time
   }
   
-  const minutesSinceJ2000 = (tleEpochDate.getTime() - j2000Epoch.getTime()) / (1000 * 60);
-  const earthRotationRate = 360 / (24 * 60); // degrees per minute (sidereal day ≈ solar day for approximation)
-  const earthRotationRateRadPerMin = toRadians(earthRotationRate);
-  const earthRotationAngle = earthRotationRateRadPerMin * minutesSinceJ2000;
+  // Calculate Julian Day Number for TLE epoch
+  const jd = tleEpochDate.getTime() / (24 * 60 * 60 * 1000) + 2440587.5; // Convert to Julian Day
+  const T = (jd - 2451545.0) / 36525.0; // Julian centuries since J2000
+  
+  // Calculate GMST using IAU formula (in degrees)
+  let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000.0;
+  gmst = gmst % 360; // Normalize to 0-360 degrees
+  if (gmst < 0) gmst += 360;
+  
+  const earthRotationAngle = toRadians(gmst);
+  
+  console.log('GMST Debug:', {
+    tleEpochDate: tleEpochDate.toISOString(),
+    julianDay: jd,
+    T_centuries: T,
+    gmst_degrees: gmst,
+    earthRotationAngle_rad: earthRotationAngle,
+    inputParams: { raan, argOfPerigee, meanAnomaly, altitude, epochYear, epochDay }
+  });
   const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
   
   // Convert ECEF to geodetic coordinates to get the sub-satellite point
