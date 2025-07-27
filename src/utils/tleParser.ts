@@ -1,6 +1,7 @@
 /**
  * TLE (Two-Line Element) parser for extracting orbital elements
  */
+import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians } from './orbitalUtils';
 
 export interface TLEData {
   satelliteName: string;
@@ -126,46 +127,46 @@ export function calculateLTAN(raan: number, epochYear: number, epochDay: number)
 }
 
 /**
- * Calculate longitude for GEO orbit
- * For geostationary satellites, the longitude calculation needs to account for:
- * 1. The orbital elements are in the inertial reference frame (ECI)
- * 2. We need the Earth-fixed longitude (ECEF)
- * 3. The relationship depends on the epoch and Earth's rotation
+ * Calculate sub-satellite point longitude for GEO orbit
+ * This calculates the actual longitude where the satellite appears above Earth's surface
+ * by using proper coordinate transformations from ECI to ECEF to geodetic coordinates
  */
-export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number): number {
-  // For GEO satellites, first calculate the true longitude of the satellite
-  // in the inertial frame (ECI coordinates)
-  const trueAnomalyInertial = (raan + argOfPerigee + meanAnomaly) % 360;
+export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786): number {
+  // Constants for GEO orbit
+  const EARTH_RADIUS = 6371; // km
+  const semiMajorAxis = EARTH_RADIUS + altitude;
   
-  // However, for Yaogan-41 analysis, let's test different approaches:
-  // Approach 1: Original calculation = 37.12° (incorrect)
-  // Approach 2: RAAN only = 309.31° → 309.31 - 360 = -50.69° (incorrect)  
-  // Approach 3: Use argument of perigee as primary indicator
+  // Convert orbital elements to radians
+  const inclinationRad = toRadians(0); // GEO satellites are typically equatorial
+  const raanRad = toRadians(raan);
+  const argOfPerigeeRad = toRadians(argOfPerigee);
+  const meanAnomalyRad = toRadians(meanAnomaly);
   
-  // For many GEO satellites, the argument of perigee indicates the longitude
-  // when the satellite is at its equatorial crossing
-  let geoLongitude = argOfPerigee;
+  // Calculate satellite position in ECI coordinates using proper orbital mechanics
+  const eciPosition = calculateSatelliteECIPosition(
+    semiMajorAxis,
+    0, // eccentricity (circular orbit for GEO)
+    inclinationRad,
+    raanRad,
+    argOfPerigeeRad,
+    meanAnomalyRad // For circular orbits, mean anomaly ≈ true anomaly
+  );
   
-  // Apply correction based on Mean Anomaly to account for current position
-  // Mean anomaly tells us where in the orbit the satellite currently is
-  const correctedLongitude = (geoLongitude + (meanAnomaly * 0.5)) % 360;
+  // Convert ECI to ECEF (no additional Earth rotation correction needed for epoch calculation)
+  // For TLE epoch, we assume the satellite is at the reported position at that time
+  const earthRotationAngle = 0; // No additional rotation for epoch position
+  const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
   
-  // Convert to standard longitude range (-180 to +180)
-  let finalLongitude = correctedLongitude;
-  if (finalLongitude > 180) {
-    finalLongitude -= 360;
-  }
+  // Convert ECEF to geodetic coordinates to get the sub-satellite point
+  const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
   
-  // Debug log for Yaogan-41 case
-  console.log('GEO Longitude calculation:', {
-    raan,
-    argOfPerigee, 
-    meanAnomaly,
-    trueAnomalyInertial,
-    geoLongitude,
-    correctedLongitude,
-    finalLongitude
+  console.log('GEO sub-satellite point calculation:', {
+    inputOrbitElements: { raan, argOfPerigee, meanAnomaly, altitude },
+    eciPosition,
+    ecefPosition,
+    geodeticResult: geodetic,
+    subSatelliteLongitude: geodetic.lng
   });
   
-  return finalLongitude;
+  return geodetic.lng;
 }
