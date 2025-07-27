@@ -79,6 +79,10 @@ export function usePropagator() {
     // Earth's rotation rate in radians per minute
     const earthRotationRateRadPerMin = toRadians(earthRotationRate);
     
+    // Fixed epoch reference for GMST calculation (J2000.0)
+    const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
+    const simulationStartTime = new Date(); // Current time as simulation start
+    
     console.log('Orbit propagation params:', {
       altitude,
       inclination,
@@ -110,9 +114,11 @@ export function usePropagator() {
         currentTrueAnomaly
       );
       
-      // Convert ECI to ECEF with Earth rotation correction
-      // Earth rotation angle for this time point
-      const earthRotationAngle = earthRotationRateRadPerMin * timeMinutes;
+      // Convert ECI to ECEF with proper GMST calculation
+      // Calculate time from J2000 epoch for accurate Earth rotation
+      const currentTime = new Date(simulationStartTime.getTime() + timeMinutes * 60 * 1000);
+      const minutesSinceJ2000 = (currentTime.getTime() - j2000Epoch.getTime()) / (1000 * 60);
+      const earthRotationAngle = earthRotationRateRadPerMin * minutesSinceJ2000;
       const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
       
       // Convert ECEF to geodetic coordinates (lat, lng, alt)
