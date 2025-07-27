@@ -152,9 +152,14 @@ export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAn
     meanAnomalyRad // For circular orbits, mean anomaly ≈ true anomaly
   );
   
-  // Convert ECI to ECEF (no additional Earth rotation correction needed for epoch calculation)
-  // For TLE epoch, we assume the satellite is at the reported position at that time
-  const earthRotationAngle = 0; // No additional rotation for epoch position
+  // Convert ECI to ECEF with proper Earth rotation for TLE epoch
+  // Calculate GMST for the TLE epoch time (referenced to J2000)
+  const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
+  const currentTime = new Date(); // Use current time as approximation for TLE epoch
+  const minutesSinceJ2000 = (currentTime.getTime() - j2000Epoch.getTime()) / (1000 * 60);
+  const earthRotationRate = 360 / (24 * 60); // degrees per minute
+  const earthRotationRateRadPerMin = toRadians(earthRotationRate);
+  const earthRotationAngle = earthRotationRateRadPerMin * minutesSinceJ2000;
   const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
   
   // Convert ECEF to geodetic coordinates to get the sub-satellite point
