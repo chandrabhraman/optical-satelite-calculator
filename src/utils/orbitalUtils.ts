@@ -276,6 +276,57 @@ export function calculateOrbitalPeriod(semiMajorAxisKm: number): number {
 }
 
 /**
+ * Convert mean anomaly to eccentric anomaly using Newton-Raphson method
+ * Solves Kepler's equation: M = E - e*sin(E)
+ */
+export function meanAnomalyToEccentricAnomaly(meanAnomalyRad: number, eccentricity: number, tolerance: number = 1e-12): number {
+  // Initial guess for eccentric anomaly
+  let E = meanAnomalyRad;
+  
+  // Newton-Raphson iteration
+  for (let i = 0; i < 100; i++) {
+    const f = E - eccentricity * Math.sin(E) - meanAnomalyRad;
+    const fPrime = 1 - eccentricity * Math.cos(E);
+    
+    const deltaE = f / fPrime;
+    E = E - deltaE;
+    
+    if (Math.abs(deltaE) < tolerance) {
+      break;
+    }
+  }
+  
+  return E;
+}
+
+/**
+ * Convert eccentric anomaly to true anomaly
+ */
+export function eccentricAnomalyToTrueAnomaly(eccentricAnomalyRad: number, eccentricity: number): number {
+  const cosE = Math.cos(eccentricAnomalyRad);
+  const sinE = Math.sin(eccentricAnomalyRad);
+  
+  const cosNu = (cosE - eccentricity) / (1 - eccentricity * cosE);
+  const sinNu = (Math.sqrt(1 - eccentricity * eccentricity) * sinE) / (1 - eccentricity * cosE);
+  
+  return Math.atan2(sinNu, cosNu);
+}
+
+/**
+ * Convert mean anomaly to true anomaly
+ */
+export function meanAnomalyToTrueAnomaly(meanAnomalyRad: number, eccentricity: number): number {
+  // For circular orbits (e ≈ 0), mean anomaly equals true anomaly
+  if (eccentricity < 1e-6) {
+    return meanAnomalyRad;
+  }
+  
+  // For elliptical orbits, solve Kepler's equation
+  const eccentricAnomaly = meanAnomalyToEccentricAnomaly(meanAnomalyRad, eccentricity);
+  return eccentricAnomalyToTrueAnomaly(eccentricAnomaly, eccentricity);
+}
+
+/**
  * Finds optimal RAAN and True Anomaly values to position a satellite over a target lat/long
  */
 export function findOptimalOrbitalParameters(

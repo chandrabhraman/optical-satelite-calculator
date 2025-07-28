@@ -1,7 +1,7 @@
 /**
  * TLE (Two-Line Element) parser for extracting orbital elements
  */
-import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians } from './orbitalUtils';
+import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly } from './orbitalUtils';
 
 export interface TLEData {
   satelliteName: string;
@@ -131,7 +131,7 @@ export function calculateLTAN(raan: number, epochYear: number, epochDay: number)
  * This calculates the actual longitude where the satellite appears above Earth's surface
  * by using proper coordinate transformations from ECI to ECEF to geodetic coordinates
  */
-export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number): number {
+export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number, eccentricity: number = 0): number {
   // Constants for GEO orbit
   const EARTH_RADIUS = 6371; // km
   const semiMajorAxis = EARTH_RADIUS + altitude;
@@ -142,14 +142,24 @@ export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAn
   const argOfPerigeeRad = toRadians(argOfPerigee);
   const meanAnomalyRad = toRadians(meanAnomaly);
   
+  // Convert mean anomaly to true anomaly using proper orbital mechanics
+  const trueAnomalyRad = meanAnomalyToTrueAnomaly(meanAnomalyRad, eccentricity);
+  
+  console.log('Mean to True Anomaly conversion:', {
+    meanAnomaly_deg: meanAnomaly,
+    meanAnomaly_rad: meanAnomalyRad,
+    trueAnomaly_rad: trueAnomalyRad,
+    trueAnomaly_deg: trueAnomalyRad * 180 / Math.PI
+  });
+  
   // Calculate satellite position in ECI coordinates using proper orbital mechanics
   const eciPosition = calculateSatelliteECIPosition(
     semiMajorAxis,
-    0, // eccentricity (circular orbit for GEO)
+    eccentricity, // Use actual eccentricity from TLE
     inclinationRad,
     raanRad,
     argOfPerigeeRad,
-    meanAnomalyRad // For circular orbits, mean anomaly ≈ true anomaly
+    trueAnomalyRad // Use converted true anomaly
   );
   
   // Convert ECI to ECEF with proper Earth rotation for actual TLE epoch

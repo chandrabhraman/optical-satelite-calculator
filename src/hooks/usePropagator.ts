@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians } from '../utils/orbitalUtils';
+import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly } from '../utils/orbitalUtils';
 
 // Define interfaces for our propagator
 interface SatelliteParams {
@@ -100,8 +100,10 @@ export function usePropagator() {
       // Calculate mean motion (radians per minute)
       const meanMotion = (2 * Math.PI) / orbitalPeriodMinutes;
       
-      // Current true anomaly (for circular orbit approximation)
-      const currentTrueAnomaly = initialTrueAnomalyRad + (meanMotion * timeMinutes);
+      // Properly propagate mean anomaly with time, then convert to true anomaly
+      const initialMeanAnomaly = initialTrueAnomalyRad; // Assuming input was mean anomaly
+      const currentMeanAnomaly = initialMeanAnomaly + (meanMotion * timeMinutes);
+      const currentTrueAnomaly = meanAnomalyToTrueAnomaly(currentMeanAnomaly, 0); // Circular orbit approximation
       
       // Use proper orbital mechanics from orbitalUtils.ts
       // Calculate ECI position using consistent coordinate transformation
