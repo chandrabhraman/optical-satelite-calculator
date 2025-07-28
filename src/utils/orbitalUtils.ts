@@ -303,15 +303,17 @@ export function meanAnomalyToEccentricAnomaly(meanAnomalyRad: number, eccentrici
 
 /**
  * Convert eccentric anomaly to true anomaly
+ * Using the Wikipedia formula: f = 2 * atan2(sqrt(1+e) * sin(E/2), sqrt(1-e) * cos(E/2))
  */
 export function eccentricAnomalyToTrueAnomaly(eccentricAnomalyRad: number, eccentricity: number): number {
-  const cosE = Math.cos(eccentricAnomalyRad);
-  const sinE = Math.sin(eccentricAnomalyRad);
+  const halfE = eccentricAnomalyRad / 2;
+  const sqrtOnePlusE = Math.sqrt(1 + eccentricity);
+  const sqrtOneMinusE = Math.sqrt(1 - eccentricity);
   
-  const cosNu = (cosE - eccentricity) / (1 - eccentricity * cosE);
-  const sinNu = (Math.sqrt(1 - eccentricity * eccentricity) * sinE) / (1 - eccentricity * cosE);
-  
-  return Math.atan2(sinNu, cosNu);
+  return 2 * Math.atan2(
+    sqrtOnePlusE * Math.sin(halfE),
+    sqrtOneMinusE * Math.cos(halfE)
+  );
 }
 
 /**

@@ -131,13 +131,13 @@ export function calculateLTAN(raan: number, epochYear: number, epochDay: number)
  * This calculates the actual longitude where the satellite appears above Earth's surface
  * by using proper coordinate transformations from ECI to ECEF to geodetic coordinates
  */
-export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number, eccentricity: number = 0): number {
+export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number, eccentricity: number = 0, inclination: number = 0): number {
   // Constants for GEO orbit
   const EARTH_RADIUS = 6371; // km
   const semiMajorAxis = EARTH_RADIUS + altitude;
   
-  // Convert orbital elements to radians
-  const inclinationRad = toRadians(0); // GEO satellites are typically equatorial
+  // Convert orbital elements to radians  
+  const inclinationRad = toRadians(inclination); // Use actual inclination from TLE
   const raanRad = toRadians(raan);
   const argOfPerigeeRad = toRadians(argOfPerigee);
   const meanAnomalyRad = toRadians(meanAnomaly);
