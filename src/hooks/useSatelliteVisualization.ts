@@ -252,7 +252,9 @@ export function useSatelliteVisualization({
       sceneRef.current.inclination, 
       sceneRef.current.raan,
       sceneRef.current.trueAnomaly,
-      sceneRef.current.earthRotationAngle
+      sceneRef.current.earthRotationAngle,
+      0, // eccentricity (circular orbit for visualization)
+      0  // argument of periapsis
     );
     
     // Remove any existing footprint before updating

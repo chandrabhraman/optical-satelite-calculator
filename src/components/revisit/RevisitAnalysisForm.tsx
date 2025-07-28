@@ -80,6 +80,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const [orbitType, setOrbitType] = useState("sso");
   const [constellationType, setConstellationType] = useState("single");
   const [tleError, setTleError] = useState<string | null>(null);
+  const [tleParsedData, setTleParsedData] = useState<any>(null);
   
   // Update inclination default when orbit type changes
   React.useEffect(() => {
@@ -102,7 +103,10 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       const tleData = parseTLE(tleInput);
       const { parsed } = tleData;
 
-      // Always set common fields
+      // Store full precision values for calculations
+      setTleParsedData(parsed);
+
+      // Set display fields with rounded values
       form.setValue("altitude", Math.round(parsed.altitude));
       form.setValue("inclination", Number(parsed.inclination.toFixed(2)));
       form.setValue("argOfPerigee", Number(parsed.argOfPerigee.toFixed(2)));
@@ -120,6 +124,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       }
     } catch (error) {
       setTleError(error.message);
+      setTleParsedData(null);
     }
   };
   
@@ -127,6 +132,23 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const onSubmit = (data: any) => {
     console.log("=== FORM SUBMISSION DEBUG ===");
     console.log("Form submitted with data:", data);
+    
+    // Use full precision TLE values for calculations if available
+    if (tleParsedData) {
+      data.altitude = tleParsedData.altitude;
+      data.inclination = tleParsedData.inclination;
+      data.argOfPerigee = tleParsedData.argOfPerigee;
+      data.meanAnomaly = tleParsedData.meanAnomaly;
+      data.raan = tleParsedData.raan;
+      data.eccentricity = tleParsedData.eccentricity;
+      data.hasTLE = true;
+      console.log("Using full precision TLE values for calculations");
+    } else {
+      data.hasTLE = false;
+      data.eccentricity = 0; // Default for manual entries
+      console.log("Using manual orbital parameters");
+    }
+    
     console.log("Total satellites:", data.totalSatellites);
     console.log("Constellation type:", data.constellationType);
     console.log("Grid cell size:", data.gridCellSize);

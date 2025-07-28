@@ -192,19 +192,21 @@ export function calculateSatelliteLatLong(
   inclinationDeg: number,
   raanRad: number,
   trueAnomalyRad: number,
-  earthRotationAngle: number = 0
+  earthRotationAngle: number = 0,
+  eccentricity: number = 0,
+  argOfPeriapsisRad: number = 0
 ): { lat: number, lng: number } {
   // Convert altitude to semi-major axis
   const semiMajorAxis = EARTH_RADIUS + altitudeKm;
   const inclinationRad = toRadians(inclinationDeg);
   
-  // Calculate ECI position
+  // Calculate ECI position using actual orbital elements from TLE
   const eciPosition = calculateSatelliteECIPosition(
     semiMajorAxis,
-    0, // circular orbit
+    eccentricity,
     inclinationRad,
     raanRad,
-    0, // argument of perigee
+    argOfPeriapsisRad,
     trueAnomalyRad
   );
   
