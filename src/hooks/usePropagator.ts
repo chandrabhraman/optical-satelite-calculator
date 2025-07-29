@@ -1,6 +1,8 @@
 
 import { useState, useCallback } from 'react';
-import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly } from '../utils/orbitalUtils';
+import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly, calculateOrbitalPeriod } from '../utils/orbitalUtils';
+import * as satellite from 'satellite.js';
+import { parseTLE, TLEData } from '../utils/tleParser';
 
 // Define interfaces for our propagator
 interface SatelliteParams {
@@ -8,6 +10,11 @@ interface SatelliteParams {
   inclination: number;
   raan: number;
   trueAnomaly: number;
+  eccentricity?: number;
+  argOfPerigee?: number;
+  meanAnomaly?: number;
+  tle?: string;
+  tleData?: TLEData;
 }
 
 interface PropagationParams extends SatelliteParams {
@@ -50,89 +57,199 @@ interface RevisitData {
 export function usePropagator() {
   const [isInitialized, setIsInitialized] = useState(true);
 
-  // Real orbital mechanics calculations using Kepler's laws
+  // Real orbital mechanics calculations using either SGP4 (for TLE) or classical mechanics
   const propagateSatelliteOrbit = useCallback((params: PropagationParams): GroundTrackPoint[] => {
     const points: GroundTrackPoint[] = [];
-    const { altitude, inclination, raan, trueAnomaly, timeSpanHours } = params;
-    
-    // Constants for Earth and orbital mechanics
-    const earthRadius = 6371; // km
-    const mu = 398600.4418; // km³/s² - Earth's gravitational parameter
-    const semiMajorAxis = earthRadius + altitude;
-    
-    // Calculate orbital period using Kepler's third law: T = 2π√(a³/μ)
-    const orbitalPeriod = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / mu); // seconds
-    const orbitalPeriodMinutes = orbitalPeriod / 60;
-    
-    // Earth's rotation rate (degrees per minute)
-    const earthRotationRate = 360 / (24 * 60); // 0.25 deg/min
+    const { altitude, inclination, raan, trueAnomaly, timeSpanHours, tle, eccentricity = 0, argOfPerigee = 0, meanAnomaly } = params;
     
     // Number of points to generate based on time span
     const totalMinutes = timeSpanHours * 60;
-    const numPoints = Math.min(2000, Math.max(200, Math.floor(totalMinutes * 2))); // 1 point every 30 seconds for continuous coverage
+    const numPoints = Math.min(2000, Math.max(200, Math.floor(totalMinutes * 2)));
+    
+    // Use SGP4 if TLE is provided, otherwise use classical mechanics
+    if (tle) {
+      return propagateWithSGP4(tle, timeSpanHours, numPoints);
+    } else {
+      return propagateWithClassicalMechanics({
+        altitude,
+        inclination,
+        raan,
+        trueAnomaly,
+        eccentricity,
+        argOfPerigee,
+        meanAnomaly: meanAnomaly || trueAnomaly,
+        timeSpanHours,
+        numPoints
+      });
+    }
+  }, []);
+
+  // SGP4 propagation for TLE inputs
+  const propagateWithSGP4 = useCallback((tle: string, timeSpanHours: number, numPoints: number): GroundTrackPoint[] => {
+    const points: GroundTrackPoint[] = [];
+    
+    try {
+      const tleLines = tle.trim().split('\n');
+      if (tleLines.length !== 2) {
+        throw new Error('TLE must have exactly 2 lines');
+      }
+      
+      // Initialize SGP4 with TLE
+      const satrec = satellite.twoline2satrec(tleLines[0], tleLines[1]);
+      const totalMinutes = timeSpanHours * 60;
+      
+      console.log('SGP4 propagation params:', {
+        timeSpanHours,
+        numPoints,
+        satrec: {
+          epochyr: satrec.epochyr,
+          epochdays: satrec.epochdays,
+          inclo: satrec.inclo * 180 / Math.PI,
+          nodeo: satrec.nodeo * 180 / Math.PI,
+          ecco: satrec.ecco
+        }
+      });
+      
+      // Generate ground track points over time
+      for (let i = 0; i < numPoints; i++) {
+        const timeMinutes = (i * totalMinutes) / numPoints;
+        const timestamp = Date.now() + (timeMinutes * 60 * 1000);
+        
+        // Propagate satellite position using SGP4
+        const positionAndVelocity = satellite.propagate(satrec, new Date(timestamp));
+        
+        if (positionAndVelocity.position && typeof positionAndVelocity.position === 'object') {
+          const position = positionAndVelocity.position as { x: number; y: number; z: number };
+          
+          // Convert ECI position to geodetic coordinates
+          const gmst = satellite.gstime(new Date(timestamp));
+          const geodetic = satellite.eciToGeodetic(position, gmst);
+          
+          // Convert from radians to degrees and normalize longitude
+          let lng = satellite.degreesLong(geodetic.longitude);
+          let lat = satellite.degreesLat(geodetic.latitude);
+          
+          // Normalize longitude to [-180, 180] range
+          while (lng > 180) lng -= 360;
+          while (lng < -180) lng += 360;
+          
+          points.push({
+            lat,
+            lng,
+            timestamp
+          });
+          
+          // Debug logging for first few points
+          if (i < 3) {
+            console.log(`SGP4 Point ${i}:`, {
+              timeMinutes,
+              position,
+              gmst: gmst * 180 / Math.PI,
+              geodetic: { lat, lng, altitude: geodetic.height }
+            });
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('SGP4 propagation error:', error);
+      // Fallback to classical mechanics if SGP4 fails
+      return propagateWithClassicalMechanics({
+        altitude: 400, // Default altitude
+        inclination: 51.6,
+        raan: 0,
+        trueAnomaly: 0,
+        eccentricity: 0,
+        argOfPerigee: 0,
+        meanAnomaly: 0,
+        timeSpanHours,
+        numPoints
+      });
+    }
+    
+    return points;
+  }, []);
+
+  // Classical mechanics propagation for manual orbital elements
+  const propagateWithClassicalMechanics = useCallback((params: {
+    altitude: number;
+    inclination: number;
+    raan: number;
+    trueAnomaly: number;
+    eccentricity: number;
+    argOfPerigee: number;
+    meanAnomaly: number;
+    timeSpanHours: number;
+    numPoints: number;
+  }): GroundTrackPoint[] => {
+    const points: GroundTrackPoint[] = [];
+    const { altitude, inclination, raan, trueAnomaly, eccentricity, argOfPerigee, meanAnomaly, timeSpanHours, numPoints } = params;
+    
+    // Constants for Earth and orbital mechanics
+    const earthRadius = 6371; // km
+    const semiMajorAxis = earthRadius + altitude;
+    
+    // Calculate orbital period using utility function
+    const orbitalPeriod = calculateOrbitalPeriod(semiMajorAxis); // seconds
+    const orbitalPeriodMinutes = orbitalPeriod / 60;
     
     // Convert orbital elements from degrees to radians
     const inclinationRad = toRadians(inclination);
     const raanRad = toRadians(raan);
-    const initialTrueAnomalyRad = toRadians(trueAnomaly);
+    const argOfPerigeeRad = toRadians(argOfPerigee);
+    const initialMeanAnomalyRad = toRadians(meanAnomaly);
     
-    // Earth's rotation rate in radians per minute
-    const earthRotationRateRadPerMin = toRadians(earthRotationRate);
+    // Current time as simulation start
+    const simulationStartTime = new Date();
     
-    // Fixed epoch reference for GMST calculation (J2000.0)
-    const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
-    const simulationStartTime = new Date(); // Current time as simulation start
-    
-    console.log('Orbit propagation params:', {
+    console.log('Classical mechanics propagation params:', {
       altitude,
       inclination,
       raan,
       trueAnomaly,
+      eccentricity,
+      argOfPerigee,
       semiMajorAxis,
       orbitalPeriodMinutes
     });
     
     // Generate ground track points over time
     for (let i = 0; i < numPoints; i++) {
-      const timeMinutes = (i * totalMinutes) / numPoints;
-      const timestamp = Date.now() + (timeMinutes * 60 * 1000);
+      const timeMinutes = (i * timeSpanHours * 60) / numPoints;
+      const timestamp = simulationStartTime.getTime() + (timeMinutes * 60 * 1000);
       
       // Calculate mean motion (radians per minute)
       const meanMotion = (2 * Math.PI) / orbitalPeriodMinutes;
       
-      // Properly propagate mean anomaly with time, then convert to true anomaly
-      const initialMeanAnomaly = initialTrueAnomalyRad; // Assuming input was mean anomaly
-      const currentMeanAnomaly = initialMeanAnomaly + (meanMotion * timeMinutes);
-      const currentTrueAnomaly = meanAnomalyToTrueAnomaly(currentMeanAnomaly, 0); // Circular orbit approximation
+      // Propagate mean anomaly with time, then convert to true anomaly
+      const currentMeanAnomaly = initialMeanAnomalyRad + (meanMotion * timeMinutes);
+      const currentTrueAnomaly = meanAnomalyToTrueAnomaly(currentMeanAnomaly, eccentricity);
       
-      // Use proper orbital mechanics from orbitalUtils.ts
-      // Calculate ECI position using consistent coordinate transformation
+      // Calculate ECI position using actual orbital parameters
       const eciPosition = calculateSatelliteECIPosition(
         semiMajorAxis,
-        0, // eccentricity (circular orbit)
+        eccentricity,
         inclinationRad,
         raanRad,
-        0, // argument of perigee (circular orbit)
+        argOfPerigeeRad,
         currentTrueAnomaly
       );
       
-      // Convert ECI to ECEF with proper GMST calculation
-      // Calculate time from J2000 epoch for accurate Earth rotation
-      const currentTime = new Date(simulationStartTime.getTime() + timeMinutes * 60 * 1000);
-      const minutesSinceJ2000 = (currentTime.getTime() - j2000Epoch.getTime()) / (1000 * 60);
-      const earthRotationAngle = earthRotationRateRadPerMin * minutesSinceJ2000;
-      const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
+      // Convert ECI to ECEF with proper GMST calculation using satellite.js
+      const currentTime = new Date(timestamp);
+      const gmst = satellite.gstime(currentTime);
+      const ecefPosition = eciToEcef(eciPosition, gmst);
       
       // Convert ECEF to geodetic coordinates (lat, lng, alt)
       const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
       
       // Add debug logging for first few points
       if (i < 3) {
-        console.log(`Point ${i}:`, {
+        console.log(`Classical Point ${i}:`, {
           timeMinutes,
           currentTrueAnomaly: currentTrueAnomaly * 180 / Math.PI,
           eciPosition,
-          earthRotationAngle: earthRotationAngle * 180 / Math.PI,
+          gmst: gmst * 180 / Math.PI,
           ecefPosition,
           geodetic
         });
