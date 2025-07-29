@@ -24,6 +24,9 @@ import { useForm } from "react-hook-form";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { parseTLE, calculateLTAN, calculateGEOLongitude } from "@/utils/tleParser";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown } from "lucide-react";
 
 // Define prop types
 interface RevisitAnalysisFormProps {
@@ -81,6 +84,7 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const [constellationType, setConstellationType] = useState("single");
   const [tleError, setTleError] = useState<string | null>(null);
   const [tleParsedData, setTleParsedData] = useState<any>(null);
+  const [useTLE, setUseTLE] = useState(false);
   
   // Update inclination default when orbit type changes
   React.useEffect(() => {
@@ -205,36 +209,52 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
           
           {/* TLE Input for Single Satellite */}
           {constellationType === "single" && (
-            <FormField
-              control={form.control}
-              name="tleInput"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>TLE Input (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="ISS (ZARYA)&#10;1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927&#10;2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537"
-                      value={field.value}
-                      onChange={(e) => {
-                        field.onChange(e.target.value);
-                        handleTLEParse(e.target.value);
-                      }}
-                      rows={4}
-                      className="font-mono text-sm"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Paste Three-line TLE data (satellite name + 2 data lines) to auto-populate orbital parameters
-                  </FormDescription>
-                  {tleError && (
-                    <div className="text-sm text-red-600 mt-1">
-                      Error: {tleError}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="mb-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <Checkbox
+                  id="useTLE"
+                  checked={useTLE}
+                  onCheckedChange={(checked) => setUseTLE(checked === true)}
+                />
+                <label htmlFor="useTLE" className="text-sm font-medium">
+                  Use TLE Input (Optional)
+                </label>
+              </div>
+              
+              <Collapsible open={useTLE}>
+                <CollapsibleContent>
+                  <FormField
+                    control={form.control}
+                    name="tleInput"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="ISS (ZARYA)&#10;1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927&#10;2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537"
+                            value={field.value}
+                            onChange={(e) => {
+                              field.onChange(e.target.value);
+                              handleTLEParse(e.target.value);
+                            }}
+                            rows={4}
+                            className="font-mono text-sm"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Paste Three-line TLE data (satellite name + 2 data lines) to auto-populate orbital parameters
+                        </FormDescription>
+                        {tleError && (
+                          <div className="text-sm text-red-600 mt-1">
+                            Error: {tleError}
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           )}
           
           {/* Dynamic fields based on orbit type */}
@@ -670,26 +690,6 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
             />
           </div>
           
-          <FormField
-            control={form.control}
-            name="useJ2Perturbations"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Enable J2 Perturbations</FormLabel>
-                  <FormDescription>
-                    Include Earth's oblateness effects in orbit propagation
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
         </div>
         
         {/* Submit Button */}

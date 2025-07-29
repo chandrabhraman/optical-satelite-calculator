@@ -2,6 +2,7 @@
  * TLE (Two-Line Element) parser for extracting orbital elements
  */
 import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly } from './orbitalUtils';
+import { tleToLatLon } from './tleToLatLon';
 
 export interface TLEData {
   satelliteName: string;
@@ -127,85 +128,22 @@ export function calculateLTAN(raan: number, epochYear: number, epochDay: number)
 }
 
 /**
- * Calculate sub-satellite point longitude for GEO orbit
- * This calculates the actual longitude where the satellite appears above Earth's surface
- * by using proper coordinate transformations from ECI to ECEF to geodetic coordinates
+ * Calculate sub-satellite point longitude for GEO orbit using proper TLE conversion
+ * This uses the exact Python script logic for TLE to lat/lon conversion
  */
 export function calculateGEOLongitude(raan: number, argOfPerigee: number, meanAnomaly: number, altitude: number = 35786, epochYear?: number, epochDay?: number, eccentricity: number = 0, inclination: number = 0): number {
-  // Constants for GEO orbit
-  const EARTH_RADIUS = 6371; // km
-  const semiMajorAxis = EARTH_RADIUS + altitude;
+  // Use the proper TLE to lat/lon conversion following the Python script
+  const elements = {
+    epoch_year: epochYear || new Date().getFullYear(),
+    epoch_day: epochDay || 1,
+    i: inclination,
+    raan: raan,
+    e: eccentricity,
+    argp: argOfPerigee,
+    m_anomaly: meanAnomaly,
+    n: 1.0027 // Approximate mean motion for GEO (1 rev/day)
+  };
   
-  // Convert orbital elements to radians  
-  const inclinationRad = toRadians(inclination); // Use actual inclination from TLE
-  const raanRad = toRadians(raan);
-  const argOfPerigeeRad = toRadians(argOfPerigee);
-  const meanAnomalyRad = toRadians(meanAnomaly);
-  
-  // Convert mean anomaly to true anomaly using proper orbital mechanics
-  const trueAnomalyRad = meanAnomalyToTrueAnomaly(meanAnomalyRad, eccentricity);
-  
-  console.log('Mean to True Anomaly conversion:', {
-    meanAnomaly_deg: meanAnomaly,
-    meanAnomaly_rad: meanAnomalyRad,
-    trueAnomaly_rad: trueAnomalyRad,
-    trueAnomaly_deg: trueAnomalyRad * 180 / Math.PI
-  });
-  
-  // Calculate satellite position in ECI coordinates using proper orbital mechanics
-  const eciPosition = calculateSatelliteECIPosition(
-    semiMajorAxis,
-    eccentricity, // Use actual eccentricity from TLE
-    inclinationRad,
-    raanRad,
-    argOfPerigeeRad,
-    trueAnomalyRad // Use converted true anomaly
-  );
-  
-  // Convert ECI to ECEF with proper Earth rotation for actual TLE epoch
-  // Calculate proper GMST using standard astronomical formulas
-  const j2000Epoch = new Date('2000-01-01T12:00:00.000Z');
-  
-  // Convert TLE epoch to actual date (use default current time if epoch not provided)
-  let tleEpochDate: Date;
-  if (epochYear && epochDay) {
-    tleEpochDate = new Date(epochYear, 0, 1); // Start of year
-    tleEpochDate.setTime(tleEpochDate.getTime() + (epochDay - 1) * 24 * 60 * 60 * 1000); // Add days
-  } else {
-    tleEpochDate = new Date(); // Fallback to current time
-  }
-  
-  // Calculate Julian Day Number for TLE epoch
-  const jd = tleEpochDate.getTime() / (24 * 60 * 60 * 1000) + 2440587.5; // Convert to Julian Day
-  const T = (jd - 2451545.0) / 36525.0; // Julian centuries since J2000
-  
-  // Calculate GMST using IAU formula (in degrees)
-  let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000.0;
-  gmst = gmst % 360; // Normalize to 0-360 degrees
-  if (gmst < 0) gmst += 360;
-  
-  const earthRotationAngle = toRadians(gmst);
-  
-  console.log('GMST Debug:', {
-    tleEpochDate: tleEpochDate.toISOString(),
-    julianDay: jd,
-    T_centuries: T,
-    gmst_degrees: gmst,
-    earthRotationAngle_rad: earthRotationAngle,
-    inputParams: { raan, argOfPerigee, meanAnomaly, altitude, epochYear, epochDay }
-  });
-  const ecefPosition = eciToEcef(eciPosition, earthRotationAngle);
-  
-  // Convert ECEF to geodetic coordinates to get the sub-satellite point
-  const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
-  
-  console.log('GEO sub-satellite point calculation:', {
-    inputOrbitElements: { raan, argOfPerigee, meanAnomaly, altitude },
-    eciPosition,
-    ecefPosition,
-    geodeticResult: geodetic,
-    subSatelliteLongitude: geodetic.lng
-  });
-  
-  return geodetic.lng;
+  const result = tleToLatLon(elements);
+  return result.lon;
 }
