@@ -278,7 +278,9 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           trueAnomaly: sat.trueAnomaly
         })),
         timeSpanHours: timeSpan,
-        gridResolution: gridResolution
+        gridResolution: gridResolution,
+        startDate: new Date(), // TODO: Pass actual dates from form
+        endDate: new Date(Date.now() + timeSpan * 60 * 60 * 1000) // TODO: Pass actual dates from form
       });
       
       setHeatmapData(revisitData.grid);

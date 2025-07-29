@@ -19,12 +19,16 @@ interface SatelliteParams {
 
 interface PropagationParams extends SatelliteParams {
   timeSpanHours: number;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 interface RevisitCalculationParams {
   satellites: SatelliteParams[];
   timeSpanHours: number;
   gridResolution: number;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 interface GroundTrackPoint {
@@ -60,7 +64,7 @@ export function usePropagator() {
   // Real orbital mechanics calculations using either SGP4 (for TLE) or classical mechanics
   const propagateSatelliteOrbit = useCallback((params: PropagationParams): GroundTrackPoint[] => {
     const points: GroundTrackPoint[] = [];
-    const { altitude, inclination, raan, trueAnomaly, timeSpanHours, tle, eccentricity = 0, argOfPerigee = 0, meanAnomaly } = params;
+    const { altitude, inclination, raan, trueAnomaly, timeSpanHours, tle, eccentricity = 0, argOfPerigee = 0, meanAnomaly, startDate, endDate } = params;
     
     // Number of points to generate based on time span
     const totalMinutes = timeSpanHours * 60;
@@ -68,7 +72,7 @@ export function usePropagator() {
     
     // Use SGP4 if TLE is provided, otherwise use classical mechanics
     if (tle) {
-      return propagateWithSGP4(tle, timeSpanHours, numPoints);
+      return propagateWithSGP4(tle, timeSpanHours, numPoints, startDate, endDate);
     } else {
       return propagateWithClassicalMechanics({
         altitude,
@@ -79,13 +83,15 @@ export function usePropagator() {
         argOfPerigee,
         meanAnomaly: meanAnomaly || trueAnomaly,
         timeSpanHours,
-        numPoints
+        numPoints,
+        startDate,
+        endDate
       });
     }
   }, []);
 
   // SGP4 propagation for TLE inputs
-  const propagateWithSGP4 = useCallback((tle: string, timeSpanHours: number, numPoints: number): GroundTrackPoint[] => {
+  const propagateWithSGP4 = useCallback((tle: string, timeSpanHours: number, numPoints: number, startDate?: Date, endDate?: Date): GroundTrackPoint[] => {
     const points: GroundTrackPoint[] = [];
     
     try {
@@ -110,10 +116,13 @@ export function usePropagator() {
         }
       });
       
+      // Determine simulation start time
+      const simulationStartTime = startDate ? startDate.getTime() : Date.now();
+      
       // Generate ground track points over time
       for (let i = 0; i < numPoints; i++) {
         const timeMinutes = (i * totalMinutes) / numPoints;
-        const timestamp = Date.now() + (timeMinutes * 60 * 1000);
+        const timestamp = simulationStartTime + (timeMinutes * 60 * 1000);
         
         // Propagate satellite position using SGP4
         const positionAndVelocity = satellite.propagate(satrec, new Date(timestamp));
@@ -163,7 +172,9 @@ export function usePropagator() {
         argOfPerigee: 0,
         meanAnomaly: 0,
         timeSpanHours,
-        numPoints
+        numPoints,
+        startDate,
+        endDate
       });
     }
     
@@ -181,9 +192,11 @@ export function usePropagator() {
     meanAnomaly: number;
     timeSpanHours: number;
     numPoints: number;
+    startDate?: Date;
+    endDate?: Date;
   }): GroundTrackPoint[] => {
     const points: GroundTrackPoint[] = [];
-    const { altitude, inclination, raan, trueAnomaly, eccentricity, argOfPerigee, meanAnomaly, timeSpanHours, numPoints } = params;
+    const { altitude, inclination, raan, trueAnomaly, eccentricity, argOfPerigee, meanAnomaly, timeSpanHours, numPoints, startDate, endDate } = params;
     
     // Constants for Earth and orbital mechanics
     const earthRadius = 6371; // km
@@ -199,8 +212,8 @@ export function usePropagator() {
     const argOfPerigeeRad = toRadians(argOfPerigee);
     const initialMeanAnomalyRad = toRadians(meanAnomaly);
     
-    // Current time as simulation start
-    const simulationStartTime = new Date();
+    // Use provided start date or current time as simulation start
+    const simulationStartTime = startDate || new Date();
     
     console.log('Classical mechanics propagation params:', {
       altitude,
@@ -283,7 +296,9 @@ export function usePropagator() {
       // Propagate satellite orbit for the specified time span
       const groundTrack = propagateSatelliteOrbit({
         ...satellite,
-        timeSpanHours
+        timeSpanHours,
+        startDate: params.startDate,
+        endDate: params.endDate
       });
       
       // For each consecutive pair of points, interpolate coverage along the track

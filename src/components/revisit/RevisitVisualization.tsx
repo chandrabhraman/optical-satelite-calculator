@@ -25,6 +25,8 @@ interface RevisitVisualizationProps {
     }>;
     timeSpan: number;
     gridCellSize: string;
+    startDate: Date;
+    endDate: Date;
   } | null;
 }
 
@@ -249,7 +251,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             trueAnomaly: sat.trueAnomaly
           })),
           timeSpanHours: analysisData.timeSpan,
-          gridResolution: parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5')
+          gridResolution: parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5'),
+          startDate: analysisData.startDate,
+          endDate: analysisData.endDate
         });
         
         console.log("Real statistics calculated:", revisitData.statistics);

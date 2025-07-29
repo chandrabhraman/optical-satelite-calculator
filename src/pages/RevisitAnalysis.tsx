@@ -32,6 +32,8 @@ const RevisitAnalysis: React.FC = () => {
     }>;
     timeSpan: number;
     gridCellSize: string;
+    startDate: Date;
+    endDate: Date;
   } | null>(null);
   
   const handleRunAnalysis = (formData: any) => {
@@ -91,7 +93,9 @@ const RevisitAnalysis: React.FC = () => {
     const newAnalysisData = {
       satellites: satellites,
       timeSpan: timeSpanHours,
-      gridCellSize: formData.gridCellSize
+      gridCellSize: formData.gridCellSize,
+      startDate: startDate,
+      endDate: endDate
     };
     
     console.log("Setting analysis data with satellites count:", newAnalysisData.satellites.length);
