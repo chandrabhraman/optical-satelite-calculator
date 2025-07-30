@@ -104,9 +104,15 @@ export function usePropagator() {
       const satrec = satellite.twoline2satrec(tleLines[0], tleLines[1]);
       const totalMinutes = timeSpanHours * 60;
       
+      // Determine simulation start time
+      const simulationStartTime = startDate ? startDate.getTime() : Date.now();
+      
       console.log('SGP4 propagation params:', {
         timeSpanHours,
         numPoints,
+        startDate,
+        endDate,
+        simulationStartTime: new Date(simulationStartTime),
         satrec: {
           epochyr: satrec.epochyr,
           epochdays: satrec.epochdays,
@@ -115,9 +121,6 @@ export function usePropagator() {
           ecco: satrec.ecco
         }
       });
-      
-      // Determine simulation start time
-      const simulationStartTime = startDate ? startDate.getTime() : Date.now();
       
       // Generate ground track points over time
       for (let i = 0; i < numPoints; i++) {
@@ -148,12 +151,15 @@ export function usePropagator() {
             timestamp
           });
           
-          // Debug logging for first few points
-          if (i < 3) {
+          // Debug logging for first few points and special cases
+          if (i < 10 || Math.abs(lng - 122) < 50) {
             console.log(`SGP4 Point ${i}:`, {
               timeMinutes,
+              timestamp: new Date(timestamp),
               position,
               gmst: gmst * 180 / Math.PI,
+              rawLng: satellite.degreesLong(geodetic.longitude),
+              rawLat: satellite.degreesLat(geodetic.latitude),
               geodetic: { lat, lng, altitude: geodetic.height }
             });
           }
