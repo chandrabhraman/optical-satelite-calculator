@@ -216,10 +216,7 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     if (tracksVisible) {
       satellites.forEach((satellite, index) => {
         const groundTrackPoints = propagateSatelliteOrbit({
-          altitude: satellite.altitude,
-          inclination: satellite.inclination,
-          raan: satellite.raan,
-          trueAnomaly: satellite.trueAnomaly,
+          ...satellite,
           timeSpanHours: timeSpan
         });
         
