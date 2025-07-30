@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { calculateSatelliteECIPosition, eciToEcef, ecefToGeodetic, toRadians, meanAnomalyToTrueAnomaly, calculateOrbitalPeriod } from '../utils/orbitalUtils';
 import * as satellite from 'satellite.js';
 import { parseTLE, TLEData } from '../utils/tleParser';
+import { tleToLatLon } from '../utils/tleToLatLon';
 
 // Define interfaces for our propagator
 interface SatelliteParams {
@@ -107,12 +108,40 @@ export function usePropagator() {
       // Determine simulation start time
       const simulationStartTime = startDate ? startDate.getTime() : Date.now();
       
+      // Parse TLE to get reference position at epoch using tleToLatLon utility
+      let tleEpochReference = null;
+      try {
+        const tleData = parseTLE(tle);
+        if (tleData) {
+          tleEpochReference = tleToLatLon({
+            epoch_year: tleData.parsed.epochYear,
+            epoch_day: tleData.parsed.epochDay,
+            i: tleData.parsed.inclination,
+            raan: tleData.parsed.raan,
+            e: tleData.parsed.eccentricity,
+            argp: tleData.parsed.argOfPerigee,
+            m_anomaly: tleData.parsed.meanAnomaly,
+            n: tleData.parsed.meanMotion
+          });
+        }
+      } catch (error) {
+        console.warn('Could not calculate TLE epoch reference:', error);
+      }
+
+      // Calculate TLE epoch date for reference
+      const tleEpochYear = satrec.epochyr < 57 ? 2000 + satrec.epochyr : 1900 + satrec.epochyr;
+      const tleEpochMs = new Date(tleEpochYear, 0, 1).getTime() + (satrec.epochdays - 1) * 24 * 60 * 60 * 1000;
+      const tleEpochDate = new Date(tleEpochMs);
+
       console.log('SGP4 propagation params:', {
         timeSpanHours,
         numPoints,
         startDate,
         endDate,
         simulationStartTime: new Date(simulationStartTime),
+        tleEpochDate,
+        tleEpochReference,
+        timeDiffFromEpoch: (simulationStartTime - tleEpochMs) / (1000 * 60 * 60 * 24), // days
         satrec: {
           epochyr: satrec.epochyr,
           epochdays: satrec.epochdays,
@@ -262,15 +291,19 @@ export function usePropagator() {
       // Convert ECEF to geodetic coordinates (lat, lng, alt)
       const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
       
-      // Add debug logging for first few points
-      if (i < 3) {
+      // Enhanced debug logging for first few points and longitude tracking
+      if (i < 10 || Math.abs(geodetic.lng - 122) < 50) {
         console.log(`Classical Point ${i}:`, {
           timeMinutes,
+          timestamp: new Date(timestamp),
+          timestampISO: currentTime.toISOString(),
           currentTrueAnomaly: currentTrueAnomaly * 180 / Math.PI,
+          currentMeanAnomaly: currentMeanAnomaly * 180 / Math.PI,
           eciPosition,
           gmst: gmst * 180 / Math.PI,
           ecefPosition,
-          geodetic
+          geodetic,
+          longitudeDiff: Math.abs(geodetic.lng - 122)
         });
       }
       
