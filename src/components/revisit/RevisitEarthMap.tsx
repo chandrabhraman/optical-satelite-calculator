@@ -227,20 +227,48 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
         
         // Only show ground tracks in 2D view
         if (is2D) {
-          const trackPoints = [];
+          // Split track at antimeridian crossings to avoid jump artifacts
+          const trackSegments = [];
+          let currentSegment = [];
+          let prevLng = null;
+          
           for (const point of groundTrackPoints) {
+            if (prevLng !== null) {
+              // Check for antimeridian crossing (longitude jump > 180°)
+              const lngDiff = Math.abs(point.lng - prevLng);
+              if (lngDiff > 180) {
+                // Save current segment if it has points
+                if (currentSegment.length > 0) {
+                  trackSegments.push([...currentSegment]);
+                }
+                // Start new segment
+                currentSegment = [];
+              }
+            }
+            
             const x = (point.lng + 180) * (4 / 360) - 2;
             const y = (90 - point.lat) * (2 / 180) - 1;
-            trackPoints.push(new THREE.Vector3(x, y, 0.01));
+            currentSegment.push(new THREE.Vector3(x, y, 0.01));
+            prevLng = point.lng;
           }
           
-          const lineGeometry = new THREE.BufferGeometry().setFromPoints(trackPoints);
-          const lineMaterial = new THREE.LineBasicMaterial({ 
-            color: lineColor,
-            linewidth: 2
+          // Add final segment
+          if (currentSegment.length > 0) {
+            trackSegments.push(currentSegment);
+          }
+          
+          // Create separate line for each segment
+          trackSegments.forEach(segment => {
+            if (segment.length > 1) {
+              const lineGeometry = new THREE.BufferGeometry().setFromPoints(segment);
+              const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: lineColor,
+                linewidth: 2
+              });
+              const line = new THREE.Line(lineGeometry, lineMaterial);
+              groundTracksRef.current?.add(line);
+            }
           });
-          const line = new THREE.Line(lineGeometry, lineMaterial);
-          groundTracksRef.current?.add(line);
         }
         // No ground tracks in 3D view for simplicity
       });
