@@ -50,7 +50,9 @@ const RevisitAnalysis: React.FC = () => {
         altitude: formData.altitude || 550,
         inclination: formData.inclination || 97.6,
         raan: formData.raan || 0,
-        trueAnomaly: 0
+        trueAnomaly: 0,
+        // Include TLE if provided for single satellite
+        ...(formData.tleInput && formData.constellationType === "single" ? { tle: formData.tleInput } : {})
       };
       
       // Handle GEO orbit type
