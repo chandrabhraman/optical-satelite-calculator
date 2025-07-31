@@ -62,33 +62,21 @@ interface RevisitData {
 export function usePropagator() {
   const [isInitialized, setIsInitialized] = useState(true);
 
-  // Real orbital mechanics calculations using either SGP4 (for TLE) or classical mechanics
+  // Real orbital mechanics calculations using SGP4 only for revisit analysis
   const propagateSatelliteOrbit = useCallback((params: PropagationParams): GroundTrackPoint[] => {
-    const points: GroundTrackPoint[] = [];
-    const { altitude, inclination, raan, trueAnomaly, timeSpanHours, tle, eccentricity = 0, argOfPerigee = 0, meanAnomaly, startDate, endDate } = params;
+    const { timeSpanHours, tle, startDate, endDate } = params;
     
     // Number of points to generate based on time span
     const totalMinutes = timeSpanHours * 60;
     const numPoints = Math.min(2000, Math.max(200, Math.floor(totalMinutes * 2)));
     
-    // Use SGP4 if TLE is provided, otherwise use classical mechanics
-    if (tle) {
-      return propagateWithSGP4(tle, timeSpanHours, numPoints, startDate, endDate);
-    } else {
-      return propagateWithClassicalMechanics({
-        altitude,
-        inclination,
-        raan,
-        trueAnomaly,
-        eccentricity,
-        argOfPerigee,
-        meanAnomaly: meanAnomaly || trueAnomaly,
-        timeSpanHours,
-        numPoints,
-        startDate,
-        endDate
-      });
+    // Only use SGP4 for revisit analysis - TLE is required
+    if (!tle) {
+      console.error('TLE is required for revisit analysis. Classical mechanics propagation has been removed.');
+      return [];
     }
+    
+    return propagateWithSGP4(tle, timeSpanHours, numPoints, startDate, endDate);
   }, []);
 
   // SGP4 propagation for TLE inputs
@@ -197,125 +185,12 @@ export function usePropagator() {
       
     } catch (error) {
       console.error('SGP4 propagation error:', error);
-      // Fallback to classical mechanics if SGP4 fails
-      return propagateWithClassicalMechanics({
-        altitude: 400, // Default altitude
-        inclination: 51.6,
-        raan: 0,
-        trueAnomaly: 0,
-        eccentricity: 0,
-        argOfPerigee: 0,
-        meanAnomaly: 0,
-        timeSpanHours,
-        numPoints,
-        startDate,
-        endDate
-      });
+      return [];
     }
     
     return points;
   }, []);
 
-  // Classical mechanics propagation for manual orbital elements
-  const propagateWithClassicalMechanics = useCallback((params: {
-    altitude: number;
-    inclination: number;
-    raan: number;
-    trueAnomaly: number;
-    eccentricity: number;
-    argOfPerigee: number;
-    meanAnomaly: number;
-    timeSpanHours: number;
-    numPoints: number;
-    startDate?: Date;
-    endDate?: Date;
-  }): GroundTrackPoint[] => {
-    const points: GroundTrackPoint[] = [];
-    const { altitude, inclination, raan, trueAnomaly, eccentricity, argOfPerigee, meanAnomaly, timeSpanHours, numPoints, startDate, endDate } = params;
-    
-    // Constants for Earth and orbital mechanics
-    const earthRadius = 6371; // km
-    const semiMajorAxis = earthRadius + altitude;
-    
-    // Calculate orbital period using utility function
-    const orbitalPeriod = calculateOrbitalPeriod(semiMajorAxis); // seconds
-    const orbitalPeriodMinutes = orbitalPeriod / 60;
-    
-    // Convert orbital elements from degrees to radians
-    const inclinationRad = toRadians(inclination);
-    const raanRad = toRadians(raan);
-    const argOfPerigeeRad = toRadians(argOfPerigee);
-    const initialMeanAnomalyRad = toRadians(meanAnomaly);
-    
-    // Use provided start date or current time as simulation start
-    const simulationStartTime = startDate || new Date();
-    
-    console.log('Classical mechanics propagation params:', {
-      altitude,
-      inclination,
-      raan,
-      trueAnomaly,
-      eccentricity,
-      argOfPerigee,
-      semiMajorAxis,
-      orbitalPeriodMinutes
-    });
-    
-    // Generate ground track points over time
-    for (let i = 0; i < numPoints; i++) {
-      const timeMinutes = (i * timeSpanHours * 60) / numPoints;
-      const timestamp = simulationStartTime.getTime() + (timeMinutes * 60 * 1000);
-      
-      // Calculate mean motion (radians per minute)
-      const meanMotion = (2 * Math.PI) / orbitalPeriodMinutes;
-      
-      // Propagate mean anomaly with time, then convert to true anomaly
-      const currentMeanAnomaly = initialMeanAnomalyRad + (meanMotion * timeMinutes);
-      const currentTrueAnomaly = meanAnomalyToTrueAnomaly(currentMeanAnomaly, eccentricity);
-      
-      // Calculate ECI position using actual orbital parameters
-      const eciPosition = calculateSatelliteECIPosition(
-        semiMajorAxis,
-        eccentricity,
-        inclinationRad,
-        raanRad,
-        argOfPerigeeRad,
-        currentTrueAnomaly
-      );
-      
-      // Convert ECI to ECEF with proper GMST calculation using satellite.js
-      const currentTime = new Date(timestamp);
-      const gmst = satellite.gstime(currentTime);
-      const ecefPosition = eciToEcef(eciPosition, gmst);
-      
-      // Convert ECEF to geodetic coordinates (lat, lng, alt)
-      const geodetic = ecefToGeodetic(ecefPosition[0], ecefPosition[1], ecefPosition[2]);
-      
-      // Enhanced debug logging for first few points and longitude tracking
-      if (i < 10 || Math.abs(geodetic.lng - 122) < 50) {
-        console.log(`Classical Point ${i}:`, {
-          timeMinutes,
-          timestamp: new Date(timestamp),
-          timestampISO: currentTime.toISOString(),
-          currentTrueAnomaly: currentTrueAnomaly * 180 / Math.PI,
-          currentMeanAnomaly: currentMeanAnomaly * 180 / Math.PI,
-          eciPosition,
-          gmst: gmst * 180 / Math.PI,
-          ecefPosition,
-          geodetic,
-          longitudeDiff: Math.abs(geodetic.lng - 122)
-        });
-      }
-      
-      points.push({
-        lat: geodetic.lat,
-        lng: geodetic.lng,
-        timestamp
-      });
-    }
-    
-    return points;
-  }, []);
 
   // Calculate revisit statistics for a grid covering Earth's surface
   const calculateRevisits = useCallback((params: RevisitCalculationParams): RevisitData => {
