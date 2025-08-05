@@ -18,7 +18,8 @@ interface SatelliteParams {
   tleData?: TLEData;
 }
 
-interface PropagationParams extends SatelliteParams {
+interface PropagationParams {
+  tle: string;
   timeSpanHours: number;
   startDate?: Date;
   endDate?: Date;
@@ -84,10 +85,14 @@ export function usePropagator() {
     const points: GroundTrackPoint[] = [];
     
     try {
-      const tleLines = tle.trim().split('\n');
-      if (tleLines.length !== 2) {
-        throw new Error('TLE must have exactly 2 lines');
-      }
+  const tleLines = tle.trim().split('\n');
+  if (tleLines.length === 3) {
+    // 3-line TLE format: satellite name + 2 data lines
+    tleLines.splice(0, 1); // Remove satellite name, keep only the 2 data lines
+  }
+  if (tleLines.length !== 2) {
+    throw new Error('TLE must have exactly 2 or 3 lines (satellite name optional)');
+  }
       
       // Initialize SGP4 with TLE
       const satrec = satellite.twoline2satrec(tleLines[0], tleLines[1]);
@@ -207,9 +212,14 @@ export function usePropagator() {
     
     // Process each satellite in the constellation
     for (const satellite of satellites) {
-      // Propagate satellite orbit for the specified time span
+      if (!satellite.tle) {
+        console.error(`TLE is required for satellite propagation. Classical mechanics removed.`);
+        continue;
+      }
+      
+      // Propagate satellite orbit using SGP4 for the specified time span
       const groundTrack = propagateSatelliteOrbit({
-        ...satellite,
+        tle: satellite.tle,
         timeSpanHours,
         startDate: params.startDate,
         endDate: params.endDate

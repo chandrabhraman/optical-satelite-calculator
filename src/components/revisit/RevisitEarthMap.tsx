@@ -14,6 +14,9 @@ interface RevisitEarthMapProps {
     inclination: number;
     raan: number;
     trueAnomaly: number;
+    tle?: string;
+    eccentricity?: number;
+    argOfPerigee?: number;
   }>;
   timeSpan?: number;
   isHeatmapActive?: boolean;
@@ -215,8 +218,13 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     
     if (tracksVisible) {
       satellites.forEach((satellite, index) => {
+        if (!satellite.tle) {
+          console.warn(`Satellite ${satellite.id} has no TLE, skipping ground track calculation`);
+          return;
+        }
+        
         const groundTrackPoints = propagateSatelliteOrbit({
-          ...satellite,
+          tle: satellite.tle,
           timeSpanHours: timeSpan
         });
         
@@ -300,7 +308,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
           altitude: sat.altitude,
           inclination: sat.inclination,
           raan: sat.raan,
-          trueAnomaly: sat.trueAnomaly
+          trueAnomaly: sat.trueAnomaly,
+          tle: sat.tle,
+          eccentricity: sat.eccentricity,
+          argOfPerigee: sat.argOfPerigee
         })),
         timeSpanHours: timeSpan,
         gridResolution: gridResolution,

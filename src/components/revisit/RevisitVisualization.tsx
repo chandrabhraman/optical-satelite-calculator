@@ -22,6 +22,9 @@ interface RevisitVisualizationProps {
       inclination: number;
       raan: number;
       trueAnomaly: number;
+      tle?: string;
+      eccentricity?: number;
+      argOfPerigee?: number;
     }>;
     timeSpan: number;
     gridCellSize: string;
@@ -48,6 +51,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     inclination: number;
     raan: number;
     trueAnomaly: number;
+    tle?: string;
+    eccentricity?: number;
+    argOfPerigee?: number;
   }>>([]);
   const [revisitStats, setRevisitStats] = useState({
     averageRevisit: 0,
@@ -248,7 +254,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             altitude: sat.altitude,
             inclination: sat.inclination,
             raan: sat.raan,
-            trueAnomaly: sat.trueAnomaly
+            trueAnomaly: sat.trueAnomaly,
+            tle: sat.tle,
+            eccentricity: sat.eccentricity,
+            argOfPerigee: sat.argOfPerigee
           })),
           timeSpanHours: analysisData.timeSpan,
           gridResolution: parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5'),

@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RocketIcon } from "lucide-react";
 import { SEOHead } from "@/components/SEOHead";
 import { toolKeywords, metaDescriptions } from "@/utils/seoUtils";
+import { generateTLE } from "@/utils/tleGenerator";
 
 const RevisitAnalysis: React.FC = () => {
   // State for handling analysis results
@@ -29,6 +30,9 @@ const RevisitAnalysis: React.FC = () => {
       inclination: number;
       raan: number;
       trueAnomaly: number;
+      tle?: string;
+      eccentricity?: number;
+      argOfPerigee?: number;
     }>;
     timeSpan: number;
     gridCellSize: string;
@@ -51,8 +55,9 @@ const RevisitAnalysis: React.FC = () => {
         inclination: formData.inclination || 97.6,
         raan: formData.raan || 0,
         trueAnomaly: 0,
-        // Include TLE if provided for single satellite
-        ...(formData.tleInput && formData.constellationType === "single" ? { tle: formData.tleInput } : {})
+        eccentricity: formData.eccentricity || 0.0,
+        argOfPerigee: formData.argOfPerigee || 0.0,
+        tle: undefined as string | undefined
       };
       
       // Handle GEO orbit type
@@ -75,6 +80,22 @@ const RevisitAnalysis: React.FC = () => {
         
         satellite.raan = (formData.raan || 0) + (planeIndex * 180 / (formData.planes || 1));
         satellite.trueAnomaly = satInPlane * (360 / satellitesPerPlane) + (planeIndex * (formData.phasing || 0));
+      }
+      
+      // Generate TLE for this satellite
+      if (formData.tleInput && formData.constellationType === "single") {
+        // Use provided TLE for single satellite
+        satellite.tle = formData.tleInput;
+      } else {
+        // Generate TLE from orbital parameters
+        satellite.tle = generateTLE({
+          altitude: satellite.altitude,
+          inclination: satellite.inclination,
+          raan: satellite.raan,
+          trueAnomaly: satellite.trueAnomaly,
+          eccentricity: satellite.eccentricity,
+          argOfPerigee: satellite.argOfPerigee
+        });
       }
       
       satellites.push(satellite);
