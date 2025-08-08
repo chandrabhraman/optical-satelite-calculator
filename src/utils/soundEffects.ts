@@ -31,5 +31,6 @@ export const playSound = (soundUrl: string, volume = 0.5) => {
 export const SOUNDS = {
   calculate: "/sounds/calculate.mp3",
   simulate: "/sounds/simulate.mp3",
-  upload: "/sounds/upload.mp3"
+  upload: "/sounds/upload.mp3",
+  backgroundLoop: "/sounds/sci-fi-underscore-loop-300215.mp3"
 };

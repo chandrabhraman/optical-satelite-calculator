@@ -7,6 +7,7 @@ import { SensorInputs } from "@/utils/types";
 import { calculateSensorParameters } from "@/utils/sensorCalculations";
 import ParameterTooltip from "@/components/ParameterTooltip";
 import { playSound, SOUNDS } from "@/utils/soundEffects";
+import { musicPlayer } from "@/utils/musicPlayer";
 
 interface CalculatorFormProps {
   onCalculate: (inputs: SensorInputs) => void;
@@ -79,6 +80,8 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
     
     // Play the calculation sound effect
     playSound(SOUNDS.calculate, 0.4);
+    // Start background music loop (user-initiated)
+    musicPlayer.playLoop(SOUNDS.backgroundLoop);
   };
 
   const getFovValues = () => {
