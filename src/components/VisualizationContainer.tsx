@@ -1,6 +1,7 @@
 
 import React, { forwardRef, ForwardRefRenderFunction } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import MusicToggle from '@/components/MusicToggle';
 
 interface VisualizationContainerProps {
   className?: string;
@@ -14,6 +15,7 @@ const VisualizationContainerComponent: ForwardRefRenderFunction<HTMLDivElement, 
 ) => {
   return (
     <div ref={ref} className={`w-full h-full min-h-[450px] relative ${className}`}>
+      <MusicToggle />
       {children}
       {showInstructions && (
         <div className="text-xs text-muted-foreground absolute bottom-4 left-4 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md z-10 flex flex-col gap-1">

@@ -22,7 +22,7 @@ const MusicToggle: React.FC = () => {
     <button
       aria-label={muted ? "Unmute background music" : "Mute background music"}
       onClick={handleClick}
-      className="fixed right-4 top-1/2 -translate-y-1/2 z-50 text-[hsl(0_0%_100%)] hover-scale"
+      className="absolute right-4 top-4 z-50 text-[hsl(0_0%_100%)] hover-scale"
     >
       {muted ? <VolumeX size={28} /> : <Volume2 size={28} />}
     </button>

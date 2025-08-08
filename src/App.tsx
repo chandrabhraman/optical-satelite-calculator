@@ -13,7 +13,6 @@ import TermsOfService from "./pages/TermsOfService";
 import AboutContact from "./pages/AboutContact";
 import NotFound from "./pages/NotFound";
 import Header from "./components/Header";
-import MusicToggle from "./components/MusicToggle";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +33,6 @@ const App = () => (
             <Route path="/about-contact" element={<AboutContact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <MusicToggle />
         </BrowserRouter>
       </TooltipProvider>
     </HelmetProvider>
