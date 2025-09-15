@@ -189,15 +189,38 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       earthRef.current.geometry.dispose();
       earthRef.current.geometry = new THREE.PlaneGeometry(4, 2);
       
-      cameraRef.current.position.set(0, 0, 10);
+      // Position camera to fit earth exactly in view
+      cameraRef.current.position.set(0, 0, 2.2);
+      
+      // Configure controls for 2D map-like navigation
       controlsRef.current.enableRotate = false;
+      controlsRef.current.enablePan = true;
+      
+      // Set zoom constraints - prevent zooming out beyond initial view
+      controlsRef.current.minDistance = 2.2; // Initial view distance
+      controlsRef.current.maxDistance = 0.1; // Allow close zoom for detailed view
+      
+      // Constrain panning to earth bounds
+      controlsRef.current.minPolarAngle = Math.PI / 2;
+      controlsRef.current.maxPolarAngle = Math.PI / 2;
+      
+      // Reset camera target to center
+      controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
     } else {
       earthRef.current.geometry.dispose();
       earthRef.current.geometry = new THREE.SphereGeometry(2, 128, 64);
       
       cameraRef.current.position.set(0, 0, 5);
+      
+      // Reset 3D controls
       controlsRef.current.enableRotate = true;
+      controlsRef.current.enablePan = true;
+      controlsRef.current.minDistance = 2.5;
+      controlsRef.current.maxDistance = 50;
+      controlsRef.current.minPolarAngle = 0;
+      controlsRef.current.maxPolarAngle = Math.PI;
+      controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
     }
   }, [is2D]);
