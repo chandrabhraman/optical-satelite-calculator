@@ -8,7 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Download, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { estimatePSF, deconvolveImage, PSFType } from '@/utils/psfImageProcessing';
+import { estimatePSF, deconvolveImage, PSFType, DeconvolutionMethod } from '@/utils/psfImageProcessing';
 
 const PSFEstimation: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
@@ -23,6 +23,11 @@ const PSFEstimation: React.FC = () => {
   const [motionAngle, setMotionAngle] = useState(0);
   const [kernelSize, setKernelSize] = useState(15);
   const [iterations, setIterations] = useState(10);
+  
+  // Deconvolution parameters
+  const [deconvMethod, setDeconvMethod] = useState<DeconvolutionMethod>('richardsonLucy');
+  const [regularization, setRegularization] = useState(0.01);
+  const [noiseVariance, setNoiseVariance] = useState(0.001);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -85,7 +90,14 @@ const PSFEstimation: React.FC = () => {
       }
 
       // Deconvolve image
-      const deconvolved = await deconvolveImage(originalImage, psf, iterations);
+      const deconvolved = await deconvolveImage(
+        originalImage, 
+        psf, 
+        iterations,
+        deconvMethod,
+        regularization,
+        noiseVariance
+      );
       setDeconvolvedImage(deconvolved);
       
       toast.success('Image processed successfully');
@@ -204,6 +216,22 @@ const PSFEstimation: React.FC = () => {
                   />
                 </div>
 
+                {/* Deconvolution Method */}
+                <div className="space-y-3">
+                  <Label>Deconvolution Method</Label>
+                  <Select value={deconvMethod} onValueChange={(v: string) => setDeconvMethod(v as DeconvolutionMethod)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="richardsonLucy">Richardson-Lucy</SelectItem>
+                      <SelectItem value="richardsonLucyTV">Richardson-Lucy + TV</SelectItem>
+                      <SelectItem value="wiener">Wiener Filter</SelectItem>
+                      <SelectItem value="blindDeconvolution">Blind Deconvolution</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Iterations */}
                 <div className="space-y-3">
                   <Label>Iterations: {iterations}</Label>
@@ -216,7 +244,31 @@ const PSFEstimation: React.FC = () => {
                   />
                 </div>
 
-                <Button 
+                {/* Regularization (for TV and Wiener) */}
+                {(deconvMethod === 'richardsonLucyTV' || deconvMethod === 'wiener') && (
+                  <div className="space-y-3">
+                    <Label>
+                      {deconvMethod === 'wiener' ? 'Noise Variance' : 'Regularization'}: {
+                        deconvMethod === 'wiener' ? noiseVariance.toFixed(4) : regularization.toFixed(3)
+                      }
+                    </Label>
+                    <Slider
+                      value={deconvMethod === 'wiener' ? [noiseVariance * 1000] : [regularization * 100]}
+                      onValueChange={(v) => {
+                        if (deconvMethod === 'wiener') {
+                          setNoiseVariance(v[0] / 1000);
+                        } else {
+                          setRegularization(v[0] / 100);
+                        }
+                      }}
+                      min={1}
+                      max={deconvMethod === 'wiener' ? 100 : 10}
+                      step={1}
+                    />
+                  </div>
+                )}
+
+                <Button
                   className="w-full" 
                   onClick={handleProcess}
                   disabled={!originalImage || processing}
