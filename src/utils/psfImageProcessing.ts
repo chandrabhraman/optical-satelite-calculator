@@ -146,58 +146,69 @@ export async function deconvolveImage(
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   
-  // Convert to grayscale for processing
   const width = canvas.width;
   const height = canvas.height;
-  const gray: number[][] = [];
+  
+  // Separate RGB channels (normalize to 0-1)
+  const channels: number[][][] = [[], [], []]; // R, G, B
   
   for (let y = 0; y < height; y++) {
-    gray[y] = [];
+    for (let c = 0; c < 3; c++) {
+      channels[c][y] = [];
+    }
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      gray[y][x] = (data[idx] + data[idx + 1] + data[idx + 2]) / (3 * 255);
+      channels[0][y][x] = data[idx] / 255;     // R
+      channels[1][y][x] = data[idx + 1] / 255; // G
+      channels[2][y][x] = data[idx + 2] / 255; // B
     }
   }
   
-  // Initialize estimate
-  let estimate = gray.map(row => [...row]);
+  // Process each channel independently
+  const deconvolvedChannels: number[][][] = [];
   
-  // Richardson-Lucy iterations
-  for (let iter = 0; iter < iterations; iter++) {
-    // Convolve estimate with PSF
-    const convolved = convolve2D(estimate, psf);
+  for (let c = 0; c < 3; c++) {
+    // Initialize estimate for this channel
+    let estimate = channels[c].map(row => [...row]);
     
-    // Compute ratio
-    const ratio: number[][] = [];
-    for (let y = 0; y < height; y++) {
-      ratio[y] = [];
-      for (let x = 0; x < width; x++) {
-        ratio[y][x] = convolved[y][x] > 0 ? gray[y][x] / convolved[y][x] : 0;
+    // Richardson-Lucy iterations
+    for (let iter = 0; iter < iterations; iter++) {
+      // Convolve estimate with PSF
+      const convolved = convolve2D(estimate, psf);
+      
+      // Compute ratio
+      const ratio: number[][] = [];
+      for (let y = 0; y < height; y++) {
+        ratio[y] = [];
+        for (let x = 0; x < width; x++) {
+          ratio[y][x] = convolved[y][x] > 0 ? channels[c][y][x] / convolved[y][x] : 0;
+        }
+      }
+      
+      // Flip PSF for correlation
+      const psfFlipped = psf.map(row => [...row].reverse()).reverse();
+      
+      // Correlate with flipped PSF
+      const correction = convolve2D(ratio, psfFlipped);
+      
+      // Update estimate
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          estimate[y][x] *= correction[y][x];
+        }
       }
     }
     
-    // Flip PSF for correlation
-    const psfFlipped = psf.map(row => [...row].reverse()).reverse();
-    
-    // Correlate with flipped PSF
-    const correction = convolve2D(ratio, psfFlipped);
-    
-    // Update estimate
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        estimate[y][x] *= correction[y][x];
-      }
-    }
+    deconvolvedChannels[c] = estimate;
   }
   
-  // Convert back to image
+  // Reconstruct RGB image from deconvolved channels
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      const value = Math.min(255, Math.max(0, estimate[y][x] * 255));
-      data[idx] = value;
-      data[idx + 1] = value;
-      data[idx + 2] = value;
+      data[idx] = Math.min(255, Math.max(0, deconvolvedChannels[0][y][x] * 255));     // R
+      data[idx + 1] = Math.min(255, Math.max(0, deconvolvedChannels[1][y][x] * 255)); // G
+      data[idx + 2] = Math.min(255, Math.max(0, deconvolvedChannels[2][y][x] * 255)); // B
     }
   }
   
