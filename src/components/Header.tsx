@@ -55,6 +55,17 @@ const Header: React.FC = () => {
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
+            
+            <NavigationMenuItem>
+              <Link to="/psf-estimation">
+                <NavigationMenuLink className={cn(
+                  navigationMenuTriggerStyle(),
+                  location.pathname === "/psf-estimation" && "bg-primary/20"
+                )}>
+                  PSF Estimation
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       </div>
