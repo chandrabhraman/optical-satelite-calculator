@@ -16,13 +16,14 @@ const PSFEstimation: React.FC = () => {
   const [deconvolvedImage, setDeconvolvedImage] = useState<string>('');
   const [psfVisualization, setPsfVisualization] = useState<string>('');
   const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
   
   // PSF parameters
   const [psfType, setPsfType] = useState<PSFType>('motion');
   const [motionLength, setMotionLength] = useState(15);
   const [motionAngle, setMotionAngle] = useState(0);
   const [kernelSize, setKernelSize] = useState(15);
-  const [iterations, setIterations] = useState(10);
+  const [iterations, setIterations] = useState(5);
   
   // Deconvolution parameters
   const [deconvMethod, setDeconvMethod] = useState<DeconvolutionMethod>('richardsonLucy');
@@ -58,9 +59,11 @@ const PSFEstimation: React.FC = () => {
     }
 
     setProcessing(true);
+    setProgress(0);
     toast.info('Processing image...');
 
     try {
+      setProgress(5);
       // Estimate PSF
       const psf = estimatePSF(psfType, {
         length: motionLength,
@@ -96,7 +99,8 @@ const PSFEstimation: React.FC = () => {
         iterations,
         deconvMethod,
         regularization,
-        noiseVariance
+        noiseVariance,
+        setProgress
       );
       setDeconvolvedImage(deconvolved);
       
@@ -106,6 +110,7 @@ const PSFEstimation: React.FC = () => {
       toast.error('Failed to process image');
     } finally {
       setProcessing(false);
+      setProgress(0);
     }
   };
 
@@ -273,7 +278,7 @@ const PSFEstimation: React.FC = () => {
                   onClick={handleProcess}
                   disabled={!originalImage || processing}
                 >
-                  {processing ? 'Processing...' : 'Process Image'}
+                  {processing ? `Processing... ${Math.round(progress)}%` : 'Process Image'}
                 </Button>
               </CardContent>
             </Card>

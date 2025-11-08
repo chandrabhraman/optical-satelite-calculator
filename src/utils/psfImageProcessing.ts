@@ -133,32 +133,57 @@ function generateDefocusPSF(size: number): number[][] {
 /**
  * Perform image deconvolution using specified method
  */
+// Resize image if too large to prevent performance issues
+function resizeImageIfNeeded(img: HTMLImageElement, maxDimension: number = 1024): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  
+  let width = img.width;
+  let height = img.height;
+  
+  if (width > maxDimension || height > maxDimension) {
+    if (width > height) {
+      height = (height / width) * maxDimension;
+      width = maxDimension;
+    } else {
+      width = (width / height) * maxDimension;
+      height = maxDimension;
+    }
+  }
+  
+  canvas.width = width;
+  canvas.height = height;
+  ctx.drawImage(img, 0, 0, width, height);
+  
+  return canvas;
+}
+
 export async function deconvolveImage(
   image: HTMLImageElement,
   psf: number[][],
   iterations: number,
   method: DeconvolutionMethod = 'richardsonLucy',
   regularization: number = 0.01,
-  noiseVariance: number = 0.001
+  noiseVariance: number = 0.001,
+  onProgress?: (progress: number) => void
 ): Promise<string> {
+  // Resize image if needed
+  const resizedCanvas = resizeImageIfNeeded(image);
+  const width = resizedCanvas.width;
+  const height = resizedCanvas.height;
+  
   const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d');
   
   if (!ctx) throw new Error('Cannot get canvas context');
   
-  // Set canvas size
-  canvas.width = image.width;
-  canvas.height = image.height;
-  
-  // Draw image to canvas
-  ctx.drawImage(image, 0, 0);
+  ctx.drawImage(resizedCanvas, 0, 0);
   
   // Get image data
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
-  
-  const width = canvas.width;
-  const height = canvas.height;
   
   // Separate RGB channels (normalize to 0-1)
   const channels: number[][][] = [[], [], []]; // R, G, B
@@ -175,30 +200,39 @@ export async function deconvolveImage(
     }
   }
   
-  // Process each channel independently
+  // Process each channel independently with progress updates
   const deconvolvedChannels: number[][][] = [];
   
   for (let c = 0; c < 3; c++) {
     let estimate: number[][];
+    const channelProgress = (prog: number) => {
+      const baseProgress = 10 + (c * 25);
+      onProgress?.(baseProgress + (prog * 0.25));
+    };
     
     switch (method) {
       case 'wiener':
         estimate = wienerDeconvolution(channels[c], psf, noiseVariance);
+        channelProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 0));
         break;
       case 'richardsonLucyTV':
-        estimate = richardsonLucyTV(channels[c], psf, iterations, regularization);
+        estimate = await richardsonLucyTV(channels[c], psf, iterations, regularization, channelProgress);
         break;
       case 'blindDeconvolution':
-        estimate = blindDeconvolution(channels[c], psf, iterations);
+        estimate = await blindDeconvolution(channels[c], psf, iterations, channelProgress);
         break;
       case 'richardsonLucy':
       default:
-        estimate = richardsonLucy(channels[c], psf, iterations);
+        estimate = await richardsonLucy(channels[c], psf, iterations, channelProgress);
         break;
     }
     
     deconvolvedChannels[c] = estimate;
   }
+  
+  onProgress?.(85);
+  await new Promise(resolve => setTimeout(resolve, 0));
   
   // Reconstruct RGB image from deconvolved channels
   for (let y = 0; y < height; y++) {
@@ -211,13 +245,19 @@ export async function deconvolveImage(
   }
   
   ctx.putImageData(imageData, 0, 0);
+  onProgress?.(100);
   return canvas.toDataURL();
 }
 
 /**
  * Richardson-Lucy deconvolution algorithm
  */
-function richardsonLucy(image: number[][], psf: number[][], iterations: number): number[][] {
+async function richardsonLucy(
+  image: number[][], 
+  psf: number[][], 
+  iterations: number,
+  onProgress?: (progress: number) => void
+): Promise<number[][]> {
   const height = image.length;
   const width = image[0].length;
   let estimate = image.map(row => [...row]);
@@ -242,6 +282,12 @@ function richardsonLucy(image: number[][], psf: number[][], iterations: number):
         estimate[y][x] = Math.max(0, estimate[y][x]); // Non-negativity constraint
       }
     }
+    
+    // Yield to UI every 5 iterations
+    if (iter % 5 === 0) {
+      onProgress?.((iter / iterations) * 100);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
   
   return estimate;
@@ -250,7 +296,13 @@ function richardsonLucy(image: number[][], psf: number[][], iterations: number):
 /**
  * Richardson-Lucy with Total Variation regularization
  */
-function richardsonLucyTV(image: number[][], psf: number[][], iterations: number, lambda: number): number[][] {
+async function richardsonLucyTV(
+  image: number[][], 
+  psf: number[][], 
+  iterations: number, 
+  lambda: number,
+  onProgress?: (progress: number) => void
+): Promise<number[][]> {
   const height = image.length;
   const width = image[0].length;
   let estimate = image.map(row => [...row]);
@@ -278,6 +330,12 @@ function richardsonLucyTV(image: number[][], psf: number[][], iterations: number
         estimate[y][x] -= lambda * tvGrad[y][x]; // TV regularization
         estimate[y][x] = Math.max(0, estimate[y][x]);
       }
+    }
+    
+    // Yield to UI every 5 iterations
+    if (iter % 5 === 0) {
+      onProgress?.((iter / iterations) * 100);
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
   
@@ -319,7 +377,12 @@ function wienerDeconvolution(image: number[][], psf: number[][], noiseVariance: 
 /**
  * Blind deconvolution (alternating minimization)
  */
-function blindDeconvolution(image: number[][], initialPsf: number[][], iterations: number): number[][] {
+async function blindDeconvolution(
+  image: number[][], 
+  initialPsf: number[][], 
+  iterations: number,
+  onProgress?: (progress: number) => void
+): Promise<number[][]> {
   const height = image.length;
   const width = image[0].length;
   let estimate = image.map(row => [...row]);
@@ -327,11 +390,17 @@ function blindDeconvolution(image: number[][], initialPsf: number[][], iteration
   
   for (let iter = 0; iter < iterations; iter++) {
     // Update image estimate
-    estimate = richardsonLucy(image, psf, 2);
+    estimate = await richardsonLucy(image, psf, 2);
     
     // Update PSF estimate (every few iterations)
     if (iter % 3 === 0 && iter > 0) {
       psf = estimatePSFFromImage(image, estimate, psf.length);
+    }
+    
+    // Yield to UI every 3 iterations (blind deconv is slower)
+    if (iter % 3 === 0) {
+      onProgress?.((iter / iterations) * 100);
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
   
