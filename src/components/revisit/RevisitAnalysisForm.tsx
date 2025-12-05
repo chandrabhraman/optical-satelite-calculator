@@ -26,7 +26,10 @@ import { Progress } from "@/components/ui/progress";
 import { parseTLE, calculateLTAN, calculateGEOLongitude } from "@/utils/tleParser";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Satellite, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CelestrakSatelliteSelector from "./CelestrakSatelliteSelector";
+import { CelestrakSatellite } from "@/utils/celestrakApi";
 
 // Define prop types
 interface RevisitAnalysisFormProps {
@@ -86,6 +89,10 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const [tleParsedData, setTleParsedData] = useState<any>(null);
   const [useTLE, setUseTLE] = useState(false);
   
+  // Celestrak workflow state
+  const [workflowMode, setWorkflowMode] = useState<"manual" | "celestrak">("manual");
+  const [selectedCelestrakSatellites, setSelectedCelestrakSatellites] = useState<CelestrakSatellite[]>([]);
+  
   // Update inclination default when orbit type changes
   React.useEffect(() => {
     if (orbitType === "geo") {
@@ -136,8 +143,35 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   const onSubmit = (data: any) => {
     console.log("=== FORM SUBMISSION DEBUG ===");
     console.log("Form submitted with data:", data);
+    console.log("Workflow mode:", workflowMode);
     
-    // Use full precision TLE values for calculations if available
+    // Handle Celestrak workflow
+    if (workflowMode === "celestrak") {
+      if (selectedCelestrakSatellites.length === 0) {
+        console.error("No satellites selected from Celestrak");
+        return;
+      }
+      
+      // Build TLE data for all selected satellites
+      const tleData = selectedCelestrakSatellites.map(sat => ({
+        name: sat.name,
+        tle: `${sat.name}\n${sat.line1}\n${sat.line2}`,
+        line1: sat.line1,
+        line2: sat.line2,
+        noradId: sat.noradId,
+      }));
+      
+      data.celestrakSatellites = tleData;
+      data.constellationType = "celestrak";
+      data.totalSatellites = selectedCelestrakSatellites.length;
+      data.hasTLE = true;
+      
+      console.log("Using Celestrak satellites:", tleData.length);
+      onRunAnalysis(data);
+      return;
+    }
+    
+    // Use full precision TLE values for calculations if available (manual mode)
     if (tleParsedData) {
       data.altitude = tleParsedData.altitude;
       data.inclination = tleParsedData.inclination;
@@ -170,60 +204,86 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Orbit Parameters */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Orbit Configuration</h3>
+        {/* Workflow Mode Toggle */}
+        <Tabs value={workflowMode} onValueChange={(v) => setWorkflowMode(v as "manual" | "celestrak")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="manual" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Manual Input
+            </TabsTrigger>
+            <TabsTrigger value="celestrak" className="flex items-center gap-2">
+              <Satellite className="h-4 w-4" />
+              Filter by Constellation
+            </TabsTrigger>
+          </TabsList>
           
-          <FormField
-            control={form.control}
-            name="orbitType"
-            render={({ field }) => (
-              <FormItem className="mb-4">
-                <FormLabel>Orbit Type</FormLabel>
-                <Select 
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    setOrbitType(value);
-                  }}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select orbit type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="leo">LEO - General</SelectItem>
-                    <SelectItem value="sso">Sun-Synchronous (SSO)</SelectItem>
-                    <SelectItem value="meo">Medium Earth Orbit (MEO)</SelectItem>
-                    <SelectItem value="geo">Geostationary Orbit (GEO)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Select the type of orbit for your satellite(s)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <TabsContent value="celestrak" className="mt-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Search and select active satellites from Celestrak's database. Filter by constellation name (e.g., FLOCK, STARLINK, SENTINEL) to find satellites.
+              </p>
+              <CelestrakSatelliteSelector
+                selectedSatellites={selectedCelestrakSatellites}
+                onSatellitesSelected={setSelectedCelestrakSatellites}
+              />
+            </div>
+          </TabsContent>
           
-          {/* TLE Input for Single Satellite */}
-          {constellationType === "single" && (
-            <div className="mb-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Checkbox
-                  id="useTLE"
-                  checked={useTLE}
-                  onCheckedChange={(checked) => setUseTLE(checked === true)}
-                />
-                <label htmlFor="useTLE" className="text-sm font-medium">
-                  Use TLE Input (Optional)
-                </label>
-              </div>
+          <TabsContent value="manual" className="mt-4">
+            {/* Orbit Parameters */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Orbit Configuration</h3>
               
-              <Collapsible open={useTLE}>
-                <CollapsibleContent>
-                  <FormField
+              <FormField
+                control={form.control}
+                name="orbitType"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <FormLabel>Orbit Type</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setOrbitType(value);
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select orbit type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="leo">LEO - General</SelectItem>
+                        <SelectItem value="sso">Sun-Synchronous (SSO)</SelectItem>
+                        <SelectItem value="meo">Medium Earth Orbit (MEO)</SelectItem>
+                        <SelectItem value="geo">Geostationary Orbit (GEO)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select the type of orbit for your satellite(s)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* TLE Input for Single Satellite */}
+              {constellationType === "single" && (
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Checkbox
+                      id="useTLE"
+                      checked={useTLE}
+                      onCheckedChange={(checked) => setUseTLE(checked === true)}
+                    />
+                    <label htmlFor="useTLE" className="text-sm font-medium">
+                      Use TLE Input (Optional)
+                    </label>
+                  </div>
+                  
+                  <Collapsible open={useTLE}>
+                    <CollapsibleContent>
+                      <FormField
                     control={form.control}
                     name="tleInput"
                     render={({ field }) => (
@@ -691,15 +751,138 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
           </div>
           
         </div>
+          </TabsContent>
+        </Tabs>
+        
+        {/* Payload Parameters - shared between modes */}
+        {workflowMode === "celestrak" && selectedCelestrakSatellites.length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <h3 className="text-lg font-medium mb-4">Payload Characteristics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="swathWidth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Swath Width (km)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="maxOffNadirAngle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Off-Nadir (°)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>Maximum off-nadir pointing angle</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-medium mb-4">Analysis Settings</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="timeStep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Time Step (sec)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>Simulation time step in seconds</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="gridCellSize"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grid Cell Size</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select cell size" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="0.01deg">0.01° × 0.01° (Super high resolution)</SelectItem>
+                          <SelectItem value="0.5deg">0.5° × 0.5° (High resolution)</SelectItem>
+                          <SelectItem value="1deg">1° × 1° (Standard)</SelectItem>
+                          <SelectItem value="2deg">2° × 2° (Fast calculation)</SelectItem>
+                          <SelectItem value="5deg">5° × 5° (Rough estimate)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Resolution of analysis grid. Super high resolution may take significantly longer.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </>
+        )}
         
         {/* Submit Button */}
         <div className="mt-6">
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isAnalysisRunning}
+            disabled={isAnalysisRunning || (workflowMode === "celestrak" && selectedCelestrakSatellites.length === 0)}
           >
-            {isAnalysisRunning ? "Running Analysis..." : "Run Analysis"}
+            {isAnalysisRunning 
+              ? "Running Analysis..." 
+              : workflowMode === "celestrak" 
+                ? `Run Analysis (${selectedCelestrakSatellites.length} satellites)`
+                : "Run Analysis"
+            }
           </Button>
           
           {isAnalysisRunning && (
