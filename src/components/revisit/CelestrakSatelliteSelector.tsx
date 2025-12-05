@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Loader2, Search, Satellite, X, RefreshCw, Check } from "lucide-react";
 import {
-  fetchActiveSatellites,
   filterSatellitesByName,
   getUniqueConstellations,
   CelestrakSatellite,
@@ -22,6 +22,8 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
 }) => {
   const [allSatellites, setAllSatellites] = useState<CelestrakSatellite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStage, setLoadingStage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConstellationFilter, setSelectedConstellationFilter] = useState<string>("");
@@ -40,15 +42,80 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
   const loadSatellites = async () => {
     setIsLoading(true);
     setError(null);
+    setLoadingProgress(0);
+    setLoadingStage("Connecting to Celestrak...");
     
     try {
-      const satellites = await fetchActiveSatellites();
+      setLoadingProgress(10);
+      setLoadingStage("Downloading TLE data...");
+      
+      const response = await fetch(
+        'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle',
+        { mode: 'cors' }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch TLEs: ${response.status}`);
+      }
+      
+      setLoadingProgress(50);
+      setLoadingStage("Processing satellite data...");
+      
+      const tleText = await response.text();
+      const lines = tleText.trim().split('\n');
+      const satellites: CelestrakSatellite[] = [];
+      const totalLines = lines.length;
+      
+      for (let i = 0; i < lines.length; i += 3) {
+        if (i + 2 >= lines.length) break;
+        
+        const name = lines[i].trim();
+        const line1 = lines[i + 1].trim();
+        const line2 = lines[i + 2].trim();
+        
+        if (!line1.startsWith('1 ') || !line2.startsWith('2 ')) {
+          continue;
+        }
+        
+        const noradId = line1.substring(2, 7).trim();
+        const constellation = detectConstellation(name);
+        
+        satellites.push({ name, line1, line2, noradId, constellation });
+        
+        // Update progress every 500 satellites
+        if (i % 1500 === 0) {
+          const parseProgress = 50 + ((i / totalLines) * 40);
+          setLoadingProgress(Math.round(parseProgress));
+        }
+      }
+      
+      setLoadingProgress(95);
+      setLoadingStage("Finalizing...");
+      
       setAllSatellites(satellites);
+      setLoadingProgress(100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch satellites");
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Detect constellation from satellite name
+  const detectConstellation = (name: string): string | undefined => {
+    const upperName = name.toUpperCase();
+    const knownConstellations = [
+      'STARLINK', 'ONEWEB', 'FLOCK', 'LEMUR', 'DOVE', 'PLANETSCOPE',
+      'SPIRE', 'IRIDIUM', 'GLOBALSTAR', 'ORBCOMM', 'COSMOS', 'YAOGAN',
+      'JILIN', 'SKYSAT', 'WORLDVIEW', 'SENTINEL', 'LANDSAT', 'GOES', 'NOAA', 'METOP'
+    ];
+    
+    for (const constellation of knownConstellations) {
+      if (upperName.includes(constellation)) {
+        return constellation;
+      }
+    }
+    return undefined;
   };
 
   // Get unique constellations for filter
@@ -102,10 +169,16 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p>Loading active satellites from Celestrak...</p>
-        <p className="text-sm">This may take a moment</p>
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
+        <Satellite className="h-10 w-10 text-primary animate-pulse" />
+        <div className="w-full max-w-xs space-y-2">
+          <Progress value={loadingProgress} className="h-2" />
+          <div className="flex justify-between text-xs">
+            <span>{loadingStage}</span>
+            <span>{loadingProgress}%</span>
+          </div>
+        </div>
+        <p className="text-sm">Loading {loadingProgress > 50 ? 'thousands of' : ''} active satellites...</p>
       </div>
     );
   }

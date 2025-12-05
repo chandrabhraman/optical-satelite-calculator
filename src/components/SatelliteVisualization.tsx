@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { Camera } from "lucide-react";
 import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
@@ -28,7 +30,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    getCurrentEarthRotation
+    getCurrentEarthRotation,
+    captureSnapshot
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -37,6 +40,31 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       // We're keeping the callback but not using the position data anymore
     }
   });
+
+  // Handle snapshot capture
+  const handleSnapshot = () => {
+    const dataUrl = captureSnapshot();
+    if (dataUrl) {
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `satellite-visualization-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      toast({
+        title: "Snapshot captured",
+        description: "Your 3D visualization has been saved as an image.",
+        duration: 3000,
+      });
+    } else {
+      toast({
+        title: "Snapshot failed",
+        description: "Unable to capture the visualization. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
 
   // Update the altitude when inputs change - using the mean value
   useEffect(() => {
@@ -101,7 +129,20 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-primary flex justify-between items-center">
           <span>Satellite Sensor Field Visualization</span>
-          {!hasCalculated && <span className="text-sm font-normal text-muted-foreground">Click Calculate to activate</span>}
+          <div className="flex items-center gap-2">
+            {hasCalculated && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSnapshot}
+                className="text-xs"
+              >
+                <Camera className="h-4 w-4 mr-1" />
+                Snapshot
+              </Button>
+            )}
+            {!hasCalculated && <span className="text-sm font-normal text-muted-foreground">Click Calculate to activate</span>}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">
