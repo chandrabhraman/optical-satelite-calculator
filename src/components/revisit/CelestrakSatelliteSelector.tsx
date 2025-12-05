@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Satellite, X, RefreshCw } from "lucide-react";
+import { Loader2, Search, Satellite, X, RefreshCw, Check } from "lucide-react";
 import {
   fetchActiveSatellites,
   filterSatellitesByName,
@@ -26,6 +25,12 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConstellationFilter, setSelectedConstellationFilter] = useState<string>("");
+
+  // Create a Set of selected IDs for fast lookup
+  const selectedIds = useMemo(() => 
+    new Set(selectedSatellites.map(s => s.noradId)),
+    [selectedSatellites]
+  );
 
   // Fetch satellites on mount
   useEffect(() => {
@@ -69,31 +74,31 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
     return filtered;
   }, [allSatellites, searchTerm, selectedConstellationFilter]);
 
-  const handleSatelliteToggle = (satellite: CelestrakSatellite) => {
-    const isSelected = selectedSatellites.some(s => s.noradId === satellite.noradId);
+  const handleSatelliteToggle = useCallback((satellite: CelestrakSatellite) => {
+    const isSelected = selectedIds.has(satellite.noradId);
     
     if (isSelected) {
       onSatellitesSelected(selectedSatellites.filter(s => s.noradId !== satellite.noradId));
     } else {
       onSatellitesSelected([...selectedSatellites, satellite]);
     }
-  };
+  }, [selectedIds, selectedSatellites, onSatellitesSelected]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     // Add all filtered satellites that aren't already selected
     const newSelections = filteredSatellites.filter(
-      sat => !selectedSatellites.some(s => s.noradId === sat.noradId)
+      sat => !selectedIds.has(sat.noradId)
     );
     onSatellitesSelected([...selectedSatellites, ...newSelections]);
-  };
+  }, [filteredSatellites, selectedIds, selectedSatellites, onSatellitesSelected]);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     onSatellitesSelected([]);
-  };
+  }, [onSatellitesSelected]);
 
-  const handleRemoveSelected = (noradId: string) => {
+  const handleRemoveSelected = useCallback((noradId: string) => {
     onSatellitesSelected(selectedSatellites.filter(s => s.noradId !== noradId));
-  };
+  }, [selectedSatellites, onSatellitesSelected]);
 
   if (isLoading) {
     return (
@@ -204,7 +209,7 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
         )}
       </div>
 
-      {/* Satellite list */}
+      {/* Satellite list - using custom checkbox to avoid Radix issues */}
       <ScrollArea className="h-[300px] border rounded-lg">
         <div className="p-2 space-y-1">
           {filteredSatellites.length === 0 ? (
@@ -214,22 +219,26 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
             </div>
           ) : (
             filteredSatellites.slice(0, 500).map((satellite) => {
-              const isSelected = selectedSatellites.some(
-                s => s.noradId === satellite.noradId
-              );
+              const isSelected = selectedIds.has(satellite.noradId);
               
               return (
                 <div
                   key={satellite.noradId}
-                  className={`flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer ${
+                  className={`flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors ${
                     isSelected ? 'bg-primary/10' : ''
                   }`}
                   onClick={() => handleSatelliteToggle(satellite)}
                 >
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => handleSatelliteToggle(satellite)}
-                  />
+                  {/* Custom checkbox to avoid Radix ref issues */}
+                  <div 
+                    className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
+                      isSelected 
+                        ? 'bg-primary border-primary text-primary-foreground' 
+                        : 'border-muted-foreground/50'
+                    }`}
+                  >
+                    {isSelected && <Check className="h-3 w-3" />}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{satellite.name}</p>
                     <p className="text-xs text-muted-foreground">
