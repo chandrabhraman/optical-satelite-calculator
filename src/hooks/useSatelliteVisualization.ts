@@ -883,10 +883,24 @@ export function useSatelliteVisualization({
     }
   }, [inputs]);
 
+  // Capture snapshot of the 3D canvas
+  const captureSnapshot = (): string | null => {
+    if (!sceneRef.current || !sceneRef.current.renderer) {
+      return null;
+    }
+    
+    // Force a render to ensure the latest frame is captured
+    sceneRef.current.renderer.render(sceneRef.current.scene, sceneRef.current.camera);
+    
+    // Get the canvas data URL
+    return sceneRef.current.renderer.domElement.toDataURL('image/png');
+  };
+
   return { 
     updateSatelliteOrbit, 
     loadCustomModel, 
     startOrbitAnimation,
-    getCurrentEarthRotation
+    getCurrentEarthRotation,
+    captureSnapshot
   };
 }
