@@ -79,6 +79,11 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
       timeStep: 60,
       gridCellSize: "1deg",
       useJ2Perturbations: true,
+      
+      // Daytime filter defaults
+      onlyDaytimeRevisit: false,
+      localDaytimeStart: 1000,
+      localDaytimeEnd: 1700,
     }
   });
 
@@ -750,6 +755,75 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
             />
           </div>
           
+          {/* Daytime Filter */}
+          <div className="mt-4 p-4 border border-border rounded-lg">
+            <FormField
+              control={form.control}
+              name="onlyDaytimeRevisit"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Only Daytime Revisit</FormLabel>
+                    <FormDescription>
+                      Filter revisits to only count observations during local daytime
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            {form.watch("onlyDaytimeRevisit") && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="localDaytimeStart"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Local Daytime Start</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          placeholder="1000"
+                          min={0}
+                          max={2359}
+                        />
+                      </FormControl>
+                      <FormDescription>24h format (e.g., 1000 = 10:00 AM)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="localDaytimeEnd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Local Daytime End</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          placeholder="1700"
+                          min={0}
+                          max={2359}
+                        />
+                      </FormControl>
+                      <FormDescription>24h format (e.g., 1700 = 5:00 PM)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+          </div>
+          
         </div>
           </TabsContent>
         </Tabs>
@@ -865,6 +939,75 @@ const RevisitAnalysisForm: React.FC<RevisitAnalysisFormProps> = ({
                     </FormItem>
                   )}
                 />
+              </div>
+              
+              {/* Daytime Filter for Celestrak mode */}
+              <div className="mt-4 p-4 border border-border rounded-lg">
+                <FormField
+                  control={form.control}
+                  name="onlyDaytimeRevisit"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Only Daytime Revisit</FormLabel>
+                        <FormDescription>
+                          Filter revisits to only count observations during local daytime
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                {form.watch("onlyDaytimeRevisit") && (
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="localDaytimeStart"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local Daytime Start</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              placeholder="1000"
+                              min={0}
+                              max={2359}
+                            />
+                          </FormControl>
+                          <FormDescription>24h format (e.g., 1000 = 10:00 AM)</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="localDaytimeEnd"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local Daytime End</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              placeholder="1700"
+                              min={0}
+                              max={2359}
+                            />
+                          </FormControl>
+                          <FormDescription>24h format (e.g., 1700 = 5:00 PM)</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </>

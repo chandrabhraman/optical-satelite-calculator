@@ -637,10 +637,14 @@ export function useSatelliteVisualization({
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
     const positions = new Float32Array(starCount * 3);
+    const starRadius = 1000000; // Place stars at "infinite" distance (far beyond max camera distance)
     for (let i = 0; i < starCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 100000;
-      positions[i + 1] = (Math.random() - 0.5) * 100000;
-      positions[i + 2] = (Math.random() - 0.5) * 100000;
+      // Distribute stars uniformly on a sphere at infinite distance
+      const theta = Math.random() * Math.PI * 2; // Azimuthal angle [0, 2π]
+      const phi = Math.acos(2 * Math.random() - 1); // Polar angle [0, π] - uniform distribution
+      positions[i] = starRadius * Math.sin(phi) * Math.cos(theta);
+      positions[i + 1] = starRadius * Math.sin(phi) * Math.sin(theta);
+      positions[i + 2] = starRadius * Math.cos(phi);
     }
     starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
