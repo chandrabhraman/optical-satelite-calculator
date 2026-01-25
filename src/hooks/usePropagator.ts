@@ -31,6 +31,9 @@ interface RevisitCalculationParams {
   gridResolution: number;
   startDate?: Date;
   endDate?: Date;
+  onlyDaytimeRevisit?: boolean;
+  localDaytimeStart?: number; // 24h format e.g. 1000 for 10:00 AM
+  localDaytimeEnd?: number;   // 24h format e.g. 1700 for 5:00 PM
 }
 
 interface GroundTrackPoint {
@@ -199,7 +202,7 @@ export function usePropagator() {
 
   // Calculate revisit statistics for a grid covering Earth's surface
   const calculateRevisits = useCallback((params: RevisitCalculationParams): RevisitData => {
-    const { satellites, timeSpanHours, gridResolution } = params;
+    const { satellites, timeSpanHours, gridResolution, onlyDaytimeRevisit, localDaytimeStart, localDaytimeEnd } = params;
     
     // Initialize global grid (latitude × longitude)
     // gridResolution is in degrees, so calculate number of cells needed
@@ -209,6 +212,35 @@ export function usePropagator() {
     
     // Sensor parameters
     const sensorFOV = 10; // degrees - half angle of sensor field of view
+    
+    // Helper function to check if a timestamp is within local daytime at a given longitude
+    const isLocalDaytime = (timestamp: number, longitude: number): boolean => {
+      if (!onlyDaytimeRevisit) return true;
+      
+      const startTime = localDaytimeStart ?? 1000;
+      const endTime = localDaytimeEnd ?? 1700;
+      
+      // Convert timestamp to Date and get UTC hours/minutes
+      const date = new Date(timestamp);
+      const utcHours = date.getUTCHours();
+      const utcMinutes = date.getUTCMinutes();
+      
+      // Calculate local time offset from longitude (15 degrees = 1 hour)
+      const localOffsetHours = longitude / 15;
+      
+      // Calculate local time in decimal hours
+      let localDecimalHours = utcHours + utcMinutes / 60 + localOffsetHours;
+      
+      // Normalize to 0-24 range
+      while (localDecimalHours < 0) localDecimalHours += 24;
+      while (localDecimalHours >= 24) localDecimalHours -= 24;
+      
+      // Convert to 24h format (e.g., 1030 for 10:30)
+      const localTimeFormatted = Math.floor(localDecimalHours) * 100 + Math.round((localDecimalHours % 1) * 60);
+      
+      // Check if within daytime range
+      return localTimeFormatted >= startTime && localTimeFormatted <= endTime;
+    };
     
     // Process each satellite in the constellation
     for (const satellite of satellites) {
@@ -229,6 +261,11 @@ export function usePropagator() {
       for (let i = 0; i < groundTrack.length; i++) {
         const point = groundTrack[i];
         const nextPoint = groundTrack[i + 1];
+        
+        // Skip this point if daytime filter is enabled and it's not daytime at this location
+        if (onlyDaytimeRevisit && !isLocalDaytime(point.timestamp, point.lng)) {
+          continue;
+        }
         
         // Calculate sensor swath width based on altitude and FOV (120 km total swath width)
         const swathHalfWidth = 60 / 111; // 60 km = half of 120 km swath, converted to degrees

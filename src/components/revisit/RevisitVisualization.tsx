@@ -30,6 +30,9 @@ interface RevisitVisualizationProps {
     gridCellSize: string;
     startDate: Date;
     endDate: Date;
+    onlyDaytimeRevisit?: boolean;
+    localDaytimeStart?: number;
+    localDaytimeEnd?: number;
   } | null;
 }
 
@@ -262,7 +265,10 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
           timeSpanHours: analysisData.timeSpan,
           gridResolution: parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5'),
           startDate: analysisData.startDate,
-          endDate: analysisData.endDate
+          endDate: analysisData.endDate,
+          onlyDaytimeRevisit: analysisData.onlyDaytimeRevisit,
+          localDaytimeStart: analysisData.localDaytimeStart,
+          localDaytimeEnd: analysisData.localDaytimeEnd
         });
         
         console.log("Real statistics calculated:", revisitData.statistics);

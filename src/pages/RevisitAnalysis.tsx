@@ -38,6 +38,9 @@ const RevisitAnalysis: React.FC = () => {
     gridCellSize: string;
     startDate: Date;
     endDate: Date;
+    onlyDaytimeRevisit?: boolean;
+    localDaytimeStart?: number;
+    localDaytimeEnd?: number;
   } | null>(null);
   
   const handleRunAnalysis = (formData: any) => {
@@ -139,7 +142,10 @@ const RevisitAnalysis: React.FC = () => {
       timeSpan: timeSpanHours,
       gridCellSize: formData.gridCellSize,
       startDate: startDate,
-      endDate: endDate
+      endDate: endDate,
+      onlyDaytimeRevisit: formData.onlyDaytimeRevisit || false,
+      localDaytimeStart: parseInt(formData.localDaytimeStart) || 1000,
+      localDaytimeEnd: parseInt(formData.localDaytimeEnd) || 1700
     };
     
     console.log("Setting analysis data with satellites count:", newAnalysisData.satellites.length);
