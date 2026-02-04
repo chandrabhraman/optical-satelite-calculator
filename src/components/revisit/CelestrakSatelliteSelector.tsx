@@ -275,9 +275,15 @@ const CelestrakSatelliteSelector: React.FC<CelestrakSatelliteSelectorProps> = ({
         <span>
           Showing {filteredSatellites.length} of {allSatellites.length} satellites
         </span>
-        {filteredSatellites.length > 0 && filteredSatellites.length <= 100 && (
-          <Button variant="link" size="sm" onClick={handleSelectAll}>
-            Select all {filteredSatellites.length}
+        {filteredSatellites.length > 0 && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleSelectAll}
+            disabled={filteredSatellites.every(sat => selectedIds.has(sat.noradId))}
+          >
+            <Check className="h-3 w-3 mr-1" />
+            Select all {filteredSatellites.length} filtered
           </Button>
         )}
       </div>
