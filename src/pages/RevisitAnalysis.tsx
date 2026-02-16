@@ -68,49 +68,58 @@ const RevisitAnalysis: React.FC = () => {
       }
     } else {
       // Original manual workflow
-      const numSatellites = formData.totalSatellites || 1;
+      const numSatellites = Number(formData.totalSatellites) || 1;
+      
+      // Parse all numeric values upfront to avoid string issues
+      const altitude = Number(formData.altitude) || 550;
+      const inclination = Number(formData.inclination) || 97.6;
+      const raan = Number(formData.raan) || 0;
+      const eccentricity = Number(formData.eccentricity) || 0.0;
+      const argOfPerigee = Number(formData.argOfPerigee) || 0.0;
+      const inPlaneSpacing = Number(formData.inPlaneSpacing) || 30;
+      const planes = Number(formData.planes) || 1;
+      const phasing = Number(formData.phasing) || 0;
+      const longitudeGEO = Number(formData.longitudeGEO) || 0;
       
       for (let i = 0; i < numSatellites; i++) {
         let satellite = {
           id: `sat_${i + 1}`,
           name: `Satellite ${i + 1}`,
-          altitude: formData.altitude || 550,
-          inclination: formData.inclination || 97.6,
-          raan: formData.raan || 0,
+          altitude: altitude,
+          inclination: inclination,
+          raan: raan,
           trueAnomaly: 0,
-          eccentricity: formData.eccentricity || 0.0,
-          argOfPerigee: formData.argOfPerigee || 0.0,
+          eccentricity: eccentricity,
+          argOfPerigee: argOfPerigee,
           tle: undefined as string | undefined
         };
         
         // Handle GEO orbit type
         if (formData.orbitType === "geo") {
           satellite.altitude = 35786; // GEO altitude in km
-          satellite.inclination = formData.inclination || 0; // Use form inclination or default to 0
-          // Convert longitude to RAAN (longitude is the sub-satellite point)
-          satellite.raan = formData.longitudeGEO || 0;
-          satellite.trueAnomaly = 0; // GEO satellites are typically at 0 true anomaly
+          satellite.inclination = Number(formData.inclination) || 0;
+          satellite.raan = longitudeGEO;
+          satellite.trueAnomaly = 0;
         }
-        // Adjust parameters based on constellation type
-        else if (formData.constellationType === "train") {
+        
+        // Adjust parameters based on constellation type (applied AFTER orbit type)
+        if (formData.constellationType === "train") {
           // For train constellation, space satellites in mean anomaly
-          satellite.trueAnomaly = i * (formData.inPlaneSpacing || 30);
+          satellite.trueAnomaly = i * inPlaneSpacing;
         } else if (formData.constellationType === "walker") {
           // For walker constellation, distribute across planes
-          const satellitesPerPlane = Math.floor(numSatellites / (formData.planes || 1));
+          const satellitesPerPlane = Math.floor(numSatellites / planes);
           const planeIndex = Math.floor(i / satellitesPerPlane);
           const satInPlane = i % satellitesPerPlane;
           
-          satellite.raan = (formData.raan || 0) + (planeIndex * 180 / (formData.planes || 1));
-          satellite.trueAnomaly = satInPlane * (360 / satellitesPerPlane) + (planeIndex * (formData.phasing || 0));
+          satellite.raan = raan + (planeIndex * 180 / planes);
+          satellite.trueAnomaly = satInPlane * (360 / satellitesPerPlane) + (planeIndex * phasing);
         }
         
         // Generate TLE for this satellite
         if (formData.tleInput && formData.constellationType === "single") {
-          // Use provided TLE for single satellite
           satellite.tle = formData.tleInput;
         } else {
-          // Generate TLE from orbital parameters
           satellite.tle = generateTLE({
             altitude: satellite.altitude,
             inclination: satellite.inclination,

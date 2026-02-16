@@ -39,8 +39,10 @@ function calculateChecksum(line: string): number {
 /**
  * Format number to fixed width with leading zeros
  */
-function formatFixed(value: number, width: number, decimals: number = 0): string {
-  const formatted = decimals > 0 ? value.toFixed(decimals) : Math.floor(value).toString();
+function formatFixed(value: number | string, width: number, decimals: number = 0): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return '0'.repeat(width);
+  const formatted = decimals > 0 ? numValue.toFixed(decimals) : Math.floor(numValue).toString();
   return formatted.padStart(width, '0');
 }
 
