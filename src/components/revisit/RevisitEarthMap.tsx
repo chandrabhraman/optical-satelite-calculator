@@ -62,6 +62,18 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   
   const { propagateSatelliteOrbit, calculateRevisits } = usePropagator();
 
+  // Point-in-polygon test (ray casting algorithm)
+  const isPointInPolygon = (lat: number, lng: number, polygon: Array<{ lat: number; lng: number }>): boolean => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lng, yi = polygon[i].lat;
+      const xj = polygon[j].lng, yj = polygon[j].lat;
+      const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
   // Satellite colors for ground tracks
   const satelliteColors = [
     '#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff',
