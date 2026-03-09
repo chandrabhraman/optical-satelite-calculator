@@ -171,6 +171,11 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     scene.add(groundTracks);
     groundTracksRef.current = groundTracks;
     
+    // AOI group for polygon drawing
+    const aoiGroup = new THREE.Group();
+    scene.add(aoiGroup);
+    aoiGroupRef.current = aoiGroup;
+    
     // Render loop with forced render on each frame for snapshot capability
     const render = () => {
       if (controlsRef.current) {
