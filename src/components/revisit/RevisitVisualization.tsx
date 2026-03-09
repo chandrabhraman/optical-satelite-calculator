@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { usePropagator } from "@/hooks/usePropagator";
-import RevisitEarthMap from "./RevisitEarthMap";
+import RevisitEarthMap, { AoiPolygon } from "./RevisitEarthMap";
 
 interface RevisitVisualizationProps {
   tab: string;
