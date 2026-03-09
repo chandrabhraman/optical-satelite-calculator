@@ -778,8 +778,24 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
 
       {/* Controls info */}
       <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm p-2 rounded text-xs text-foreground border">
-        <div>{is2D ? 'Click and drag to pan' : 'Click and drag to rotate'}</div>
-        <div>Scroll to zoom</div>
+        {aoiMode ? (
+          <>
+            <div className="font-medium text-green-400">AOI Drawing Mode</div>
+            {aoiDrawing ? (
+              <>
+                <div>Click to add vertices ({aoiVertexCount} placed)</div>
+                <div>Double-click to close polygon (min 3)</div>
+              </>
+            ) : (
+              <div>Click on map to start drawing polygon</div>
+            )}
+          </>
+        ) : (
+          <>
+            <div>{is2D ? 'Click and drag to pan' : 'Click and drag to rotate'}</div>
+            <div>Scroll to zoom</div>
+          </>
+        )}
       </div>
 
       {/* Simulation info */}
