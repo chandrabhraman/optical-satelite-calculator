@@ -6,6 +6,10 @@ import { usePropagator } from '@/hooks/usePropagator';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Globe, Map, Eye, EyeOff } from 'lucide-react';
 
+export interface AoiPolygon {
+  vertices: Array<{ lat: number; lng: number }>;
+}
+
 interface RevisitEarthMapProps {
   satellites?: Array<{
     id: string;
@@ -22,6 +26,9 @@ interface RevisitEarthMapProps {
   isHeatmapActive?: boolean;
   showGroundTracks?: boolean;
   gridSize?: number;
+  aoiMode?: boolean;
+  onAoiDefined?: (polygon: AoiPolygon | null) => void;
+  aoiPolygon?: AoiPolygon | null;
 }
 
 const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
@@ -29,7 +36,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   timeSpan = 24,
   isHeatmapActive = false,
   showGroundTracks = true,
-  gridSize = 5
+  gridSize = 5,
+  aoiMode = false,
+  onAoiDefined,
+  aoiPolygon = null
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -39,13 +49,30 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   const earthRef = useRef<THREE.Mesh | null>(null);
   const groundTracksRef = useRef<THREE.Group | null>(null);
   const heatmapRef = useRef<THREE.Mesh | null>(null);
+  const aoiGroupRef = useRef<THREE.Group | null>(null);
+  const aoiVerticesRef = useRef<Array<{ lat: number; lng: number }>>([]);
+  const isDrawingAoiRef = useRef(false);
   
-  const [is2D, setIs2D] = useState(false);
+  const [is2D, setIs2D] = useState(aoiMode ? true : false);
   const [tracksVisible, setTracksVisible] = useState(showGroundTracks);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [maxRevisitCount, setMaxRevisitCount] = useState(0);
+  const [aoiDrawing, setAoiDrawing] = useState(false);
+  const [aoiVertexCount, setAoiVertexCount] = useState(0);
   
   const { propagateSatelliteOrbit, calculateRevisits } = usePropagator();
+
+  // Point-in-polygon test (ray casting algorithm)
+  const isPointInPolygon = (lat: number, lng: number, polygon: Array<{ lat: number; lng: number }>): boolean => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lng, yi = polygon[i].lat;
+      const xj = polygon[j].lng, yj = polygon[j].lat;
+      const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
 
   // Satellite colors for ground tracks
   const satelliteColors = [
@@ -155,6 +182,11 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
     const groundTracks = new THREE.Group();
     scene.add(groundTracks);
     groundTracksRef.current = groundTracks;
+    
+    // AOI group for polygon drawing
+    const aoiGroup = new THREE.Group();
+    scene.add(aoiGroup);
+    aoiGroupRef.current = aoiGroup;
     
     // Render loop with forced render on each frame for snapshot capability
     const render = () => {
@@ -414,8 +446,241 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
       sceneRef.current.add(heatmap);
       heatmapRef.current = heatmap;
     }
-  }, [isHeatmapActive, satellites, calculateRevisits, timeSpan, is2D, gridSize]);
-  
+  }, [isHeatmapActive, satellites, calculateRevisits, timeSpan, is2D, gridSize, aoiPolygon]);
+
+  // Helper: convert screen click to lat/lng in 2D mode
+  const screenToLatLng = (event: MouseEvent): { lat: number; lng: number } | null => {
+    if (!containerRef.current || !cameraRef.current || !rendererRef.current) return null;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, cameraRef.current);
+    
+    if (earthRef.current) {
+      const intersects = raycaster.intersectObject(earthRef.current);
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        // In 2D mode, earth is a PlaneGeometry(4, 2) centered at origin
+        const lng = (point.x + 2) * (360 / 4) - 180;
+        const lat = 90 - (point.y + 1) * (180 / 2);
+        return { lat: Math.max(-90, Math.min(90, lat)), lng: Math.max(-180, Math.min(180, lng)) };
+      }
+    }
+    return null;
+  };
+
+  // Draw AOI polygon on the scene
+  const drawAoiPolygon = (vertices: Array<{ lat: number; lng: number }>, closed: boolean) => {
+    if (!aoiGroupRef.current) return;
+    
+    // Clear previous AOI visuals
+    while (aoiGroupRef.current.children.length > 0) {
+      const child = aoiGroupRef.current.children[0];
+      aoiGroupRef.current.remove(child);
+      if (child instanceof THREE.Line || child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        if (child.material instanceof THREE.Material) child.material.dispose();
+      }
+    }
+    
+    if (vertices.length === 0) return;
+    
+    // Convert vertices to 2D map coords
+    const points = vertices.map(v => {
+      const x = (v.lng + 180) * (4 / 360) - 2;
+      const y = 1 - (v.lat + 90) * (2 / 180);
+      return new THREE.Vector3(x, y, 0.02);
+    });
+    
+    // Draw vertex dots
+    vertices.forEach((v) => {
+      const x = (v.lng + 180) * (4 / 360) - 2;
+      const y = 1 - (v.lat + 90) * (2 / 180);
+      const dotGeom = new THREE.CircleGeometry(0.02, 16);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+      const dot = new THREE.Mesh(dotGeom, dotMat);
+      dot.position.set(x, y, 0.025);
+      aoiGroupRef.current?.add(dot);
+    });
+    
+    // Draw lines
+    if (points.length > 1) {
+      const linePoints = [...points];
+      if (closed) linePoints.push(points[0]);
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(linePoints);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+      const line = new THREE.Line(lineGeom, lineMat);
+      aoiGroupRef.current.add(line);
+    }
+    
+    // Draw filled polygon if closed
+    if (closed && points.length >= 3) {
+      const shape = new THREE.Shape();
+      shape.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        shape.lineTo(points[i].x, points[i].y);
+      }
+      shape.closePath();
+      const shapeGeom = new THREE.ShapeGeometry(shape);
+      const shapeMat = new THREE.MeshBasicMaterial({ 
+        color: 0x00ff88, 
+        transparent: true, 
+        opacity: 0.15,
+        side: THREE.DoubleSide
+      });
+      const shapeMesh = new THREE.Mesh(shapeGeom, shapeMat);
+      shapeMesh.position.z = 0.015;
+      aoiGroupRef.current.add(shapeMesh);
+    }
+  };
+
+  // AOI click handler for 2D mode
+  useEffect(() => {
+    if (!aoiMode || !containerRef.current || !rendererRef.current) return;
+    
+    // Force 2D for AOI mode
+    if (!is2D) {
+      setIs2D(true);
+      return;
+    }
+    
+    const canvas = rendererRef.current.domElement;
+    
+    const handleClick = (event: MouseEvent) => {
+      const latLng = screenToLatLng(event);
+      if (!latLng) return;
+      
+      if (!isDrawingAoiRef.current) {
+        // Start drawing
+        isDrawingAoiRef.current = true;
+        aoiVerticesRef.current = [latLng];
+        setAoiDrawing(true);
+        setAoiVertexCount(1);
+        drawAoiPolygon([latLng], false);
+        onAoiDefined?.(null); // Reset previous AOI
+      } else {
+        // Add vertex
+        aoiVerticesRef.current.push(latLng);
+        setAoiVertexCount(aoiVerticesRef.current.length);
+        drawAoiPolygon(aoiVerticesRef.current, false);
+      }
+    };
+    
+    const handleDblClick = (event: MouseEvent) => {
+      event.preventDefault();
+      if (isDrawingAoiRef.current && aoiVerticesRef.current.length >= 3) {
+        // Close polygon
+        isDrawingAoiRef.current = false;
+        setAoiDrawing(false);
+        drawAoiPolygon(aoiVerticesRef.current, true);
+        onAoiDefined?.({ vertices: [...aoiVerticesRef.current] });
+      }
+    };
+    
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('dblclick', handleDblClick);
+    
+    return () => {
+      canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('dblclick', handleDblClick);
+    };
+  }, [aoiMode, is2D, satellites.length]);
+
+  // Draw existing AOI polygon when provided
+  useEffect(() => {
+    if (aoiPolygon && aoiPolygon.vertices.length >= 3) {
+      drawAoiPolygon(aoiPolygon.vertices, true);
+    }
+  }, [aoiPolygon, is2D]);
+
+  // AOI-filtered heatmap: only show coverage within polygon
+  useEffect(() => {
+    if (!aoiMode || !aoiPolygon || !sceneRef.current || satellites.length === 0) return;
+    
+    // Clear existing heatmap first
+    if (heatmapRef.current && heatmapRef.current.parent) {
+      sceneRef.current.remove(heatmapRef.current);
+      heatmapRef.current.geometry.dispose();
+      if (heatmapRef.current.material instanceof THREE.Material) {
+        heatmapRef.current.material.dispose();
+      }
+      heatmapRef.current = null;
+    }
+    
+    const gridResolution = gridSize;
+    const revisitData = calculateRevisits({
+      satellites: satellites.map(sat => ({
+        altitude: sat.altitude,
+        inclination: sat.inclination,
+        raan: sat.raan,
+        trueAnomaly: sat.trueAnomaly,
+        tle: sat.tle,
+        eccentricity: sat.eccentricity,
+        argOfPerigee: sat.argOfPerigee
+      })),
+      timeSpanHours: timeSpan,
+      gridResolution,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + timeSpan * 60 * 60 * 1000)
+    });
+    
+    // Filter grid to only show cells inside AOI polygon
+    const filteredGrid = revisitData.grid.map((row, latIdx) => 
+      row.map((val, lngIdx) => {
+        const lat = 90 - latIdx * gridResolution;
+        const lng = -180 + lngIdx * gridResolution;
+        return isPointInPolygon(lat, lng, aoiPolygon.vertices) ? val : 0;
+      })
+    );
+    
+    const filteredMax = Math.max(...filteredGrid.flat());
+    setHeatmapData(filteredGrid);
+    setMaxRevisitCount(filteredMax);
+    
+    // Build heatmap texture
+    const textureSize = 512;
+    const data = new Uint8Array(4 * textureSize * textureSize);
+    
+    for (let i = 0; i < textureSize; i++) {
+      for (let j = 0; j < textureSize; j++) {
+        const index = (i * textureSize + j) * 4;
+        const latIndex = Math.floor((i / textureSize) * filteredGrid.length);
+        const lngIndex = Math.floor((j / textureSize) * (filteredGrid[0]?.length || 1));
+        const value = filteredGrid[latIndex]?.[lngIndex] || 0;
+        const normalizedValue = filteredMax > 0 ? value / filteredMax : 0;
+        
+        if (normalizedValue > 0.8) {
+          data[index] = 255; data[index + 1] = Math.max(0, 255 - (normalizedValue - 0.8) * 1275); data[index + 2] = 0;
+        } else if (normalizedValue > 0.6) {
+          data[index] = 255; data[index + 1] = Math.floor(255 - (normalizedValue - 0.6) * 1275); data[index + 2] = 0;
+        } else if (normalizedValue > 0.4) {
+          data[index] = 255; data[index + 1] = 255; data[index + 2] = Math.floor((0.6 - normalizedValue) * 1275);
+        } else if (normalizedValue > 0.2) {
+          data[index] = Math.floor(255 * (normalizedValue - 0.2) * 5); data[index + 1] = 255; data[index + 2] = 0;
+        } else if (normalizedValue > 0) {
+          data[index] = 0; data[index + 1] = Math.floor(255 * normalizedValue * 5); data[index + 2] = Math.floor(255 * (0.2 - normalizedValue) * 5);
+        } else {
+          data[index] = 0; data[index + 1] = 0; data[index + 2] = 0;
+        }
+        data[index + 3] = normalizedValue > 0 ? Math.floor(180 * normalizedValue + 75) : 0;
+      }
+    }
+    
+    const heatmapTexture = new THREE.DataTexture(data, textureSize, textureSize, THREE.RGBAFormat);
+    heatmapTexture.needsUpdate = true;
+    const heatmapGeometry = new THREE.PlaneGeometry(4.02, 2.02, Math.ceil(360 / gridResolution), Math.ceil(180 / gridResolution));
+    const heatmapMaterial = new THREE.MeshBasicMaterial({ map: heatmapTexture, transparent: true, opacity: 0.8 });
+    const heatmap = new THREE.Mesh(heatmapGeometry, heatmapMaterial);
+    heatmap.position.z = 0.01;
+    sceneRef.current.add(heatmap);
+    heatmapRef.current = heatmap;
+  }, [aoiMode, aoiPolygon, satellites, gridSize, timeSpan]);
+
   // Don't render anything if no satellites
   if (satellites.length === 0) {
     return (
@@ -513,8 +778,24 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
 
       {/* Controls info */}
       <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm p-2 rounded text-xs text-foreground border">
-        <div>{is2D ? 'Click and drag to pan' : 'Click and drag to rotate'}</div>
-        <div>Scroll to zoom</div>
+        {aoiMode ? (
+          <>
+            <div className="font-medium text-green-400">AOI Drawing Mode</div>
+            {aoiDrawing ? (
+              <>
+                <div>Click to add vertices ({aoiVertexCount} placed)</div>
+                <div>Double-click to close polygon (min 3)</div>
+              </>
+            ) : (
+              <div>Click on map to start drawing polygon</div>
+            )}
+          </>
+        ) : (
+          <>
+            <div>{is2D ? 'Click and drag to pan' : 'Click and drag to rotate'}</div>
+            <div>Scroll to zoom</div>
+          </>
+        )}
       </div>
 
       {/* Simulation info */}
