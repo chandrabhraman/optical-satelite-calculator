@@ -6,6 +6,10 @@ import { usePropagator } from '@/hooks/usePropagator';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Globe, Map, Eye, EyeOff } from 'lucide-react';
 
+export interface AoiPolygon {
+  vertices: Array<{ lat: number; lng: number }>;
+}
+
 interface RevisitEarthMapProps {
   satellites?: Array<{
     id: string;
@@ -22,6 +26,9 @@ interface RevisitEarthMapProps {
   isHeatmapActive?: boolean;
   showGroundTracks?: boolean;
   gridSize?: number;
+  aoiMode?: boolean;
+  onAoiDefined?: (polygon: AoiPolygon | null) => void;
+  aoiPolygon?: AoiPolygon | null;
 }
 
 const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
@@ -29,7 +36,10 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   timeSpan = 24,
   isHeatmapActive = false,
   showGroundTracks = true,
-  gridSize = 5
+  gridSize = 5,
+  aoiMode = false,
+  onAoiDefined,
+  aoiPolygon = null
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
