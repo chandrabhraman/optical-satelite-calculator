@@ -635,17 +635,37 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             <RevisitEarthMap 
               satellites={satellites}
               timeSpan={simulationTimeSpan}
-              isHeatmapActive={true}
+              isHeatmapActive={false}
               showGroundTracks={true}
               gridSize={gridSize}
+              aoiMode={true}
+              onAoiDefined={handleAoiDefined}
+              aoiPolygon={aoiPolygon}
             />
           </div>
           <div className="p-4 space-y-4">
             <Alert>
               <AlertTitle>Area of Interest Analysis</AlertTitle>
               <AlertDescription>
-                Draw a polygon on the map to analyze revisit statistics for a specific area.
+                {aoiPolygon ? (
+                  <div className="space-y-1">
+                    <p className="text-green-500 font-medium">AOI polygon defined ({aoiPolygon.vertices.length} vertices)</p>
+                    <Button variant="outline" size="sm" onClick={() => { setAoiPolygon(null); setAoiStats(null); }}>
+                      Clear AOI & Redraw
+                    </Button>
+                  </div>
+                ) : (
+                  <p>Click on the 2D map to place polygon vertices. Double-click to close the polygon. Only the AOI area will show coverage.</p>
+                )}
               </AlertDescription>
+              {aoiStats && (
+                <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                  <div>AOI Coverage: <span className="font-medium">{aoiStats.coverage}%</span></div>
+                  <div>Avg Revisit Count: <span className="font-medium">{aoiStats.averageRevisit}</span></div>
+                  <div>Max Revisit Count: <span className="font-medium">{aoiStats.maxGap}</span></div>
+                  <div>Min Revisit Count: <span className="font-medium">{aoiStats.minRevisit}</span></div>
+                </div>
+              )}
               <div className="text-xs text-muted-foreground mt-2">
                 Analysis for {satellites.length} satellites over {simulationTimeSpan} hours using {gridSize}° grid.
               </div>
