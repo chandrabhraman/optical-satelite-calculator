@@ -320,6 +320,83 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
       }
     }
   }, [isAnalysisRunning, analysisProgress, analysisData]);
+
+  // Calculate AOI-specific stats when polygon is defined
+  const handleAoiDefined = (polygon: AoiPolygon | null) => {
+    setAoiPolygon(polygon);
+    if (!polygon || polygon.vertices.length < 3 || !analysisData) {
+      setAoiStats(null);
+      return;
+    }
+    
+    try {
+      // Point-in-polygon for filtering
+      const isPointInPoly = (lat: number, lng: number, verts: Array<{ lat: number; lng: number }>) => {
+        let inside = false;
+        for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+          const xi = verts[i].lng, yi = verts[i].lat;
+          const xj = verts[j].lng, yj = verts[j].lat;
+          const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      };
+      
+      const gridRes = parseFloat(analysisData.gridCellSize?.replace('deg', '') || '5');
+      const revisitData = calculateRevisits({
+        satellites: analysisData.satellites.map(sat => ({
+          altitude: sat.altitude, inclination: sat.inclination,
+          raan: sat.raan, trueAnomaly: sat.trueAnomaly,
+          tle: sat.tle, eccentricity: sat.eccentricity, argOfPerigee: sat.argOfPerigee
+        })),
+        timeSpanHours: analysisData.timeSpan,
+        gridResolution: gridRes,
+        startDate: analysisData.startDate,
+        endDate: analysisData.endDate,
+        onlyDaytimeRevisit: analysisData.onlyDaytimeRevisit,
+        localDaytimeStart: analysisData.localDaytimeStart,
+        localDaytimeEnd: analysisData.localDaytimeEnd
+      });
+      
+      // Filter to AOI cells only
+      let totalRevisits = 0, cellCount = 0, maxGap = 0, minRevisit = Infinity;
+      revisitData.grid.forEach((row, latIdx) => {
+        row.forEach((val, lngIdx) => {
+          const lat = 90 - latIdx * gridRes;
+          const lng = -180 + lngIdx * gridRes;
+          if (isPointInPoly(lat, lng, polygon.vertices) && val > 0) {
+            totalRevisits += val;
+            cellCount++;
+            maxGap = Math.max(maxGap, val);
+            minRevisit = Math.min(minRevisit, val);
+          }
+        });
+      });
+      
+      // Count total AOI cells for coverage
+      let totalAoiCells = 0;
+      revisitData.grid.forEach((row, latIdx) => {
+        row.forEach((_, lngIdx) => {
+          const lat = 90 - latIdx * gridRes;
+          const lng = -180 + lngIdx * gridRes;
+          if (isPointInPoly(lat, lng, polygon.vertices)) totalAoiCells++;
+        });
+      });
+      
+      const avgRevisit = cellCount > 0 ? totalRevisits / cellCount : 0;
+      const coverage = totalAoiCells > 0 ? (cellCount / totalAoiCells) * 100 : 0;
+      
+      setAoiStats({
+        averageRevisit: parseFloat(avgRevisit.toFixed(2)),
+        maxGap,
+        minRevisit: minRevisit === Infinity ? 0 : minRevisit,
+        coverage: parseFloat(coverage.toFixed(1))
+      });
+    } catch (error) {
+      console.error("Error calculating AOI stats:", error);
+      setAoiStats(null);
+    }
+  };
   
   // Placeholder for when there are no results yet
   const NoResultsPlaceholder = () => (
