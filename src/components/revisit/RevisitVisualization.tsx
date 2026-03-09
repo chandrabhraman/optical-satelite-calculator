@@ -65,6 +65,13 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
     coverage: 0,
     isCalculating: false
   });
+  const [aoiPolygon, setAoiPolygon] = useState<AoiPolygon | null>(null);
+  const [aoiStats, setAoiStats] = useState<{
+    averageRevisit: number;
+    maxGap: number;
+    minRevisit: number;
+    coverage: number;
+  } | null>(null);
   
   // Get the propagator hook for calculations
   const { calculateRevisits } = usePropagator();
