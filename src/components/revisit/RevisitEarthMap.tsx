@@ -49,11 +49,16 @@ const RevisitEarthMap: React.FC<RevisitEarthMapProps> = ({
   const earthRef = useRef<THREE.Mesh | null>(null);
   const groundTracksRef = useRef<THREE.Group | null>(null);
   const heatmapRef = useRef<THREE.Mesh | null>(null);
+  const aoiGroupRef = useRef<THREE.Group | null>(null);
+  const aoiVerticesRef = useRef<Array<{ lat: number; lng: number }>>([]);
+  const isDrawingAoiRef = useRef(false);
   
-  const [is2D, setIs2D] = useState(false);
+  const [is2D, setIs2D] = useState(aoiMode ? true : false);
   const [tracksVisible, setTracksVisible] = useState(showGroundTracks);
   const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [maxRevisitCount, setMaxRevisitCount] = useState(0);
+  const [aoiDrawing, setAoiDrawing] = useState(false);
+  const [aoiVertexCount, setAoiVertexCount] = useState(0);
   
   const { propagateSatelliteOrbit, calculateRevisits } = usePropagator();
 
