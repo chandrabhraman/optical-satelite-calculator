@@ -91,6 +91,16 @@ const Index = () => {
     localStorage.setItem('local-calculation-count', newCount.toString());
   };
 
+  // Debounced live-recalc as the user edits inputs (no count increment, no toast).
+  const handleLiveChange = useCallback((formInputs: SensorInputs) => {
+    setInputs(formInputs);
+    try {
+      setResults(calculateResults(formInputs));
+    } catch (e) {
+      // ignore intermediate invalid states
+    }
+  }, []);
+
   const handleShare = () => {
     if (!results) {
       toast({
@@ -179,7 +189,7 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-primary">Sensor Parameters</h2>
               </div>
-              <CalculatorForm onCalculate={handleCalculate} />
+              <CalculatorForm onCalculate={handleCalculate} onLiveChange={handleLiveChange} />
               
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-primary">Calculation Results</h2>
