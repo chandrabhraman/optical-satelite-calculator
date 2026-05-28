@@ -163,16 +163,32 @@ const Index = () => {
       
       <main className="min-h-screen space-gradient text-foreground">
         <div className="container mx-auto py-8 pb-12">
-          <header className="text-center mb-12 relative">
-            <div className="absolute top-0 right-0 pt-2">
+          <header className="text-center mb-12 relative overflow-hidden rounded-xl">
+            {/* Subtle looping ambient background behind the hero */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0">
+              <div className="absolute inset-0 opacity-40 bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/0.25),_transparent_60%)] animate-pulse" />
+              <div
+                className="absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(2px 2px at 20% 30%, hsl(var(--primary)/0.6) 50%, transparent 51%), radial-gradient(1.5px 1.5px at 70% 60%, hsl(var(--accent)/0.5) 50%, transparent 51%), radial-gradient(1px 1px at 40% 80%, hsl(var(--foreground)/0.4) 50%, transparent 51%), radial-gradient(1.5px 1.5px at 85% 20%, hsl(var(--foreground)/0.35) 50%, transparent 51%)",
+                  backgroundSize: "600px 400px",
+                  animation: "drift 24s linear infinite",
+                }}
+              />
+              <style>{`@keyframes drift { from { background-position: 0 0; } to { background-position: 600px 0; } }`}</style>
+            </div>
+            <div className="absolute top-0 right-0 pt-2 z-10">
               <GlobalCounter localCount={calculationCount} />
             </div>
-            <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
-              Satellite Optical Sensor Calculator
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.
-            </p>
+            <div className="relative z-10">
+              <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-3 font-serif">
+                Satellite Optical Sensor Calculator
+              </h1>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+                Calculate optical sensor parameters and visualize sensor field coverage for satellite applications.
+              </p>
+            </div>
           </header>
 
           <section className="prose prose-invert mx-auto mb-12 w-full max-w-4xl">
