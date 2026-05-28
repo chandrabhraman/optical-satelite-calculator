@@ -51,6 +51,7 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
+  '/models/Aqua_B.glb',
   '/models/satellite-default.glb',
 ];
 
@@ -390,31 +391,33 @@ export function useSatelliteVisualization({
     const minDimension = Math.min(containerWidth, containerHeight);
     const satelliteBaseSize = minDimension * 0.02;
     
-    console.log('Loading default satellite model from local path');
     const loader = new GLTFLoader();
-    
-    loader.load(
-      MODEL_PATHS[0],
-      (gltf) => {
-        console.log(`Model loaded successfully from ${MODEL_PATHS[0]}`);
-        
-        gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
-        
-        const box = new THREE.Box3().setFromObject(gltf.scene);
-        const center = box.getCenter(new THREE.Vector3());
-        gltf.scene.position.sub(center);
-        
-        satelliteGroup.add(gltf.scene);
-      },
-      (xhr) => {
-        console.log(`Model loading progress: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
-      },
-      (error) => {
-        console.error(`Error loading model from ${MODEL_PATHS[0]}:`, error);
-        console.log('Creating fallback satellite model');
+    const tryLoad = (index: number) => {
+      if (index >= MODEL_PATHS.length) {
+        console.log('All default models failed, creating fallback');
         createFallbackSatelliteModel(satelliteGroup, satelliteBaseSize);
+        return;
       }
-    );
+      const path = MODEL_PATHS[index];
+      console.log(`Loading default satellite model from ${path}`);
+      loader.load(
+        path,
+        (gltf) => {
+          console.log(`Model loaded successfully from ${path}`);
+          gltf.scene.scale.set(satelliteBaseSize, satelliteBaseSize, satelliteBaseSize);
+          const box = new THREE.Box3().setFromObject(gltf.scene);
+          const center = box.getCenter(new THREE.Vector3());
+          gltf.scene.position.sub(center);
+          satelliteGroup.add(gltf.scene);
+        },
+        undefined,
+        (error) => {
+          console.error(`Error loading model from ${path}:`, error);
+          tryLoad(index + 1);
+        }
+      );
+    };
+    tryLoad(0);
   };
   
   const createFallbackSatelliteModel = (satelliteGroup: THREE.Group, satelliteBaseSize: number) => {
@@ -634,6 +637,11 @@ export function useSatelliteVisualization({
     controls.dampingFactor = 0.05;
     controls.minDistance = 10;
     controls.maxDistance = 500000;
+    // Subtle auto-rotation; stops on user interaction
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.3;
+    const stopAutoRotate = () => { controls.autoRotate = false; };
+    controls.addEventListener('start', stopAutoRotate);
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;

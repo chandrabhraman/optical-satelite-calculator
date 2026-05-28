@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculationResults } from "@/utils/types";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface ResultsDisplayProps {
   results?: CalculationResults;
@@ -34,7 +35,7 @@ const ResultsSection = ({ title, data, showGeoreferencingErrors = false }: {
         {Object.entries(generalResults).map(([key, value]) => (
           <div key={key} className="grid grid-cols-2 gap-2 text-sm">
             <div className="text-muted-foreground">{formatLabel(key)}</div>
-            <div className="text-right font-mono">{formatValue(key, value)}</div>
+            <div className="text-right font-mono">{formatAnimated(key, value)}</div>
           </div>
         ))}
       </div>
@@ -47,7 +48,7 @@ const ResultsSection = ({ title, data, showGeoreferencingErrors = false }: {
             {Object.entries(georeferencingErrors).map(([key, value]) => (
               <div key={key} className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">{formatLabel(key)}</div>
-                <div className="text-right font-mono">{formatValue(key, value)}</div>
+                <div className="text-right font-mono">{formatAnimated(key, value)}</div>
               </div>
             ))}
           </div>
@@ -85,6 +86,15 @@ const formatValue = (key: string, value: number): string => {
     return `${value.toFixed(2)} m`;
   }
   return value.toFixed(4).toString();
+};
+
+const formatAnimated = (key: string, value: number) => {
+  if (isNaN(value) || !isFinite(value)) return "N/A";
+  if (key.includes("Angle")) return <AnimatedNumber value={value} decimals={4} suffix="°" />;
+  if (key.includes("Footprint")) return <AnimatedNumber value={value} decimals={2} suffix=" km" />;
+  if (key.includes("Size") || key.includes("Change") || key.includes("Error"))
+    return <AnimatedNumber value={value} decimals={2} suffix=" m" />;
+  return <AnimatedNumber value={value} decimals={4} />;
 };
 
 const ResultsDisplay = ({ results, altitude = 600 }: ResultsDisplayProps) => {
