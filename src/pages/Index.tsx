@@ -130,7 +130,7 @@ const Index = () => {
   return (
     <>
       <SEOHead
-        title="Satellite Optical Sensor Calculator | Professional GSD & Coverage Analysis"
+        title="Optical Satellite Tools - GSD & Sensor Calculator"
         description={metaDescriptions.home}
         keywords={toolKeywords.calculator}
         structuredData={[

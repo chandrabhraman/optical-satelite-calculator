@@ -195,7 +195,7 @@ const RevisitAnalysis: React.FC = () => {
   return (
     <>
       <SEOHead
-        title="Satellite Revisit Analysis | Ground Track & Coverage Pattern Analysis"
+        title="Revisit Analysis | Optical Satellite Tools"
         description={metaDescriptions.revisit}
         keywords={toolKeywords.revisit}
         canonical="https://opticalsatellitetools.space/revisit-analysis"
@@ -237,7 +237,7 @@ const RevisitAnalysis: React.FC = () => {
               Analysis displays realistic ground tracks and revisit statistics.
             </AlertDescription>
           </Alert>
-        
+        <h2 className="sr-only">Analysis configuration and results</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Input Form */}
           <div className="lg:col-span-1">

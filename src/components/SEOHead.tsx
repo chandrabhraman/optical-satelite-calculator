@@ -16,7 +16,7 @@ export const SEOHead = ({
   description,
   keywords = [],
   canonical,
-  ogImage = "https://opticalsatellitetools.space/opengraph-image-p98pqg.png",
+  ogImage = "https://opticalsatellitetools.space/og-image.jpg",
   structuredData = [],
   noIndex = false
 }: SEOHeadProps) => {

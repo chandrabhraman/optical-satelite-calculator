@@ -136,10 +136,10 @@ export const toolKeywords = {
 };
 
 export const metaDescriptions = {
-  home: "Professional satellite optical sensor calculator for GSD, sensor parameters, and field coverage analysis. Free tools for satellite engineering, earth observation, and remote sensing applications.",
-  revisit: "Analyze satellite revisit times, ground tracks, and coverage patterns. Comprehensive tool for satellite constellation design and earth observation mission planning.",
-  modeling: "Advanced satellite sensor modeling tools including MTF and PSF analysis. Professional optical performance assessment for satellite imaging systems and sensor design.",
-  about: "Learn about our satellite engineering tools and contact our team. Professional calculators and analysis tools for earth observation and remote sensing applications.",
-  privacy: "Privacy policy for Optical Satellite Tools - protecting your data while using our satellite engineering calculators and analysis tools.",
+  home: "Free satellite optical sensor calculator for GSD, sensor parameters, and coverage analysis. Built for earth observation and remote sensing.",
+  revisit: "Analyze satellite revisit times, ground tracks, and coverage patterns. Tool for constellation design and earth observation mission planning.",
+  modeling: "Satellite sensor modeling with MTF and PSF analysis. Optical performance assessment for satellite imaging systems and sensor design.",
+  about: "Learn about our satellite engineering tools and contact our team for calculators and analysis tools for earth observation.",
+  privacy: "Privacy policy for Optical Satellite Tools - protecting your data while using our satellite engineering calculators.",
   terms: "Terms of service for using our satellite optical sensor calculators, revisit analysis tools, and modeling applications."
 };
