@@ -112,6 +112,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             }
           });
 
+          // Overlay site watermark
+          drawWatermark(canvas, 'opticalsatellitetools.space');
+
           // Convert to blob and download
           canvas.toBlob((blob) => {
             if (blob) {
