@@ -51,6 +51,7 @@ interface UseSatelliteVisualizationProps {
 }
 
 const MODEL_PATHS = [
+  '/models/Aqua_B.glb',
   '/models/satellite-default.glb',
 ];
 
@@ -634,6 +635,11 @@ export function useSatelliteVisualization({
     controls.dampingFactor = 0.05;
     controls.minDistance = 10;
     controls.maxDistance = 500000;
+    // Subtle auto-rotation; stops on user interaction
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.3;
+    const stopAutoRotate = () => { controls.autoRotate = false; };
+    controls.addEventListener('start', stopAutoRotate);
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
