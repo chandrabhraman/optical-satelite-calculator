@@ -140,6 +140,7 @@ const PSFEstimation: React.FC = () => {
               Upload a blurred image, configure PSF parameters, and restore image quality through deconvolution
             </p>
           </div>
+          <h2 className="sr-only">Configuration and results</h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Upload & Parameters */}
@@ -308,6 +309,7 @@ const PSFEstimation: React.FC = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDownload(originalImageUrl, 'original.png')}
+                              aria-label="Download original image"
                             >
                               <Download className="w-4 h-4" />
                             </Button>
@@ -315,7 +317,7 @@ const PSFEstimation: React.FC = () => {
                         </div>
                         <div className="border rounded-lg overflow-hidden bg-muted/20 aspect-square flex items-center justify-center">
                           {originalImageUrl ? (
-                            <img src={originalImageUrl} alt="Original" className="max-w-full max-h-full object-contain" />
+                            <img src={originalImageUrl} alt="Original uploaded image before deconvolution" className="max-w-full max-h-full object-contain" />
                           ) : (
                             <ImageIcon className="w-16 h-16 text-muted-foreground" />
                           )}
@@ -330,6 +332,7 @@ const PSFEstimation: React.FC = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDownload(deconvolvedImage, 'deconvolved.png')}
+                              aria-label="Download deconvolved image"
                             >
                               <Download className="w-4 h-4" />
                             </Button>
@@ -337,7 +340,7 @@ const PSFEstimation: React.FC = () => {
                         </div>
                         <div className="border rounded-lg overflow-hidden bg-muted/20 aspect-square flex items-center justify-center">
                           {deconvolvedImage ? (
-                            <img src={deconvolvedImage} alt="Deconvolved" className="max-w-full max-h-full object-contain" />
+                            <img src={deconvolvedImage} alt="Restored image after PSF deconvolution" className="max-w-full max-h-full object-contain" />
                           ) : (
                             <ImageIcon className="w-16 h-16 text-muted-foreground" />
                           )}
@@ -349,7 +352,7 @@ const PSFEstimation: React.FC = () => {
                   <TabsContent value="original" className="mt-4">
                     <div className="border rounded-lg overflow-hidden bg-muted/20 aspect-video flex items-center justify-center">
                       {originalImageUrl ? (
-                        <img src={originalImageUrl} alt="Original" className="max-w-full max-h-full object-contain" />
+                        <img src={originalImageUrl} alt="Original uploaded image before deconvolution" className="max-w-full max-h-full object-contain" />
                       ) : (
                         <ImageIcon className="w-16 h-16 text-muted-foreground" />
                       )}
@@ -361,7 +364,7 @@ const PSFEstimation: React.FC = () => {
                       {psfVisualization ? (
                         <img 
                           src={psfVisualization} 
-                          alt="PSF Kernel" 
+                          alt="Estimated PSF kernel visualization" 
                           className="w-64 h-64 object-contain" 
                           style={{ imageRendering: 'pixelated' }}
                         />

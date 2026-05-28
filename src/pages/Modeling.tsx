@@ -88,7 +88,7 @@ const Modeling = () => {
               for satellite optical sensor performance optimization and design validation.
             </p>
           </div>
-
+          <h2 className="sr-only">Optical modeling workspace</h2>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Input Panel */}
             <div className="lg:col-span-2 space-y-6">
