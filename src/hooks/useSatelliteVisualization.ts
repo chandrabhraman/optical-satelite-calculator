@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SensorInputs } from '@/utils/types';
+import { drawWatermark } from '@/utils/watermark';
 import { OrbitData } from '@/components/LocationInput';
 import { createPyramidGeometry, createCurvedFootprint } from '@/utils/threeUtils';
 import { calculateSensorParameters } from '@/utils/sensorCalculations';
