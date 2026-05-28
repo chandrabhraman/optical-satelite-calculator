@@ -906,9 +906,6 @@ export function useSatelliteVisualization({
       const ctx = out.getContext('2d');
       if (!ctx) return srcCanvas.toDataURL('image/png');
       ctx.drawImage(srcCanvas, 0, 0);
-      // Lazy require to avoid circular issues
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { drawWatermark } = require('@/utils/watermark');
       drawWatermark(out, 'opticalsatellitetools.space');
       return out.toDataURL('image/png');
     } catch {
