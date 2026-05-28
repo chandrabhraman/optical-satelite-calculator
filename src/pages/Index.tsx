@@ -211,7 +211,7 @@ const Index = () => {
             <section className="h-full min-h-[70vh]">
               <SatelliteVisualization 
                 inputs={inputs} 
-                calculationCount={calculationCount} 
+                calculationCount={Math.max(1, calculationCount)} 
               />
             </section>
           </div>
