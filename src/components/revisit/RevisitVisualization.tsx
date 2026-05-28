@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePropagator } from "@/hooks/usePropagator";
 import RevisitEarthMap, { AoiPolygon } from "./RevisitEarthMap";
+import { drawWatermark } from "@/utils/watermark";
 
 interface RevisitVisualizationProps {
   tab: string;
@@ -111,6 +112,9 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
             }
           });
 
+          // Overlay site watermark
+          drawWatermark(canvas, 'opticalsatellitetools.space');
+
           // Convert to blob and download
           canvas.toBlob((blob) => {
             if (blob) {
@@ -135,7 +139,14 @@ const RevisitVisualization: React.FC<RevisitVisualizationProps> = ({
           const webglCanvas = container.querySelector('canvas');
           if (webglCanvas) {
             try {
-              const dataURL = webglCanvas.toDataURL('image/png', 1.0);
+              // Render canvas onto a 2D canvas so we can stamp a watermark
+              const out = document.createElement('canvas');
+              out.width = webglCanvas.width;
+              out.height = webglCanvas.height;
+              const octx = out.getContext('2d');
+              if (octx) octx.drawImage(webglCanvas, 0, 0);
+              drawWatermark(out, 'opticalsatellitetools.space');
+              const dataURL = out.toDataURL('image/png', 1.0);
               if (dataURL && dataURL !== 'data:,' && !dataURL.includes('data:,')) {
                 const link = document.createElement('a');
                 link.download = `revisit-analysis-${new Date().toISOString().split('T')[0]}.png`;

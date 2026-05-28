@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SensorInputs } from '@/utils/types';
+import { drawWatermark } from '@/utils/watermark';
 import { OrbitData } from '@/components/LocationInput';
 import { createPyramidGeometry, createCurvedFootprint } from '@/utils/threeUtils';
 import { calculateSensorParameters } from '@/utils/sensorCalculations';
@@ -887,17 +888,29 @@ export function useSatelliteVisualization({
     }
   }, [inputs]);
 
-  // Capture snapshot of the 3D canvas
+  // Capture snapshot of the 3D canvas (with site watermark)
   const captureSnapshot = (): string | null => {
     if (!sceneRef.current || !sceneRef.current.renderer) {
       return null;
     }
-    
+
     // Force a render to ensure the latest frame is captured
     sceneRef.current.renderer.render(sceneRef.current.scene, sceneRef.current.camera);
-    
-    // Get the canvas data URL
-    return sceneRef.current.renderer.domElement.toDataURL('image/png');
+
+    const srcCanvas = sceneRef.current.renderer.domElement;
+    try {
+      // Copy onto a 2D canvas so we can overlay the watermark
+      const out = document.createElement('canvas');
+      out.width = srcCanvas.width;
+      out.height = srcCanvas.height;
+      const ctx = out.getContext('2d');
+      if (!ctx) return srcCanvas.toDataURL('image/png');
+      ctx.drawImage(srcCanvas, 0, 0);
+      drawWatermark(out, 'opticalsatellitetools.space');
+      return out.toDataURL('image/png');
+    } catch {
+      return srcCanvas.toDataURL('image/png');
+    }
   };
 
   return { 
