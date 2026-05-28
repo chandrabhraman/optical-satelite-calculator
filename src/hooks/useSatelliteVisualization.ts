@@ -879,8 +879,9 @@ export function useSatelliteVisualization({
       window.removeEventListener('resize', handleResize);
       if (sceneRef.current) {
         cancelAnimationFrame(sceneRef.current.animationId);
-        if (containerRef.current) {
-          containerRef.current.removeChild(sceneRef.current.renderer.domElement);
+        const dom = sceneRef.current.renderer.domElement;
+        if (dom.parentNode) {
+          dom.parentNode.removeChild(dom);
         }
         sceneRef.current.renderer.dispose();
       }
