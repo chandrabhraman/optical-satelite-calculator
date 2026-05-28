@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Share2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import CalculatorForm from "@/components/CalculatorForm";
+import CalculatorForm, { DEFAULT_FORM_INPUTS, toSubmittedInputs } from "@/components/CalculatorForm";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import SatelliteVisualization from "@/components/SatelliteVisualization";
 import FormulaeSection from "@/components/FormulaeSection";
@@ -16,8 +16,8 @@ import { SEOHead } from "@/components/SEOHead";
 import { toolKeywords, metaDescriptions } from "@/utils/seoUtils";
 
 const Index = () => {
-  const [inputs, setInputs] = useState<SensorInputs | null>(null);
-  const [results, setResults] = useState<CalculationResults | undefined>(undefined);
+  const [inputs, setInputs] = useState<SensorInputs | null>(() => toSubmittedInputs(DEFAULT_FORM_INPUTS));
+  const [results, setResults] = useState<CalculationResults | undefined>(() => calculateResults(toSubmittedInputs(DEFAULT_FORM_INPUTS)));
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [parameterHelpOpen, setParameterHelpOpen] = useState(false);
   const [resultsHelpOpen, setResultsHelpOpen] = useState(false);
