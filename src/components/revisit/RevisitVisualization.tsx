@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePropagator } from "@/hooks/usePropagator";
 import RevisitEarthMap, { AoiPolygon } from "./RevisitEarthMap";
+import { drawWatermark } from "@/utils/watermark";
 
 interface RevisitVisualizationProps {
   tab: string;
