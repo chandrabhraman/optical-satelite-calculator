@@ -124,9 +124,10 @@ const PSFEstimation: React.FC = () => {
   return (
     <>
       <SEOHead 
-        title="PSF Estimation & Deconvolution"
-        description="Upload blurred images and perform Point Spread Function estimation and deconvolution to restore image quality"
+        title="PSF Deconvolution | Optical Satellite Tools"
+        description="Upload blurred images and run Point Spread Function estimation with deconvolution to restore satellite image quality."
         keywords={['PSF', 'deconvolution', 'image restoration', 'deblurring', 'point spread function']}
+        canonical="https://opticalsatellitetools.space/psf-estimation"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8">

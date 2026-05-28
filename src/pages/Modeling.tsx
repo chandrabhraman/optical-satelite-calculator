@@ -54,7 +54,7 @@ const Modeling = () => {
   return (
     <>
       <SEOHead
-        title="Advanced Optical Modeling - PSF & MTF Analysis"
+        title="PSF & MTF Modeling | Optical Satellite Tools"
         description={metaDescriptions.modeling}
         keywords={toolKeywords.modeling}
         canonical="https://opticalsatellitetools.space/modeling"

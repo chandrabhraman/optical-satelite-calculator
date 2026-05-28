@@ -99,7 +99,7 @@ const AboutContact = () => {
           
           <Separator className="my-10" />
           
-          <h1 className="text-4xl font-bold mb-8 text-primary">Contact Us</h1>
+          <h2 className="text-4xl font-bold mb-8 text-primary">Contact Us</h2>
           
           <div className="prose prose-invert max-w-none">
             <p>

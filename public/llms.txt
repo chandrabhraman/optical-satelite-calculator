@@ -1,0 +1,18 @@
+# Optical Satellite Tools
+
+> Free professional calculators and analysis tools for satellite optical sensor design, earth observation, and remote sensing — including GSD, revisit, PSF, and MTF.
+
+Optical Satellite Tools is a browser-based suite used by satellite engineers, researchers, and students to design optical satellite constellations and analyze sensor performance. All calculations run client-side with no account required.
+
+## Pages
+
+- [Satellite Optical Sensor Calculator](/): Compute Ground Sample Distance (GSD), sensor field of view, footprint, and visualize sensor coverage in 3D.
+- [Revisit Analysis](/revisit-analysis): SGP4-based ground-track and revisit-time analysis for constellations, with AOI filtering and Celestrak TLE import.
+- [PSF & MTF Modeling](/modeling): Point Spread Function and Modulation Transfer Function analysis for optical system performance.
+- [PSF Estimation & Deconvolution](/psf-estimation): Estimate PSFs and run image deconvolution to restore blurred satellite imagery.
+- [About & Contact](/about-contact): Project background and contact information.
+
+## Optional
+
+- [Privacy Policy](/privacy-policy)
+- [Terms of Service](/terms-of-service)
