@@ -19,9 +19,10 @@ interface LocationInputProps {
   onRunSimulation?: () => void;
   initialData?: OrbitData;
   altitudeRange?: {min: number, max: number};
+  highlight?: boolean;
 }
 
-const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRange }: LocationInputProps) => {
+const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRange, highlight = false }: LocationInputProps) => {
   // Calculate default altitude as mean of min and max if available
   const getDefaultAltitude = () => {
     if (altitudeRange) {
