@@ -285,6 +285,11 @@ export default function TaskingPanel({
       className="absolute left-4 bottom-4 z-20 glassmorphism rounded-lg p-3 shadow-2xl border border-primary/30 animate-fade-in"
       style={{ width: CANVAS_W + 24 }}
     >
+      {!readyToRecord && (
+        <div className="mb-2 rounded-md border border-emerald-400/50 bg-emerald-400/10 px-2 py-1.5 text-[11px] text-emerald-200">
+          Step 1: pick a mode &amp; warp · Step 2: click the glowing green <span className="font-semibold">Run Simulation</span> button · Step 3: hit Record to capture the swath trail.
+        </div>
+      )}
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1">
           {MODES.map((m) => (
