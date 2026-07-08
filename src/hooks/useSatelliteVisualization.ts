@@ -446,7 +446,13 @@ export function useSatelliteVisualization({
     const surfacePoint = sceneRef.current.satellite.position.clone().normalize().multiplyScalar(6371);
     
     // Only create a new footprint if we have inputs for field of view
-    if (inputs && sceneRef.current.sensorField) {
+    // Read latest inputs via ref so recalculations (new pixel count, focal
+    // length, etc.) immediately affect both the live footprint AND every new
+    // cloned trail sample — even though this function is invoked from the
+    // animation loop's initial closure.
+    const currentInputs = inputsRef.current;
+    if (currentInputs && sceneRef.current.sensorField) {
+
       // Get field of view parameters from inputs if available
       const calculatedParams = calculateSensorParameters({
         pixelSize: inputs.pixelSize,
