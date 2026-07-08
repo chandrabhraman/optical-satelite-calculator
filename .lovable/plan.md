@@ -1,57 +1,55 @@
 ## Goal
+Make the recorded tasking trail behave like a real satellite swath: fixed on the Earth from the moment recording starts, exactly aligned to the calculated sensor footprint, visibly translucent across an opacity range, and configurable with preset/custom colors. Also let the user freely pan, rotate and zoom the 3D view during recording.
 
-Add an "Animate Tasking" feature directly inside the existing `SatelliteVisualization` card on the home page (`/`). No new page section, no layout changes — a compact control cluster that overlays the 3D scene and drives an animated scan simulation on a dedicated 2D canvas layered over the Three.js view. Includes local recording via MediaRecorder.
+## Root cause to fix
+- The trail is generated from a separate rectangular approximation using nadir + along/cross vectors, while the live footprint uses `createCurvedFootprint(...)`. The two paths disagree, so trail width looks larger than the actual footprint.
+- Trail samples are added to the world scene, not to the rotating Earth, so the starting point drifts across the globe imagery instead of staying pinned to the ground.
+- Blending/opacity ranges are too narrow, so the slider does not read as transparent-to-opaque.
+- `frameTaskingView` continuously re-targets `controls.target` and re-positions the camera each frame while recording, which fights the user's mouse interaction and snaps the view back to the satellite.
 
-## UX
+## Implementation plan
 
-Inside the card header (next to the Snapshot button), add a small **"Animate Tasking"** toggle button. When ON:
+1. **Camera freedom while recording**
+   - Remove the automatic `frameTaskingView` camera lerp during recording.
+   - Keep the user's current OrbitControls state untouched: allow pan, rotate, and zoom throughout recording.
+   - Only do a one-time optional "frame the satellite" nudge when recording starts, then hand control back to the user. No re-centering per frame.
+   - Re-enable `controls.autoRotate = false` on record start but do not force target changes afterwards.
 
-- A slim control strip appears docked to the bottom of the visualization area (glassmorphism, matches existing aesthetic):
-  - **Scan mode** pill group: `Pushbroom` · `Whiskbroom` · `Frame`
-  - **Channel** dropdown: `RGB` · `NIR` · `SWIR`
-  - **● Record** button (turns into `■ Stop & Save` while recording, with a red pulse dot)
-- A transparent 2D canvas is layered over the Three.js scene showing the scan beam / captured swath overlay tied to the current satellite position.
-- Toggle OFF hides the strip, clears the overlay canvas, and cancels any active recording.
+2. **Use the footprint geometry as the source of truth**
+   - Derive each persistent trail sample from the same geometry produced by `createCurvedFootprint(...)` (clone its vertices/mesh), instead of building a separate rectangle from along/cross vectors.
+   - Result: trail width and shape exactly match the visible sensor footprint.
 
-## Scan animations (2D overlay canvas)
+3. **Anchor trail samples to the rotating Earth**
+   - Parent the persistent trail group to the Earth mesh (`earth.add(trailGroup)`) instead of the global scene.
+   - Convert each footprint sample's world vertices into Earth-local coordinates (`earth.worldToLocal`) before adding.
+   - Effect: recording start point remains fixed on the mapped globe as Earth rotates and as the satellite continues.
 
-All three modes render onto a canvas sized to the visualization container, sampling the satellite's screen-space position from the existing Three.js scene each frame:
+4. **Cumulative trail from record start**
+   - Clear the trail only on: recording start, mode change during a session, or recording stop.
+   - Never remove old samples based on the slider.
+   - Keep a large safety cap (performance only), unrelated to opacity.
 
-- **Pushbroom**: thin bright line perpendicular to the satellite's ground-track direction, projected from satellite down to the ground point. A persistent "captured swath" trail accumulates behind it, tinted by the active channel.
-- **Whiskbroom**: narrow spotlight cone that sweeps left↔right across-track at ~2 Hz while the satellite advances, leaving small captured tiles in a raster pattern.
-- **Frame**: dashed rectangular footprint follows the satellite; every ~1.2 s a shutter flash fills the rectangle and drops a captured frame tile onto the swath layer.
+5. **Visible opacity control**
+   - Switch trail materials to `NormalBlending` with `transparent: true`, `depthWrite: false`.
+   - Map slider 1..5 to opacity ~0.08..0.85 so transparency reads clearly against Earth.
+   - Rename the panel control to **Opacity**; changes update all existing trail materials immediately.
 
-Channel palettes applied to newly captured pixels:
-- RGB → natural greens/blues
-- NIR → vegetation shifted to crimson/red, water dark
-- SWIR → soil browns, water near-black, vegetation muted olive
+6. **Configurable trail color (Presets + custom)**
+   - Add a color row in `TaskingPanel`: preset swatches (cyan, emerald, amber, magenta, red, ice-white) + a native `<input type="color">` for custom.
+   - Store `trailColor` in `SatelliteVisualization` state; pass into `useSatelliteVisualization` via a new setter `setTaskingTrailStyle({ color })`.
+   - Apply the selected color to (a) the live footprint highlight while recording and (b) all new trail samples. Update existing samples' color when the user changes it.
 
-Switching mode or channel clears in-flight scan state but keeps prior captured trail faded (so users see the transition).
+7. **Mode-specific persistence, still footprint-accurate**
+   - **Pushbroom:** clone the current footprint mesh at each sample tick and stitch to build a continuous swath.
+   - **Whiskbroom:** animate the live beam visually, but persist only real footprint-sized marks so the persisted trail never exceeds the true footprint envelope.
+   - **Frame:** drop a footprint-sized frame at each capture interval.
 
-## Recording
-
-- `overlayCanvas.captureStream(60)` fed into `MediaRecorder`.
-- Prefer `video/webm;codecs=vp9`, fall back to `video/webm;codecs=vp8`, then `video/webm`.
-- Chunks pushed on `ondataavailable`; on stop, assemble Blob, create object URL, trigger auto-download as `satellite_imaging_simulation.webm`, revoke URL.
-- Stopping mid-flight, toggling Animate Tasking off, or unmounting the component all cleanly stop the recorder and release the stream.
-
-## Files
-
-New:
-- `src/components/tasking/TaskingOverlay.tsx` — the transparent canvas + rAF loop that draws the active scan mode using the satellite's screen position (obtained via a new ref exposed from `useSatelliteVisualization`) and the current channel palette.
-- `src/components/tasking/TaskingControls.tsx` — the bottom control strip (mode pills, channel select, record button).
-- `src/hooks/useTaskingRecorder.ts` — MediaRecorder lifecycle: `start(canvas)`, `stop()`, auto-download, MIME negotiation, cleanup.
-- `src/utils/scanPalettes.ts` — RGB/NIR/SWIR color helpers used by the overlay.
-
-Edited:
-- `src/components/SatelliteVisualization.tsx` — add `animateTasking` state + header toggle button; render `TaskingOverlay` and `TaskingControls` inside the visualization area only when ON; pipe mode/channel state down.
-- `src/hooks/useSatelliteVisualization.ts` — expose a small `getSatelliteScreenPosition()` helper (project the satellite's world position into container-relative pixel coords using the existing camera) so the 2D overlay can anchor beams accurately. No changes to orbit/propagation math.
-
-Nothing else on the page changes. No routing, no new page, no backend.
-
-## Technical notes
-
-- Overlay canvas sits absolutely positioned over `VisualizationContainer`, `pointer-events-none` so orbit controls still work.
-- rAF loop lives in `TaskingOverlay`, cancelled on unmount / when tasking toggled off.
-- Recording captures only the overlay canvas per user's earlier preference for a clean output; can be swapped to a compositor canvas later if they want the Earth included.
-- All colors/pill styles use existing tokens (`primary`, `accent`, `muted`, `glassmorphism`) — no hardcoded hex.
+8. **Validation**
+   - Flow: Calculate → Run Simulation → Animate Tasking → pick mode/color/opacity → Record.
+   - Verify:
+     - User can freely rotate/pan/zoom during recording without the camera snapping back.
+     - Trail start point stays fixed on Earth as it rotates.
+     - Trail width matches the live sensor footprint exactly.
+     - Opacity slider visibly changes translucency.
+     - Chosen preset/custom color appears on both live footprint and persisted trail.
+     - Corner "REC" overlay and Stop & Save still work; watermark still present in export.
