@@ -469,14 +469,9 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.add(footprint);
       sceneRef.current.sensorFootprint = footprint;
 
-      // Persistent tasking trail: leave a bright, surface-following swath based on the calculated footprint size
+      // Persistent tasking trail: clone the actual footprint geometry so trail width matches sensor footprint exactly
       if (taskingRef.current.active) {
-        addTaskingTrailSample({
-          surfacePoint,
-          orbitPlaneMatrix,
-          horizontalFootprint: calculatedParams.horizontalFootprint,
-          verticalFootprint: calculatedParams.verticalFootprint,
-        });
+        addTaskingTrailSample(footprint);
       }
     }
     
