@@ -1015,5 +1015,6 @@ export function useSatelliteVisualization({
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setWarpSpeed,
   };
 }
