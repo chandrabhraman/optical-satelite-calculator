@@ -238,6 +238,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onChannelChange={setScanChannel}
               isRecording={isRecording}
               onToggleRecord={handleToggleRecord}
+              warp={warp}
+              onWarpChange={(w) => { setWarp(w); setWarpSpeed(w); }}
             />
           )}
           {!hasCalculated && (
