@@ -50,13 +50,6 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       // We're keeping the callback but not using the position data anymore
     }
   });
-    containerRef,
-    inputs,
-    orbitData,
-    onPositionUpdate: () => {
-      // We're keeping the callback but not using the position data anymore
-    }
-  });
 
   const { isRecording, start: startRecording, stop: stopRecording, cancel: cancelRecording } = useTaskingRecorder();
 
