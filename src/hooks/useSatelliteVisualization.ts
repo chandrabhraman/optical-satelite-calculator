@@ -849,8 +849,39 @@ export function useSatelliteVisualization({
         updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed);
       }
       
+      // Tasking-mode footprint highlight modulation
+      const fp = sceneRef.current?.sensorFootprint as THREE.Mesh | undefined;
+      const t = taskingRef.current;
+      if (fp && (fp as any).material) {
+        const mat = (fp as any).material as THREE.MeshBasicMaterial;
+        if (!(fp as any).userData.origColor) {
+          (fp as any).userData.origColor = mat.color.getHex();
+          (fp as any).userData.origOpacity = mat.opacity;
+        }
+        if (t.active) {
+          const elapsed = (currentTime - t.startedAt) / 1000;
+          if (t.mode === 'pushbroom') {
+            mat.color.setHex(0x22e0ff);
+            mat.opacity = 0.55 + 0.25 * Math.sin(elapsed * 3.2);
+          } else if (t.mode === 'whiskbroom') {
+            mat.color.setHex(0xff6a3d);
+            mat.opacity = 0.45 + 0.4 * Math.abs(Math.sin(elapsed * 8));
+          } else {
+            // frame: strobe every 1.2s
+            const phase = elapsed % 1.2;
+            const flash = phase < 0.12 ? 1 : 0.35;
+            mat.color.setHex(0xfff2a8);
+            mat.opacity = 0.3 + 0.55 * flash;
+          }
+          mat.needsUpdate = true;
+        } else if ((fp as any).userData.origColor !== undefined) {
+          mat.color.setHex((fp as any).userData.origColor);
+          mat.opacity = (fp as any).userData.origOpacity;
+        }
+      }
+
       renderer.render(scene, camera);
-      
+
       if (sceneRef.current) {
         sceneRef.current.animationId = animationId;
         sceneRef.current.earthRotationAngle = earthRotationAngle;
