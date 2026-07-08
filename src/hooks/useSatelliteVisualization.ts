@@ -74,6 +74,8 @@ export function useSatelliteVisualization({
     mode: 'pushbroom',
     startedAt: 0,
   });
+  const trailGroupRef = useRef<THREE.Group | null>(null);
+  const warpRef = useRef<number>(1);
 
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
@@ -84,8 +86,29 @@ export function useSatelliteVisualization({
     return sceneRef.current?.renderer.domElement ?? null;
   };
 
+  const disposeTrail = () => {
+    const g = trailGroupRef.current;
+    if (!g) return;
+    while (g.children.length) {
+      const c = g.children[0];
+      g.remove(c);
+      c.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach((m: any) => m.dispose?.());
+          else o.material.dispose?.();
+        }
+      });
+    }
+  };
+
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     taskingRef.current = { active, mode, startedAt: performance.now() };
+    if (!active) disposeTrail();
+  };
+
+  const setWarpSpeed = (mult: number) => {
+    warpRef.current = Math.max(0.1, mult);
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
