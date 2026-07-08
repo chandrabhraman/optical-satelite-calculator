@@ -3,11 +3,12 @@ import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera } from "lucide-react";
+import { Camera, Radio } from "lucide-react";
 import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
+import TaskingPanel from './tasking/TaskingPanel';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -24,6 +25,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
+  const [taskingOpen, setTaskingOpen] = useState(false);
   
   // Use custom hook for Three.js visualization
   const { 
@@ -131,15 +133,26 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <span>Satellite Sensor Field Visualization</span>
           <div className="flex items-center gap-2">
             {hasCalculated && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleSnapshot}
-                className="text-xs"
-              >
-                <Camera className="h-4 w-4 mr-1" />
-                Snapshot
-              </Button>
+              <>
+                <Button
+                  variant={taskingOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTaskingOpen((v) => !v)}
+                  className="text-xs"
+                >
+                  <Radio className="h-4 w-4 mr-1" />
+                  Animate Tasking
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSnapshot}
+                  className="text-xs"
+                >
+                  <Camera className="h-4 w-4 mr-1" />
+                  Snapshot
+                </Button>
+              </>
             )}
             {!hasCalculated && <span className="text-sm font-normal text-muted-foreground">Click Calculate to activate</span>}
           </div>
@@ -157,6 +170,9 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />
+          {hasCalculated && taskingOpen && (
+            <TaskingPanel onClose={() => setTaskingOpen(false)} />
+          )}
           {!hasCalculated && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-background/60 backdrop-blur-md p-6 rounded-lg text-center">
