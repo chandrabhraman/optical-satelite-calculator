@@ -209,8 +209,34 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />
+          {hasCalculated && isRecording && (
+            <div className="pointer-events-none absolute inset-0 z-20">
+              {/* pulsing red corner brackets to indicate active recording */}
+              <div className="absolute inset-2 rounded-lg border-2 border-destructive/60 animate-pulse" />
+              {['top-2 left-2 border-t-4 border-l-4 rounded-tl-lg',
+                'top-2 right-2 border-t-4 border-r-4 rounded-tr-lg',
+                'bottom-2 left-2 border-b-4 border-l-4 rounded-bl-lg',
+                'bottom-2 right-2 border-b-4 border-r-4 rounded-br-lg',
+              ].map((cls, i) => (
+                <div
+                  key={i}
+                  className={`absolute ${cls} border-destructive w-10 h-10`}
+                  style={{ animation: 'rec-thump 1.1s ease-in-out infinite', boxShadow: '0 0 18px hsl(var(--destructive) / 0.85)' }}
+                />
+              ))}
+              <style>{`@keyframes rec-thump { 0%,100% { opacity: 0.55; filter: drop-shadow(0 0 4px hsl(var(--destructive))); } 50% { opacity: 1; filter: drop-shadow(0 0 14px hsl(var(--destructive))); } }`}</style>
+            </div>
+          )}
           {hasCalculated && taskingOpen && (
-            <TaskingPanel onClose={() => setTaskingOpen(false)} />
+            <TaskingPanel
+              onClose={() => { if (isRecording) stopRecording(); setTaskingOpen(false); }}
+              mode={scanMode}
+              channel={scanChannel}
+              onModeChange={setScanMode}
+              onChannelChange={setScanChannel}
+              isRecording={isRecording}
+              onToggleRecord={handleToggleRecord}
+            />
           )}
           {!hasCalculated && (
             <div className="absolute inset-0 flex items-center justify-center">
