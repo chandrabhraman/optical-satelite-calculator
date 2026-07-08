@@ -31,6 +31,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
   const [warp, setWarp] = useState<number>(1);
+  const [hasSimulated, setHasSimulated] = useState(false);
 
   // Use custom hook for Three.js visualization
   const {
@@ -69,6 +70,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         duration: 3000,
       });
     } else {
+      if (!hasSimulated) {
+        toast({
+          title: 'Start the orbit first',
+          description: 'Click the glowing green "Run Simulation" button so the satellite is in motion, then record.',
+          variant: 'destructive',
+          duration: 3500,
+        });
+        return;
+      }
       const canvas = getRendererCanvas();
       if (!canvas) {
         toast({ title: 'Recording unavailable', description: 'The 3D viewport is not ready yet.', variant: 'destructive' });
@@ -136,8 +146,9 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       description: `Running orbit simulation at ${orbitData.altitude} km with ${orbitData.inclination}° inclination, RAAN: ${orbitData.raan}°, True Anomaly: ${orbitData.trueAnomaly}°`,
       duration: 3000,
     });
-    
+
     startOrbitAnimation(orbitData);
+    setHasSimulated(true);
   };
   
   // Handle model upload
@@ -201,11 +212,12 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">
         <div className="absolute top-0 right-0 z-10 w-64 space-y-4 p-4">
-          <LocationInput 
+          <LocationInput
             onOrbitChange={handleOrbitChange}
             initialData={orbitData}
             altitudeRange={inputs ? {min: inputs.altitudeMin / 1000, max: inputs.altitudeMax / 1000} : undefined}
             onRunSimulation={handleRunSimulation}
+            highlight={hasCalculated && !hasSimulated}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
         </div>
@@ -240,6 +252,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onToggleRecord={handleToggleRecord}
               warp={warp}
               onWarpChange={(w) => { setWarp(w); setWarpSpeed(w); }}
+              readyToRecord={hasSimulated}
             />
           )}
           {!hasCalculated && (

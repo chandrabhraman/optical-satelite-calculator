@@ -366,36 +366,39 @@ export function useSatelliteVisualization({
         const trail = trailGroupRef.current;
         const modeColor =
           taskingRef.current.mode === 'pushbroom' ? 0x22e0ff
-          : taskingRef.current.mode === 'whiskbroom' ? 0xff6a3d
+          : taskingRef.current.mode === 'whiskbroom' ? 0xff8a3d
           : 0xfff2a8;
         const clone = footprint.clone(true);
+        // Offset slightly outward from Earth center so it renders above the surface
+        const outward = surfacePoint.clone().normalize().multiplyScalar(6);
+        clone.position.copy(surfacePoint.clone().add(outward));
+        clone.quaternion.copy(footprint.quaternion);
         clone.traverse((obj: any) => {
-          if (obj.isMesh && obj.material) {
-            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-            obj.material = mats.map((m: any) => {
-              const nm = m.clone();
-              nm.color?.setHex(modeColor);
-              nm.transparent = true;
-              nm.opacity = 0.28;
-              nm.depthWrite = false;
-              return nm;
+          if (obj.isMesh) {
+            const glowMat = new THREE.MeshBasicMaterial({
+              color: modeColor,
+              transparent: true,
+              opacity: 0.55,
+              depthWrite: false,
+              depthTest: false,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
             });
-            if (!Array.isArray(obj.material) && obj.material.length === 1) {
-              obj.material = obj.material[0];
-            }
+            obj.material = glowMat;
+            obj.renderOrder = 999;
           }
         });
         trail.add(clone);
         // Fade older markers and cap count
-        const MAX_TRAIL = 90;
+        const MAX_TRAIL = 120;
         const kids = trail.children;
         for (let i = 0; i < kids.length; i++) {
           const age = kids.length - 1 - i;
-          const factor = Math.max(0.05, 1 - age / MAX_TRAIL);
+          const factor = Math.max(0.12, 1 - age / MAX_TRAIL);
           kids[i].traverse((obj: any) => {
             if (obj.isMesh && obj.material) {
               const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-              mats.forEach((m: any) => { m.opacity = 0.28 * factor; });
+              mats.forEach((m: any) => { m.opacity = 0.55 * factor; });
             }
           });
         }
