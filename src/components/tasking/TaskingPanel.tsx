@@ -67,6 +67,8 @@ export default function TaskingPanel({
   onWarpChange,
   trailIntensity,
   onTrailIntensityChange,
+  trailColor,
+  onTrailColorChange,
   readyToRecord = true,
 }: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
