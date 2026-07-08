@@ -41,7 +41,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setWarpSpeed,
   } = useSatelliteVisualization({
+    containerRef,
+    inputs,
+    orbitData,
+    onPositionUpdate: () => {
+      // We're keeping the callback but not using the position data anymore
+    }
+  });
     containerRef,
     inputs,
     orbitData,
