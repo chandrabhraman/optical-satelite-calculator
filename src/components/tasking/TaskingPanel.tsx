@@ -291,6 +291,33 @@ export default function TaskingPanel({
     </div>
   );
 
+  const ColorControl = ({ compact = false }: { compact?: boolean }) => (
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Color</span>
+      {COLOR_PRESETS.map((p) => (
+        <button
+          key={p.value}
+          onClick={() => onTrailColorChange(p.value)}
+          title={p.label}
+          aria-label={`Trail color ${p.label}`}
+          className={`h-4 w-4 rounded-full border transition-transform ${
+            trailColor.toLowerCase() === p.value.toLowerCase()
+              ? 'border-white scale-110 ring-1 ring-white/70'
+              : 'border-white/30 hover:scale-105'
+          }`}
+          style={{ backgroundColor: p.value }}
+        />
+      ))}
+      <input
+        type="color"
+        value={trailColor}
+        onChange={(e) => onTrailColorChange(e.target.value)}
+        aria-label="Custom trail color"
+        className="h-5 w-6 rounded-md bg-transparent border border-white/20 cursor-pointer p-0"
+      />
+    </div>
+  );
+
   // Minimized (recording) mode: only Stop button + warp visible
   if (isRecording) {
     return (
