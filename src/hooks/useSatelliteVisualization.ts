@@ -1200,23 +1200,23 @@ export function useSatelliteVisualization({
           }
           if (t.active) {
             const elapsed = (currentTime - t.startedAt) / 1000;
-            const intensityBoost = trailIntensityRef.current / 4;
+            const opacityScale = 0.12 + trailIntensityRef.current * 0.07;
             if (t.mode === 'pushbroom') {
               m.color?.setHex(0x22e0ff);
-              m.opacity = Math.min(0.95, (0.6 + 0.25 * Math.sin(elapsed * 3.2)) * intensityBoost);
+              m.opacity = Math.min(0.46, (0.7 + 0.18 * Math.sin(elapsed * 3.2)) * opacityScale);
             } else if (t.mode === 'whiskbroom') {
               m.color?.setHex(0xff6a3d);
-              m.opacity = Math.min(0.95, (0.5 + 0.4 * Math.abs(Math.sin(elapsed * 8))) * intensityBoost);
+              m.opacity = Math.min(0.48, (0.58 + 0.3 * Math.abs(Math.sin(elapsed * 8))) * opacityScale);
             } else {
               const phase = elapsed % 1.2;
               const flash = phase < 0.12 ? 1 : 0.35;
               m.color?.setHex(0xfff2a8);
-              m.opacity = Math.min(0.95, (0.35 + 0.55 * flash) * intensityBoost);
+              m.opacity = Math.min(0.5, (0.42 + 0.42 * flash) * opacityScale);
             }
             m.transparent = true;
             m.depthWrite = false;
-            m.depthTest = false;
-            m.blending = THREE.AdditiveBlending;
+            m.depthTest = true;
+            m.blending = THREE.NormalBlending;
             m.needsUpdate = true;
           } else {
             m.color?.setHex((m as any).__origColor);
