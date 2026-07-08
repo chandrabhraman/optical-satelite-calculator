@@ -28,8 +28,19 @@ interface TaskingPanelProps {
   onWarpChange: (w: number) => void;
   trailIntensity: number;
   onTrailIntensityChange: (value: number) => void;
+  trailColor: string;
+  onTrailColorChange: (c: string) => void;
   readyToRecord?: boolean;
 }
+
+const COLOR_PRESETS: { label: string; value: string }[] = [
+  { label: 'Cyan', value: '#22e0ff' },
+  { label: 'Emerald', value: '#22e07a' },
+  { label: 'Amber', value: '#ffb020' },
+  { label: 'Magenta', value: '#ff3dd0' },
+  { label: 'Red', value: '#ff3d3d' },
+  { label: 'Ice', value: '#eaf6ff' },
+];
 
 const WARP_SPEEDS = [1, 5, 20];
 
