@@ -577,13 +577,8 @@ export function useSatelliteVisualization({
       sceneRef.current.sensorFootprint = null;
     }
     
-    // Calculate the nadir point on Earth's surface
-    const dirToCenter = new THREE.Vector3().subVectors(
-      new THREE.Vector3(0, 0, 0),
-      sceneRef.current.satellite.position
-    ).normalize();
-    
-    const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+    // Calculate the nadir point on Earth's surface directly below the satellite.
+    const surfacePoint = sceneRef.current.satellite.position.clone().normalize().multiplyScalar(6371);
     
     // Only create a new footprint if we have inputs for field of view
     if (inputs && sceneRef.current.sensorField) {
@@ -614,19 +609,8 @@ export function useSatelliteVisualization({
         calculatedParams.verticalFootprint
       );
       
-      footprint.position.copy(surfacePoint);
-      
-      // Orient the footprint to be tangent to Earth's surface
-      const normal = surfacePoint.clone().normalize();
-      const up = new THREE.Vector3(0, 1, 0);
-      const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
-      const angle = Math.acos(up.dot(normal));
-      
-      if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
-        footprint.quaternion.setFromAxisAngle(axis, angle);
-      }
-      
-      // Add footprint to the scene (not to the satellite)
+      // createCurvedFootprint already returns world-space Earth-surface vertices.
+      // Add footprint to the scene without extra translation/rotation.
       sceneRef.current.scene.add(footprint);
       sceneRef.current.sensorFootprint = footprint;
 
