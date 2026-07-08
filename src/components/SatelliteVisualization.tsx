@@ -31,6 +31,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
   const [warp, setWarp] = useState<number>(1);
+  const [hasSimulated, setHasSimulated] = useState(false);
 
   // Use custom hook for Three.js visualization
   const {
