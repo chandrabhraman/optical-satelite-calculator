@@ -99,17 +99,14 @@ export function useSatelliteVisualization({
     const trail = trailGroupRef.current;
     if (!trail) return;
     const intensity = trailIntensityRef.current;
-    const maxTrail = Math.round(140 + intensity * 55);
-    const baseOpacity = Math.min(0.96, 0.24 + intensity * 0.15);
+    const baseOpacity = Math.min(0.5, 0.1 + intensity * 0.08);
 
-    trail.children.forEach((child, i) => {
-      const age = trail.children.length - 1 - i;
-      const factor = Math.max(0.2, 1 - age / maxTrail);
+    trail.children.forEach((child) => {
       child.traverse((obj: any) => {
         if (obj.material) {
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
           mats.forEach((m: any) => {
-            m.opacity = Math.min(1, baseOpacity * factor * (m.userData?.opacityScale ?? 1));
+            m.opacity = Math.min(0.72, baseOpacity * (m.userData?.opacityScale ?? 1));
             m.needsUpdate = true;
           });
         }
@@ -205,7 +202,7 @@ export function useSatelliteVisualization({
     segmentsCross: number;
   }) => {
     const earthRadius = 6371;
-    const lift = 12 + trailIntensityRef.current * 4;
+    const lift = 8;
     const vertices: number[] = [];
     const indices: number[] = [];
 
@@ -244,8 +241,8 @@ export function useSatelliteVisualization({
       opacity,
       side: THREE.DoubleSide,
       depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
+      depthTest: true,
+      blending: THREE.NormalBlending,
     });
     material.userData.opacityScale = 1;
 
@@ -271,11 +268,11 @@ export function useSatelliteVisualization({
     const outlineMaterial = new THREE.LineBasicMaterial({
       color,
       transparent: true,
-      opacity: Math.min(1, opacity + 0.25),
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
+      opacity: Math.min(0.68, opacity + 0.18),
+      depthTest: true,
+      blending: THREE.NormalBlending,
     });
-    outlineMaterial.userData.opacityScale = 1.2;
+    outlineMaterial.userData.opacityScale = 1.35;
     const outline = new THREE.Line(outlineGeometry, outlineMaterial);
     outline.renderOrder = 1201;
     outline.frustumCulled = false;
@@ -303,8 +300,8 @@ export function useSatelliteVisualization({
     opacity: number;
   }) => {
     const earthRadius = 6371;
-    const lift = 28 + trailIntensityRef.current * 6;
-    const halfWidth = Math.max(width / 2, 80);
+    const lift = 9;
+    const halfWidth = Math.max(width / 2, 0.05);
     const edge = (p: THREE.Vector3, side: number) => p
       .clone()
       .addScaledVector(cross, side * halfWidth)
@@ -324,10 +321,10 @@ export function useSatelliteVisualization({
       opacity,
       side: THREE.DoubleSide,
       depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
+      depthTest: true,
+      blending: THREE.NormalBlending,
     });
-    material.userData.opacityScale = 1.35;
+    material.userData.opacityScale = 0.95;
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.renderOrder = 1300;
@@ -373,14 +370,10 @@ export function useSatelliteVisualization({
     }
     const cross = new THREE.Vector3().crossVectors(normal, along).normalize();
 
-    const intensity = trailIntensityRef.current;
     const color = taskingColorForMode(mode);
-    const baseOpacity = Math.min(0.96, 0.24 + intensity * 0.15);
-    const hf = Math.max(20, horizontalFootprint);
-    const vf = Math.max(20, verticalFootprint);
-    const visualScale = Math.max(4, Math.min(12, 220 / Math.max(hf, vf)));
-    const visualHf = hf * visualScale;
-    const visualVf = vf * visualScale;
+    const baseOpacity = Math.min(0.5, 0.1 + trailIntensityRef.current * 0.08);
+    const hf = Math.max(0.1, horizontalFootprint);
+    const vf = Math.max(0.1, verticalFootprint);
     let center = surfacePoint.clone();
     let halfAlong = vf / 2;
     let halfCross = hf / 2;
@@ -388,25 +381,25 @@ export function useSatelliteVisualization({
     let segmentsCross = 8;
 
     if (mode === 'pushbroom') {
-      halfAlong = Math.max(40, visualVf * 0.16);
-      halfCross = Math.max(visualHf / 2, 70);
+      halfAlong = vf / 2;
+      halfCross = hf / 2;
       segmentsAlong = 1;
       segmentsCross = 10;
     } else if (mode === 'whiskbroom') {
       const sweep = Math.sin((now - taskingRef.current.startedAt) * 0.009);
-      center = surfacePoint.clone().addScaledVector(cross, sweep * visualHf * 0.42).normalize().multiplyScalar(6371);
-      halfAlong = Math.max(40, visualVf * 0.2);
-      halfCross = Math.max(28, visualHf * 0.1);
+      center = surfacePoint.clone().addScaledVector(cross, sweep * hf * 0.42).normalize().multiplyScalar(6371);
+      halfAlong = vf * 0.2;
+      halfCross = hf * 0.08;
       segmentsAlong = 2;
       segmentsCross = 3;
     } else {
-      halfAlong = Math.max(visualVf / 2, 80);
-      halfCross = Math.max(visualHf / 2, 80);
+      halfAlong = vf / 2;
+      halfCross = hf / 2;
       segmentsAlong = 5;
       segmentsCross = 8;
     }
 
-    frameTaskingView(surfacePoint, along, cross, visualHf, visualVf);
+    frameTaskingView(surfacePoint, along, cross, hf, vf);
 
     const trail = trailGroupRef.current;
     const previousCenter = lastTrailCenterRef.current;
@@ -415,9 +408,9 @@ export function useSatelliteVisualization({
         from: previousCenter,
         to: center,
         cross,
-        width: mode === 'pushbroom' ? visualHf : Math.max(visualHf * 0.22, 56),
+        width: mode === 'pushbroom' ? hf : hf * 0.16,
         color,
-        opacity: Math.min(1, baseOpacity * 1.2),
+        opacity: Math.min(0.5, baseOpacity * 0.95),
       });
       trail.add(segment);
     }
@@ -437,19 +430,6 @@ export function useSatelliteVisualization({
     trail.add(patch);
     lastTrailSampleAtRef.current = now;
     lastTrailCenterRef.current = center.clone();
-
-    const maxTrail = Math.round(140 + intensity * 55);
-    while (trail.children.length > maxTrail) {
-      const old = trail.children[0];
-      trail.remove(old);
-      old.traverse((o: any) => {
-        if (o.geometry) o.geometry.dispose?.();
-        if (o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m: any) => m.dispose?.());
-        }
-      });
-    }
     applyTrailOpacity();
   };
   
