@@ -28,8 +28,19 @@ interface TaskingPanelProps {
   onWarpChange: (w: number) => void;
   trailIntensity: number;
   onTrailIntensityChange: (value: number) => void;
+  trailColor: string;
+  onTrailColorChange: (c: string) => void;
   readyToRecord?: boolean;
 }
+
+const COLOR_PRESETS: { label: string; value: string }[] = [
+  { label: 'Cyan', value: '#22e0ff' },
+  { label: 'Emerald', value: '#22e07a' },
+  { label: 'Amber', value: '#ffb020' },
+  { label: 'Magenta', value: '#ff3dd0' },
+  { label: 'Red', value: '#ff3d3d' },
+  { label: 'Ice', value: '#eaf6ff' },
+];
 
 const WARP_SPEEDS = [1, 5, 20];
 
@@ -56,6 +67,8 @@ export default function TaskingPanel({
   onWarpChange,
   trailIntensity,
   onTrailIntensityChange,
+  trailColor,
+  onTrailColorChange,
   readyToRecord = true,
 }: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -278,6 +291,33 @@ export default function TaskingPanel({
     </div>
   );
 
+  const ColorControl = ({ compact = false }: { compact?: boolean }) => (
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Color</span>
+      {COLOR_PRESETS.map((p) => (
+        <button
+          key={p.value}
+          onClick={() => onTrailColorChange(p.value)}
+          title={p.label}
+          aria-label={`Trail color ${p.label}`}
+          className={`h-4 w-4 rounded-full border transition-transform ${
+            trailColor.toLowerCase() === p.value.toLowerCase()
+              ? 'border-white scale-110 ring-1 ring-white/70'
+              : 'border-white/30 hover:scale-105'
+          }`}
+          style={{ backgroundColor: p.value }}
+        />
+      ))}
+      <input
+        type="color"
+        value={trailColor}
+        onChange={(e) => onTrailColorChange(e.target.value)}
+        aria-label="Custom trail color"
+        className="h-5 w-6 rounded-md bg-transparent border border-white/20 cursor-pointer p-0"
+      />
+    </div>
+  );
+
   // Minimized (recording) mode: only Stop button + warp visible
   if (isRecording) {
     return (
@@ -291,6 +331,7 @@ export default function TaskingPanel({
         </span>
         <WarpPills compact />
         <TrailIntensityControl compact />
+        <ColorControl compact />
         <Button
           size="sm"
           variant="destructive"
@@ -359,8 +400,9 @@ export default function TaskingPanel({
           </button>
         </div>
       </div>
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-3 flex-wrap">
         <TrailIntensityControl />
+        <ColorControl />
         <WarpPills />
       </div>
       <canvas

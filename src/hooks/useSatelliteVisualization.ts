@@ -76,8 +76,8 @@ export function useSatelliteVisualization({
   });
   const trailGroupRef = useRef<THREE.Group | null>(null);
   const lastTrailSampleAtRef = useRef<number>(0);
-  const lastTrailCenterRef = useRef<THREE.Vector3 | null>(null);
-  const trailIntensityRef = useRef<number>(4);
+  const trailColorRef = useRef<number>(0x22e0ff);
+  const trailOpacityRef = useRef<number>(0.45);
   const warpRef = useRef<number>(1);
 
   // Get current Earth rotation angle
@@ -89,28 +89,21 @@ export function useSatelliteVisualization({
     return sceneRef.current?.renderer.domElement ?? null;
   };
 
-  const taskingColorForMode = (mode: TaskingMode) => (
-    mode === 'pushbroom' ? 0x22e0ff
-    : mode === 'whiskbroom' ? 0xff8a3d
-    : 0xfff2a8
-  );
-
-  const applyTrailOpacity = () => {
+  const applyTrailStyle = () => {
     const trail = trailGroupRef.current;
     if (!trail) return;
-    const intensity = trailIntensityRef.current;
-    const baseOpacity = Math.min(0.5, 0.1 + intensity * 0.08);
-
-    trail.children.forEach((child) => {
-      child.traverse((obj: any) => {
-        if (obj.material) {
-          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-          mats.forEach((m: any) => {
-            m.opacity = Math.min(0.72, baseOpacity * (m.userData?.opacityScale ?? 1));
-            m.needsUpdate = true;
-          });
-        }
-      });
+    const color = trailColorRef.current;
+    const opacity = trailOpacityRef.current;
+    trail.traverse((obj: any) => {
+      if (obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach((m: any) => {
+          const scale = m.userData?.opacityScale ?? 1;
+          m.opacity = Math.min(1, opacity * scale);
+          if (m.color && m.color.setHex) m.color.setHex(color);
+          m.needsUpdate = true;
+        });
+      }
     });
   };
 
@@ -129,116 +122,95 @@ export function useSatelliteVisualization({
       });
     }
     lastTrailSampleAtRef.current = 0;
-    lastTrailCenterRef.current = null;
+  };
+
+  const ensureTrailGroup = () => {
+    if (!sceneRef.current) return null;
+    if (!trailGroupRef.current) {
+      const g = new THREE.Group();
+      g.name = 'tasking-swath-trail';
+      // Parent to Earth so trail stays pinned to the rotating globe
+      sceneRef.current.earth.add(g);
+      trailGroupRef.current = g;
+    } else if (trailGroupRef.current.parent !== sceneRef.current.earth) {
+      trailGroupRef.current.parent?.remove(trailGroupRef.current);
+      sceneRef.current.earth.add(trailGroupRef.current);
+    }
+    return trailGroupRef.current;
   };
 
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
       disposeTrail();
       lastTrailSampleAtRef.current = 0;
-      lastTrailCenterRef.current = null;
     }
     taskingRef.current = { active, mode, startedAt: performance.now() };
+    if (active && sceneRef.current) {
+      // One-time nudge: stop autorotate so user keeps control while recording
+      sceneRef.current.controls.autoRotate = false;
+    }
     if (!active) disposeTrail();
   };
 
   const setTrailIntensity = (value: number) => {
-    trailIntensityRef.current = Math.min(5, Math.max(1, value));
-    applyTrailOpacity();
+    // Slider 1..5 → opacity 0.08..0.85
+    const v = Math.min(5, Math.max(1, value));
+    trailOpacityRef.current = 0.08 + ((v - 1) / 4) * (0.85 - 0.08);
+    applyTrailStyle();
+  };
+
+  const setTaskingTrailStyle = ({ color }: { color?: string | number }) => {
+    if (color !== undefined) {
+      const c = typeof color === 'string' ? new THREE.Color(color).getHex() : color;
+      trailColorRef.current = c;
+    }
+    applyTrailStyle();
   };
 
   const setWarpSpeed = (mult: number) => {
     warpRef.current = Math.max(0.1, mult);
   };
 
-  const frameTaskingView = (
-    surfacePoint: THREE.Vector3,
-    along: THREE.Vector3,
-    cross: THREE.Vector3,
-    horizontalFootprint: number,
-    verticalFootprint: number
-  ) => {
-    const current = sceneRef.current;
-    if (!current || !taskingRef.current.active) return;
+  const addTaskingTrailSample = (footprintGroup: THREE.Object3D) => {
+    if (!sceneRef.current || !taskingRef.current.active) return;
 
-    const normal = surfacePoint.clone().normalize();
-    const footprintSpan = Math.max(horizontalFootprint, verticalFootprint, 25);
-    const altitude = Math.min(1800, Math.max(700, footprintSpan * 32));
-    const trackLookAhead = Math.min(650, Math.max(180, footprintSpan * 10));
-    const desiredTarget = surfacePoint.clone().addScaledVector(along, trackLookAhead);
-    const desiredCamera = surfacePoint
-      .clone()
-      .addScaledVector(normal, altitude)
-      .addScaledVector(along, -trackLookAhead * 1.1)
-      .addScaledVector(cross, trackLookAhead * 0.45);
+    const now = performance.now();
+    const mode = taskingRef.current.mode;
+    const sampleInterval = mode === 'frame' ? 650 : 90;
+    if (lastTrailSampleAtRef.current && now - lastTrailSampleAtRef.current < sampleInterval) return;
 
-    current.controls.autoRotate = false;
-    current.controls.target.lerp(desiredTarget, 0.16);
-    current.camera.position.lerp(desiredCamera, 0.12);
-    current.camera.near = 0.1;
-    current.camera.far = 1000000;
-    current.camera.updateProjectionMatrix();
-  };
+    const trail = ensureTrailGroup();
+    if (!trail) return;
 
-  const createSurfaceSwathPatch = ({
-    center,
-    along,
-    cross,
-    halfAlong,
-    halfCross,
-    color,
-    opacity,
-    segmentsAlong,
-    segmentsCross,
-  }: {
-    center: THREE.Vector3;
-    along: THREE.Vector3;
-    cross: THREE.Vector3;
-    halfAlong: number;
-    halfCross: number;
-    color: number;
-    opacity: number;
-    segmentsAlong: number;
-    segmentsCross: number;
-  }) => {
-    const earthRadius = 6371;
-    const lift = 8;
-    const vertices: number[] = [];
-    const indices: number[] = [];
+    // Find the first mesh in the footprint group (the surface footprint)
+    let sourceMesh: THREE.Mesh | null = null;
+    footprintGroup.traverse((o) => {
+      if (!sourceMesh && (o as THREE.Mesh).isMesh) sourceMesh = o as THREE.Mesh;
+    });
+    if (!sourceMesh) return;
 
-    for (let i = 0; i <= segmentsAlong; i++) {
-      for (let j = 0; j <= segmentsCross; j++) {
-        const u = ((i / segmentsAlong) * 2 - 1) * halfAlong;
-        const v = ((j / segmentsCross) * 2 - 1) * halfCross;
-        const point = center
-          .clone()
-          .addScaledVector(along, u)
-          .addScaledVector(cross, v)
-          .normalize()
-          .multiplyScalar(earthRadius + lift);
-        vertices.push(point.x, point.y, point.z);
-      }
+    // Clone geometry and transform world-space vertices into Earth-local space
+    const srcGeom = sourceMesh.geometry as THREE.BufferGeometry;
+    const geom = srcGeom.clone();
+    const posAttr = geom.getAttribute('position') as THREE.BufferAttribute;
+    const earth = sceneRef.current.earth;
+    const tmp = new THREE.Vector3();
+    for (let i = 0; i < posAttr.count; i++) {
+      tmp.set(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
+      // Lift slightly above surface to avoid z-fighting
+      const lifted = tmp.clone().normalize().multiplyScalar(tmp.length() + 4);
+      // world -> earth-local
+      const local = earth.worldToLocal(lifted.clone());
+      posAttr.setXYZ(i, local.x, local.y, local.z);
     }
-
-    for (let i = 0; i < segmentsAlong; i++) {
-      for (let j = 0; j < segmentsCross; j++) {
-        const a = i * (segmentsCross + 1) + j;
-        const b = a + 1;
-        const c = (i + 1) * (segmentsCross + 1) + j;
-        const d = c + 1;
-        indices.push(a, c, b, b, c, d);
-      }
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+    posAttr.needsUpdate = true;
+    geom.computeVertexNormals();
+    geom.computeBoundingSphere();
 
     const material = new THREE.MeshBasicMaterial({
-      color,
+      color: trailColorRef.current,
       transparent: true,
-      opacity,
+      opacity: trailOpacityRef.current,
       side: THREE.DoubleSide,
       depthWrite: false,
       depthTest: true,
@@ -246,191 +218,26 @@ export function useSatelliteVisualization({
     });
     material.userData.opacityScale = 1;
 
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geom, material);
     mesh.renderOrder = 1200;
     mesh.frustumCulled = false;
+    trail.add(mesh);
 
-    const corner = (u: number, v: number) => center
-      .clone()
-      .addScaledVector(along, u)
-      .addScaledVector(cross, v)
-      .normalize()
-      .multiplyScalar(earthRadius + lift + 2);
-
-    const corners = [
-      corner(-halfAlong, -halfCross),
-      corner(-halfAlong, halfCross),
-      corner(halfAlong, halfCross),
-      corner(halfAlong, -halfCross),
-      corner(-halfAlong, -halfCross),
-    ];
-    const outlineGeometry = new THREE.BufferGeometry().setFromPoints(corners);
-    const outlineMaterial = new THREE.LineBasicMaterial({
-      color,
-      transparent: true,
-      opacity: Math.min(0.68, opacity + 0.18),
-      depthTest: true,
-      blending: THREE.NormalBlending,
-    });
-    outlineMaterial.userData.opacityScale = 1.35;
-    const outline = new THREE.Line(outlineGeometry, outlineMaterial);
-    outline.renderOrder = 1201;
-    outline.frustumCulled = false;
-
-    const group = new THREE.Group();
-    group.add(mesh);
-    group.add(outline);
-    group.renderOrder = 1200;
-    return group;
-  };
-
-  const createSwathSegment = ({
-    from,
-    to,
-    cross,
-    width,
-    color,
-    opacity,
-  }: {
-    from: THREE.Vector3;
-    to: THREE.Vector3;
-    cross: THREE.Vector3;
-    width: number;
-    color: number;
-    opacity: number;
-  }) => {
-    const earthRadius = 6371;
-    const lift = 9;
-    const halfWidth = Math.max(width / 2, 0.05);
-    const edge = (p: THREE.Vector3, side: number) => p
-      .clone()
-      .addScaledVector(cross, side * halfWidth)
-      .normalize()
-      .multiplyScalar(earthRadius + lift);
-
-    const vertices = [
-      edge(from, -1), edge(from, 1), edge(to, -1),
-      edge(from, 1), edge(to, 1), edge(to, -1),
-    ];
-    const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
-    geometry.computeVertexNormals();
-
-    const material = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.NormalBlending,
-    });
-    material.userData.opacityScale = 0.95;
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.renderOrder = 1300;
-    mesh.frustumCulled = false;
-    return mesh;
-  };
-
-  const addTaskingTrailSample = ({
-    surfacePoint,
-    orbitPlaneMatrix,
-    horizontalFootprint,
-    verticalFootprint,
-  }: {
-    surfacePoint: THREE.Vector3;
-    orbitPlaneMatrix: THREE.Matrix4;
-    horizontalFootprint: number;
-    verticalFootprint: number;
-  }) => {
-    if (!sceneRef.current || !taskingRef.current.active) return;
-
-    const now = performance.now();
-    const mode = taskingRef.current.mode;
-    const sampleInterval = mode === 'frame' ? 650 : 75;
-    if (lastTrailSampleAtRef.current && now - lastTrailSampleAtRef.current < sampleInterval) return;
-
-    if (!trailGroupRef.current) {
-      const g = new THREE.Group();
-      g.name = 'tasking-swath-trail';
-      trailGroupRef.current = g;
-      sceneRef.current.scene.add(g);
-    }
-
-    const normal = surfacePoint.clone().normalize();
-    const localVelocity = new THREE.Vector3(
-      -Math.sin(sceneRef.current.trueAnomaly),
-      0,
-      -Math.cos(sceneRef.current.trueAnomaly)
-    ).normalize();
-    const worldVelocity = localVelocity.transformDirection(orbitPlaneMatrix).normalize();
-    let along = worldVelocity.projectOnPlane(normal).normalize();
-    if (!Number.isFinite(along.x) || along.lengthSq() < 1e-6) {
-      along = new THREE.Vector3(0, 1, 0).projectOnPlane(normal).normalize();
-    }
-    const cross = new THREE.Vector3().crossVectors(normal, along).normalize();
-
-    const color = taskingColorForMode(mode);
-    const baseOpacity = Math.min(0.5, 0.1 + trailIntensityRef.current * 0.08);
-    const hf = Math.max(0.1, horizontalFootprint);
-    const vf = Math.max(0.1, verticalFootprint);
-    let center = surfacePoint.clone();
-    let halfAlong = vf / 2;
-    let halfCross = hf / 2;
-    let segmentsAlong = 3;
-    let segmentsCross = 8;
-
-    if (mode === 'pushbroom') {
-      halfAlong = vf / 2;
-      halfCross = hf / 2;
-      segmentsAlong = 1;
-      segmentsCross = 10;
-    } else if (mode === 'whiskbroom') {
-      const sweep = Math.sin((now - taskingRef.current.startedAt) * 0.009);
-      center = surfacePoint.clone().addScaledVector(cross, sweep * hf * 0.42).normalize().multiplyScalar(6371);
-      halfAlong = vf * 0.2;
-      halfCross = hf * 0.08;
-      segmentsAlong = 2;
-      segmentsCross = 3;
-    } else {
-      halfAlong = vf / 2;
-      halfCross = hf / 2;
-      segmentsAlong = 5;
-      segmentsCross = 8;
-    }
-
-    frameTaskingView(surfacePoint, along, cross, hf, vf);
-
-    const trail = trailGroupRef.current;
-    const previousCenter = lastTrailCenterRef.current;
-    if (previousCenter && mode !== 'frame') {
-      const segment = createSwathSegment({
-        from: previousCenter,
-        to: center,
-        cross,
-        width: mode === 'pushbroom' ? hf : hf * 0.16,
-        color,
-        opacity: Math.min(0.5, baseOpacity * 0.95),
-      });
-      trail.add(segment);
-    }
-
-    const patch = createSurfaceSwathPatch({
-      center,
-      along,
-      cross,
-      halfAlong,
-      halfCross,
-      color,
-      opacity: baseOpacity,
-      segmentsAlong,
-      segmentsCross,
-    });
-
-    trail.add(patch);
     lastTrailSampleAtRef.current = now;
-    lastTrailCenterRef.current = center.clone();
-    applyTrailOpacity();
+
+    // Safety cap for performance only, unrelated to opacity slider
+    const MAX_SAMPLES = 1500;
+    while (trail.children.length > MAX_SAMPLES) {
+      const old = trail.children[0];
+      trail.remove(old);
+      old.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m: any) => m.dispose?.());
+        }
+      });
+    }
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
@@ -662,14 +469,9 @@ export function useSatelliteVisualization({
       sceneRef.current.scene.add(footprint);
       sceneRef.current.sensorFootprint = footprint;
 
-      // Persistent tasking trail: leave a bright, surface-following swath based on the calculated footprint size
+      // Persistent tasking trail: clone the actual footprint geometry so trail width matches sensor footprint exactly
       if (taskingRef.current.active) {
-        addTaskingTrailSample({
-          surfacePoint,
-          orbitPlaneMatrix,
-          horizontalFootprint: calculatedParams.horizontalFootprint,
-          verticalFootprint: calculatedParams.verticalFootprint,
-        });
+        addTaskingTrailSample(footprint);
       }
     }
     
@@ -1200,18 +1002,19 @@ export function useSatelliteVisualization({
           }
           if (t.active) {
             const elapsed = (currentTime - t.startedAt) / 1000;
-            const opacityScale = 0.12 + trailIntensityRef.current * 0.07;
+            const opacityScale = trailOpacityRef.current;
+            const col = trailColorRef.current;
             if (t.mode === 'pushbroom') {
-              m.color?.setHex(0x22e0ff);
-              m.opacity = Math.min(0.46, (0.7 + 0.18 * Math.sin(elapsed * 3.2)) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.6 + 0.2 * Math.sin(elapsed * 3.2)) * opacityScale + 0.1);
             } else if (t.mode === 'whiskbroom') {
-              m.color?.setHex(0xff6a3d);
-              m.opacity = Math.min(0.48, (0.58 + 0.3 * Math.abs(Math.sin(elapsed * 8))) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.5 + 0.35 * Math.abs(Math.sin(elapsed * 8))) * opacityScale + 0.1);
             } else {
               const phase = elapsed % 1.2;
               const flash = phase < 0.12 ? 1 : 0.35;
-              m.color?.setHex(0xfff2a8);
-              m.opacity = Math.min(0.5, (0.42 + 0.42 * flash) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.4 + 0.5 * flash) * opacityScale + 0.1);
             }
             m.transparent = true;
             m.depthWrite = false;
@@ -1336,6 +1139,7 @@ export function useSatelliteVisualization({
     getRendererCanvas,
     setTaskingHighlight,
     setTrailIntensity,
+    setTaskingTrailStyle,
     setWarpSpeed,
   };
 }
