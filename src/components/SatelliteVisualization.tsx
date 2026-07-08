@@ -67,6 +67,10 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     setTrailIntensity(trailIntensity);
   }, [trailIntensity, setTrailIntensity]);
 
+  useEffect(() => {
+    setTaskingTrailStyle({ color: trailColor });
+  }, [trailColor, setTaskingTrailStyle]);
+
   useEffect(() => () => cancelRecording(), [cancelRecording]);
 
   const handleToggleRecord = () => {
