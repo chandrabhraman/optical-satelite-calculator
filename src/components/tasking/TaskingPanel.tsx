@@ -25,6 +25,7 @@ interface TaskingPanelProps {
   onToggleRecord: () => void;
   warp: number;
   onWarpChange: (w: number) => void;
+  readyToRecord?: boolean;
 }
 
 const WARP_SPEEDS = [1, 5, 20];
