@@ -170,6 +170,9 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         </div>
         <div className={`relative w-full h-full ${!hasCalculated ? 'opacity-30 pointer-events-none' : ''}`}>
           <VisualizationContainer ref={containerRef} />
+          {hasCalculated && taskingOpen && (
+            <TaskingPanel onClose={() => setTaskingOpen(false)} />
+          )}
           {!hasCalculated && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-background/60 backdrop-blur-md p-6 rounded-lg text-center">
