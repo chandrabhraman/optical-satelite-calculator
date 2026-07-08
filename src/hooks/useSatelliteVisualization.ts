@@ -869,7 +869,7 @@ export function useSatelliteVisualization({
       
       // Update satellite position in orbit if initialized
       if (sceneRef.current && sceneRef.current.orbitPlane && isInitialized) {
-        updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed);
+        updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed * warpRef.current);
       }
       
       // Tasking-mode footprint highlight modulation
