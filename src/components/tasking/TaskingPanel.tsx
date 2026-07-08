@@ -327,6 +327,7 @@ export default function TaskingPanel({
           </button>
         </div>
       </div>
+      <div className="flex justify-end mb-2"><WarpPills /></div>
       <canvas
         ref={canvasRef}
         width={CANVAS_W}
