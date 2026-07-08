@@ -51,6 +51,7 @@ export default function TaskingPanel({
   onToggleRecord,
   warp,
   onWarpChange,
+  readyToRecord = true,
 }: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const capturedRef = useRef<HTMLCanvasElement | null>(null);
