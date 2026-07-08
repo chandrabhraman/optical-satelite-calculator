@@ -263,7 +263,7 @@ export default function TaskingPanel({
   const TrailIntensityControl = ({ compact = false }: { compact?: boolean }) => (
     <div className={compact ? 'flex items-center gap-2 min-w-[128px]' : 'flex items-center gap-2 min-w-[190px]'}>
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-        Trail
+        Opacity
       </span>
       <Slider
         value={[trailIntensity]}
@@ -272,7 +272,7 @@ export default function TaskingPanel({
         step={1}
         onValueChange={([value]) => onTrailIntensityChange(value)}
         className="h-5"
-        aria-label="Trail intensity"
+        aria-label="Trail opacity"
       />
       <span className="w-5 text-right text-[10px] text-foreground/80">{trailIntensity}</span>
     </div>
