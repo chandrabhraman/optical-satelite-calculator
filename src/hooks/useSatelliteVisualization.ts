@@ -79,6 +79,12 @@ export function useSatelliteVisualization({
   const trailColorRef = useRef<number>(0x22e0ff);
   const trailOpacityRef = useRef<number>(0.45);
   const warpRef = useRef<number>(1);
+  // Keep latest inputs available to the animation-loop closure so footprint
+  // (and therefore trail samples cloned from it) always reflect the newest
+  // sensor parameters after a recalculation.
+  const inputsRef = useRef<SensorInputs | null>(inputs);
+  inputsRef.current = inputs;
+
 
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
@@ -142,7 +148,10 @@ export function useSatelliteVisualization({
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
       disposeTrail();
-      lastTrailSampleAtRef.current = 0;
+      // Prime the sample timer to "now" so the very first tick is skipped:
+      // we don't want the exact press-time footprint dropped as an isolated
+      // mark ahead of where the actual continuous trail starts.
+      lastTrailSampleAtRef.current = performance.now();
     }
     taskingRef.current = { active, mode, startedAt: performance.now() };
     if (active && sceneRef.current) {
@@ -151,6 +160,7 @@ export function useSatelliteVisualization({
     }
     if (!active) disposeTrail();
   };
+
 
   const setTrailIntensity = (value: number) => {
     // Slider 1..5 → opacity 0.08..0.85
@@ -436,18 +446,24 @@ export function useSatelliteVisualization({
     const surfacePoint = sceneRef.current.satellite.position.clone().normalize().multiplyScalar(6371);
     
     // Only create a new footprint if we have inputs for field of view
-    if (inputs && sceneRef.current.sensorField) {
+    // Read latest inputs via ref so recalculations (new pixel count, focal
+    // length, etc.) immediately affect both the live footprint AND every new
+    // cloned trail sample — even though this function is invoked from the
+    // animation loop's initial closure.
+    const currentInputs = inputsRef.current;
+    if (currentInputs && sceneRef.current.sensorField) {
+
       // Get field of view parameters from inputs if available
       const calculatedParams = calculateSensorParameters({
-        pixelSize: inputs.pixelSize,
-        pixelCountH: inputs.pixelCountH,
-        pixelCountV: inputs.pixelCountV,
-        gsdRequirements: inputs.gsdRequirements,
-        altitudeMin: inputs.altitudeMin / 1000,
-        altitudeMax: inputs.altitudeMax / 1000,
-        focalLength: inputs.focalLength,
-        aperture: inputs.aperture,
-        nominalOffNadirAngle: inputs.nominalOffNadirAngle
+        pixelSize: currentInputs.pixelSize,
+        pixelCountH: currentInputs.pixelCountH,
+        pixelCountV: currentInputs.pixelCountV,
+        gsdRequirements: currentInputs.gsdRequirements,
+        altitudeMin: currentInputs.altitudeMin / 1000,
+        altitudeMax: currentInputs.altitudeMax / 1000,
+        focalLength: currentInputs.focalLength,
+        aperture: currentInputs.aperture,
+        nominalOffNadirAngle: currentInputs.nominalOffNadirAngle
       });
       
       const fovH = calculatedParams.hfovDeg * Math.PI / 180;
@@ -459,10 +475,11 @@ export function useSatelliteVisualization({
         sceneRef.current.satellite.position, 
         fovH, 
         fovV, 
-        inputs.nominalOffNadirAngle,
+        currentInputs.nominalOffNadirAngle,
         calculatedParams.horizontalFootprint,
         calculatedParams.verticalFootprint
       );
+
       
       // createCurvedFootprint already returns world-space Earth-surface vertices.
       // Add footprint to the scene without extra translation/rotation.
