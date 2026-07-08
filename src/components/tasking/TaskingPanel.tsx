@@ -399,8 +399,9 @@ export default function TaskingPanel({
           </button>
         </div>
       </div>
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-3 flex-wrap">
         <TrailIntensityControl />
+        <ColorControl />
         <WarpPills />
       </div>
       <canvas
