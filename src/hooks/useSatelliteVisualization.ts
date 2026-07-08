@@ -455,15 +455,15 @@ export function useSatelliteVisualization({
 
       // Get field of view parameters from inputs if available
       const calculatedParams = calculateSensorParameters({
-        pixelSize: inputs.pixelSize,
-        pixelCountH: inputs.pixelCountH,
-        pixelCountV: inputs.pixelCountV,
-        gsdRequirements: inputs.gsdRequirements,
-        altitudeMin: inputs.altitudeMin / 1000,
-        altitudeMax: inputs.altitudeMax / 1000,
-        focalLength: inputs.focalLength,
-        aperture: inputs.aperture,
-        nominalOffNadirAngle: inputs.nominalOffNadirAngle
+        pixelSize: currentInputs.pixelSize,
+        pixelCountH: currentInputs.pixelCountH,
+        pixelCountV: currentInputs.pixelCountV,
+        gsdRequirements: currentInputs.gsdRequirements,
+        altitudeMin: currentInputs.altitudeMin / 1000,
+        altitudeMax: currentInputs.altitudeMax / 1000,
+        focalLength: currentInputs.focalLength,
+        aperture: currentInputs.aperture,
+        nominalOffNadirAngle: currentInputs.nominalOffNadirAngle
       });
       
       const fovH = calculatedParams.hfovDeg * Math.PI / 180;
@@ -475,10 +475,11 @@ export function useSatelliteVisualization({
         sceneRef.current.satellite.position, 
         fovH, 
         fovV, 
-        inputs.nominalOffNadirAngle,
+        currentInputs.nominalOffNadirAngle,
         calculatedParams.horizontalFootprint,
         calculatedParams.verticalFootprint
       );
+
       
       // createCurvedFootprint already returns world-space Earth-surface vertices.
       // Add footprint to the scene without extra translation/rotation.
