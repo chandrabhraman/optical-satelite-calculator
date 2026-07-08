@@ -8,17 +8,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Circle, Square, X } from 'lucide-react';
-import { useTaskingRecorder } from '@/hooks/useTaskingRecorder';
 import {
   paletteFor,
   terrainAt,
   type ScanChannel,
   type ScanMode,
 } from '@/utils/scanPalettes';
-import { drawWatermark } from '@/utils/watermark';
 
 interface TaskingPanelProps {
   onClose: () => void;
+  mode: ScanMode;
+  channel: ScanChannel;
+  onModeChange: (m: ScanMode) => void;
+  onChannelChange: (c: ScanChannel) => void;
+  isRecording: boolean;
+  onToggleRecord: () => void;
 }
 
 const MODES: { id: ScanMode; label: string }[] = [
@@ -29,26 +33,30 @@ const MODES: { id: ScanMode; label: string }[] = [
 
 const CANVAS_W = 520;
 const CANVAS_H = 300;
-const GROUND_TOP = 90; // y where terrain begins
+const GROUND_TOP = 90;
 const SAT_Y = 50;
 
-export default function TaskingPanel({ onClose }: TaskingPanelProps) {
+export default function TaskingPanel({
+  onClose,
+  mode,
+  channel,
+  onModeChange,
+  onChannelChange,
+  isRecording,
+  onToggleRecord,
+}: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const capturedRef = useRef<HTMLCanvasElement | null>(null); // persistent captured pixels
+  const capturedRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const scrollRef = useRef(0); // ground scroll offset in "world" px
+  const scrollRef = useRef(0);
   const startTimeRef = useRef<number>(performance.now());
 
-  const [mode, setMode] = useState<ScanMode>('pushbroom');
-  const [channel, setChannel] = useState<ScanChannel>('RGB');
   const modeRef = useRef(mode);
   const channelRef = useRef(channel);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { channelRef.current = channel; }, [channel]);
 
-  const { isRecording, start, stop, cancel } = useTaskingRecorder();
-
-  // init captured layer
+  // init captured layer (persists across mode changes but is cleared when mode/channel changes)
   useEffect(() => {
     const c = document.createElement('canvas');
     c.width = CANVAS_W;
@@ -57,7 +65,6 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
     return () => { capturedRef.current = null; };
   }, []);
 
-  // reset captured layer when mode/channel changes so transitions feel deliberate
   useEffect(() => {
     const cap = capturedRef.current;
     if (!cap) return;
@@ -65,67 +72,55 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
     if (ctx) ctx.clearRect(0, 0, cap.width, cap.height);
   }, [mode, channel]);
 
+  // Only run the mini-canvas rAF loop when the panel is expanded (visible)
   useEffect(() => {
+    if (isRecording) return; // canvas is hidden while recording; skip animation
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     let last = performance.now();
-
     const draw = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      scrollRef.current += dt * 55; // world px per second (satellite forward motion)
+      scrollRef.current += dt * 55;
       const scroll = scrollRef.current;
       const m = modeRef.current;
       const ch = channelRef.current;
       const cap = capturedRef.current!;
       const capCtx = cap.getContext('2d')!;
 
-      // --- Accumulate captured pixels for the current frame ---
-      // The captured layer scrolls with the ground: shift it left by dt*55 px each frame.
       const shift = dt * 55;
-      // Cheap scroll: copy image data over itself shifted left
       capCtx.globalCompositeOperation = 'copy';
       capCtx.drawImage(cap, -shift, 0);
       capCtx.globalCompositeOperation = 'source-over';
-      // Fade the trailing edge slightly so old scans dim over time
       capCtx.fillStyle = 'rgba(0,0,0,0.015)';
       capCtx.fillRect(0, 0, cap.width, cap.height);
 
-      // Where does the satellite project onto the ground (x on the ground canvas)?
       const satGroundX = CANVAS_W * 0.5;
-
       if (m === 'pushbroom') {
-        // Capture a 1-px wide vertical strip at satGroundX across full ground height,
-        // colored by terrain sampled with current scroll.
         for (let y = 0; y < cap.height; y++) {
           const worldX = satGroundX + scroll;
-          const worldY = y;
-          const t = terrainAt(worldX, worldY);
+          const t = terrainAt(worldX, y);
           const [r, g, b] = paletteFor(ch, t);
           capCtx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
           capCtx.fillRect(satGroundX, y, 2, 1);
         }
       } else if (m === 'whiskbroom') {
-        // Sweep across-track at ~2 Hz, capturing small tiles as the sat advances.
-        const sweep = (Math.sin(now * 0.006) + 1) / 2; // 0..1
+        const sweep = (Math.sin(now * 0.006) + 1) / 2;
         const beamX = 40 + sweep * (CANVAS_W - 80);
         const tileW = 6, tileH = 4;
         for (let dy = 0; dy < cap.height; dy += tileH) {
-          if (Math.random() > 0.35) continue; // sparse to feel raster-like
+          if (Math.random() > 0.35) continue;
           const worldX = beamX + scroll;
-          const worldY = dy;
-          const t = terrainAt(worldX, worldY);
+          const t = terrainAt(worldX, dy);
           const [r, g, b] = paletteFor(ch, t);
           capCtx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
           capCtx.fillRect(beamX - tileW / 2, dy, tileW, tileH);
         }
       } else {
-        // frame: periodic shutter fills a rectangle centered under the satellite
-        const period = 1200; // ms
-        const phase = (now - startTimeRef.current) % period;
+        const phase = (now - startTimeRef.current) % 1200;
         if (phase < 90) {
           const fw = 180, fh = cap.height - 20;
           const fx = satGroundX - fw / 2;
@@ -133,8 +128,7 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
           for (let yy = 0; yy < fh; yy += 2) {
             for (let xx = 0; xx < fw; xx += 2) {
               const worldX = fx + xx + scroll;
-              const worldY = fy + yy;
-              const t = terrainAt(worldX, worldY);
+              const t = terrainAt(worldX, fy + yy);
               const [r, g, b] = paletteFor(ch, t);
               capCtx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
               capCtx.fillRect(fx + xx, fy + yy, 2, 2);
@@ -143,15 +137,12 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
         }
       }
 
-      // --- Render compose to main canvas ---
-      // background: deep space gradient
       const bg = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
       bg.addColorStop(0, '#070912');
       bg.addColorStop(1, '#0b1224');
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-      // stars
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
       for (let i = 0; i < 40; i++) {
         const sx = (i * 97 + (scroll * 0.2)) % CANVAS_W;
@@ -159,17 +150,14 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
         ctx.fillRect(sx, sy, 1, 1);
       }
 
-      // faint base terrain preview under the captured layer (so unscanned areas are visible)
       const baseImg = ctx.createLinearGradient(0, GROUND_TOP, 0, CANVAS_H);
       baseImg.addColorStop(0, '#12203a');
       baseImg.addColorStop(1, '#0a1428');
       ctx.fillStyle = baseImg;
       ctx.fillRect(0, GROUND_TOP, CANVAS_W, CANVAS_H - GROUND_TOP);
 
-      // draw captured layer
       ctx.drawImage(cap, 0, GROUND_TOP);
 
-      // horizon line
       ctx.strokeStyle = 'rgba(120,180,255,0.35)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -177,16 +165,13 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
       ctx.lineTo(CANVAS_W, GROUND_TOP);
       ctx.stroke();
 
-      // satellite body
       const satX = satGroundX;
       ctx.fillStyle = '#d6d9e0';
       ctx.fillRect(satX - 10, SAT_Y - 5, 20, 10);
-      // solar panels
       ctx.fillStyle = '#2b4bb0';
       ctx.fillRect(satX - 28, SAT_Y - 2, 16, 4);
       ctx.fillRect(satX + 12, SAT_Y - 2, 16, 4);
 
-      // scan beam overlay
       ctx.save();
       if (m === 'pushbroom') {
         const grad = ctx.createLinearGradient(satX, SAT_Y, satX, CANVAS_H);
@@ -203,7 +188,6 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
         ctx.moveTo(satX, SAT_Y + 5);
         ctx.lineTo(beamX, CANVAS_H - 2);
         ctx.stroke();
-        // spotlight ellipse
         ctx.fillStyle = 'rgba(200,170,255,0.35)';
         ctx.beginPath();
         ctx.ellipse(beamX, CANVAS_H - 6, 10, 4, 0, 0, Math.PI * 2);
@@ -212,22 +196,16 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
         const fw = 180, fh = CANVAS_H - GROUND_TOP - 20;
         const fx = satX - fw / 2;
         const fy = GROUND_TOP + 10;
-        // pyramid outline
         ctx.strokeStyle = 'rgba(120,220,255,0.7)';
         ctx.setLineDash([4, 4]);
         ctx.strokeRect(fx, fy, fw, fh);
         ctx.beginPath();
-        ctx.moveTo(satX, SAT_Y + 5);
-        ctx.lineTo(fx, fy);
-        ctx.moveTo(satX, SAT_Y + 5);
-        ctx.lineTo(fx + fw, fy);
-        ctx.moveTo(satX, SAT_Y + 5);
-        ctx.lineTo(fx, fy + fh);
-        ctx.moveTo(satX, SAT_Y + 5);
-        ctx.lineTo(fx + fw, fy + fh);
+        ctx.moveTo(satX, SAT_Y + 5); ctx.lineTo(fx, fy);
+        ctx.moveTo(satX, SAT_Y + 5); ctx.lineTo(fx + fw, fy);
+        ctx.moveTo(satX, SAT_Y + 5); ctx.lineTo(fx, fy + fh);
+        ctx.moveTo(satX, SAT_Y + 5); ctx.lineTo(fx + fw, fy + fh);
         ctx.stroke();
         ctx.setLineDash([]);
-        // shutter flash
         const phase = (now - startTimeRef.current) % 1200;
         if (phase < 90) {
           ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - phase / 90)})`;
@@ -236,21 +214,9 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
       }
       ctx.restore();
 
-      // HUD text
       ctx.fillStyle = 'rgba(220,230,255,0.85)';
       ctx.font = '11px ui-sans-serif, system-ui, -apple-system';
       ctx.fillText(`Mode: ${m.toUpperCase()}   Channel: ${ch}`, 10, 16);
-      if (isRecording) {
-        ctx.fillStyle = '#ff5566';
-        ctx.beginPath();
-        ctx.arc(CANVAS_W - 18, 14, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(220,230,255,0.85)';
-        ctx.fillText('REC', CANVAS_W - 44, 18);
-      }
-
-      // burn-in watermark for shareability
-      drawWatermark(canvas, 'opticalsatellitetools.space');
 
       rafRef.current = requestAnimationFrame(draw);
     };
@@ -261,26 +227,40 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
     };
   }, [isRecording]);
 
-  // Cleanup on unmount
-  useEffect(() => () => cancel(), [cancel]);
-
-  const toggleRecord = () => {
-    if (isRecording) {
-      stop();
-    } else if (canvasRef.current) {
-      start(canvasRef.current);
-    }
-  };
+  // Minimized (recording) mode: only Stop button visible
+  if (isRecording) {
+    return (
+      <div className="absolute left-4 bottom-4 z-30 glassmorphism rounded-full pl-3 pr-1 py-1 shadow-2xl border border-destructive/60 animate-fade-in flex items-center gap-2">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive"></span>
+        </span>
+        <span className="text-[11px] text-foreground/90 font-medium tracking-wide">
+          REC · {mode.toUpperCase()} · {channel}
+        </span>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-7 px-2 text-[11px] rounded-full"
+          onClick={onToggleRecord}
+        >
+          <Square className="h-3 w-3 mr-1" /> Stop &amp; Save
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="absolute left-4 bottom-4 z-20 glassmorphism rounded-lg p-3 shadow-2xl border border-primary/30 animate-fade-in"
-         style={{ width: CANVAS_W + 24 }}>
+    <div
+      className="absolute left-4 bottom-4 z-20 glassmorphism rounded-lg p-3 shadow-2xl border border-primary/30 animate-fade-in"
+      style={{ width: CANVAS_W + 24 }}
+    >
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1">
           {MODES.map((m) => (
             <button
               key={m.id}
-              onClick={() => setMode(m.id)}
+              onClick={() => onModeChange(m.id)}
               className={`text-[11px] px-2 py-1 rounded-md transition-colors ${
                 mode === m.id
                   ? 'bg-primary text-primary-foreground'
@@ -292,7 +272,7 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Select value={channel} onValueChange={(v) => setChannel(v as ScanChannel)}>
+          <Select value={channel} onValueChange={(v) => onChannelChange(v as ScanChannel)}>
             <SelectTrigger className="h-7 w-[92px] text-[11px]">
               <SelectValue />
             </SelectTrigger>
@@ -304,15 +284,11 @@ export default function TaskingPanel({ onClose }: TaskingPanelProps) {
           </Select>
           <Button
             size="sm"
-            variant={isRecording ? 'destructive' : 'default'}
+            variant="default"
             className="h-7 px-2 text-[11px]"
-            onClick={toggleRecord}
+            onClick={onToggleRecord}
           >
-            {isRecording ? (
-              <><Square className="h-3 w-3 mr-1" /> Stop &amp; Save</>
-            ) : (
-              <><Circle className="h-3 w-3 mr-1 fill-current" /> Record</>
-            )}
+            <Circle className="h-3 w-3 mr-1 fill-current" /> Record
           </Button>
           <button
             onClick={onClose}

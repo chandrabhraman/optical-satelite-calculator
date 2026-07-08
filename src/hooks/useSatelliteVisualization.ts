@@ -60,6 +60,8 @@ const MODEL_PATHS = [
 // Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
 const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real Earth)
 
+export type TaskingMode = 'pushbroom' | 'whiskbroom' | 'frame';
+
 export function useSatelliteVisualization({
   containerRef,
   inputs,
@@ -67,10 +69,23 @@ export function useSatelliteVisualization({
   onPositionUpdate
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
-  
+  const taskingRef = useRef<{ active: boolean; mode: TaskingMode; startedAt: number }>({
+    active: false,
+    mode: 'pushbroom',
+    startedAt: 0,
+  });
+
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
     return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
+  };
+
+  const getRendererCanvas = (): HTMLCanvasElement | null => {
+    return sceneRef.current?.renderer.domElement ?? null;
+  };
+
+  const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
+    taskingRef.current = { active, mode, startedAt: performance.now() };
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
@@ -613,7 +628,7 @@ export function useSatelliteVisualization({
     );
     camera.position.set(0, 2000, 15000);
     
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
@@ -834,8 +849,55 @@ export function useSatelliteVisualization({
         updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed);
       }
       
+      // Tasking-mode footprint highlight modulation
+      const fp = sceneRef.current?.sensorFootprint as THREE.Object3D | null | undefined;
+      const t = taskingRef.current;
+      if (fp) {
+        const applyToMat = (mat: THREE.Material) => {
+          const m = mat as THREE.MeshBasicMaterial;
+          if (!(m as any).__origColor) {
+            (m as any).__origColor = m.color?.getHex?.() ?? 0x4caf50;
+            (m as any).__origOpacity = m.opacity;
+          }
+          if (t.active) {
+            const elapsed = (currentTime - t.startedAt) / 1000;
+            if (t.mode === 'pushbroom') {
+              m.color?.setHex(0x22e0ff);
+              m.opacity = 0.55 + 0.25 * Math.sin(elapsed * 3.2);
+            } else if (t.mode === 'whiskbroom') {
+              m.color?.setHex(0xff6a3d);
+              m.opacity = 0.45 + 0.4 * Math.abs(Math.sin(elapsed * 8));
+            } else {
+              const phase = elapsed % 1.2;
+              const flash = phase < 0.12 ? 1 : 0.35;
+              m.color?.setHex(0xfff2a8);
+              m.opacity = 0.3 + 0.55 * flash;
+            }
+            m.transparent = true;
+            m.needsUpdate = true;
+          } else {
+            m.color?.setHex((m as any).__origColor);
+            m.opacity = (m as any).__origOpacity;
+            m.needsUpdate = true;
+          }
+        };
+        fp.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.isMesh && mesh.material) {
+            if (Array.isArray(mesh.material)) mesh.material.forEach(applyToMat);
+            else applyToMat(mesh.material as THREE.Material);
+          }
+        });
+        // If fp itself is a Mesh (not just Group)
+        const asMesh = fp as THREE.Mesh;
+        if ((asMesh as any).isMesh && asMesh.material) {
+          if (Array.isArray(asMesh.material)) asMesh.material.forEach(applyToMat);
+          else applyToMat(asMesh.material as THREE.Material);
+        }
+      }
+
       renderer.render(scene, camera);
-      
+
       if (sceneRef.current) {
         sceneRef.current.animationId = animationId;
         sceneRef.current.earthRotationAngle = earthRotationAngle;
@@ -922,11 +984,13 @@ export function useSatelliteVisualization({
     }
   };
 
-  return { 
-    updateSatelliteOrbit, 
-    loadCustomModel, 
+  return {
+    updateSatelliteOrbit,
+    loadCustomModel,
     startOrbitAnimation,
     getCurrentEarthRotation,
-    captureSnapshot
+    captureSnapshot,
+    getRendererCanvas,
+    setTaskingHighlight,
   };
 }
