@@ -850,33 +850,49 @@ export function useSatelliteVisualization({
       }
       
       // Tasking-mode footprint highlight modulation
-      const fp = sceneRef.current?.sensorFootprint as THREE.Mesh | undefined;
+      const fp = sceneRef.current?.sensorFootprint as THREE.Object3D | null | undefined;
       const t = taskingRef.current;
-      if (fp && (fp as any).material) {
-        const mat = (fp as any).material as THREE.MeshBasicMaterial;
-        if (!(fp as any).userData.origColor) {
-          (fp as any).userData.origColor = mat.color.getHex();
-          (fp as any).userData.origOpacity = mat.opacity;
-        }
-        if (t.active) {
-          const elapsed = (currentTime - t.startedAt) / 1000;
-          if (t.mode === 'pushbroom') {
-            mat.color.setHex(0x22e0ff);
-            mat.opacity = 0.55 + 0.25 * Math.sin(elapsed * 3.2);
-          } else if (t.mode === 'whiskbroom') {
-            mat.color.setHex(0xff6a3d);
-            mat.opacity = 0.45 + 0.4 * Math.abs(Math.sin(elapsed * 8));
-          } else {
-            // frame: strobe every 1.2s
-            const phase = elapsed % 1.2;
-            const flash = phase < 0.12 ? 1 : 0.35;
-            mat.color.setHex(0xfff2a8);
-            mat.opacity = 0.3 + 0.55 * flash;
+      if (fp) {
+        const applyToMat = (mat: THREE.Material) => {
+          const m = mat as THREE.MeshBasicMaterial;
+          if (!(m as any).__origColor) {
+            (m as any).__origColor = m.color?.getHex?.() ?? 0x4caf50;
+            (m as any).__origOpacity = m.opacity;
           }
-          mat.needsUpdate = true;
-        } else if ((fp as any).userData.origColor !== undefined) {
-          mat.color.setHex((fp as any).userData.origColor);
-          mat.opacity = (fp as any).userData.origOpacity;
+          if (t.active) {
+            const elapsed = (currentTime - t.startedAt) / 1000;
+            if (t.mode === 'pushbroom') {
+              m.color?.setHex(0x22e0ff);
+              m.opacity = 0.55 + 0.25 * Math.sin(elapsed * 3.2);
+            } else if (t.mode === 'whiskbroom') {
+              m.color?.setHex(0xff6a3d);
+              m.opacity = 0.45 + 0.4 * Math.abs(Math.sin(elapsed * 8));
+            } else {
+              const phase = elapsed % 1.2;
+              const flash = phase < 0.12 ? 1 : 0.35;
+              m.color?.setHex(0xfff2a8);
+              m.opacity = 0.3 + 0.55 * flash;
+            }
+            m.transparent = true;
+            m.needsUpdate = true;
+          } else {
+            m.color?.setHex((m as any).__origColor);
+            m.opacity = (m as any).__origOpacity;
+            m.needsUpdate = true;
+          }
+        };
+        fp.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.isMesh && mesh.material) {
+            if (Array.isArray(mesh.material)) mesh.material.forEach(applyToMat);
+            else applyToMat(mesh.material as THREE.Material);
+          }
+        });
+        // If fp itself is a Mesh (not just Group)
+        const asMesh = fp as THREE.Mesh;
+        if ((asMesh as any).isMesh && asMesh.material) {
+          if (Array.isArray(asMesh.material)) asMesh.material.forEach(applyToMat);
+          else applyToMat(asMesh.material as THREE.Material);
         }
       }
 
