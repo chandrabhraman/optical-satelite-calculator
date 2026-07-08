@@ -60,6 +60,8 @@ const MODEL_PATHS = [
 // Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
 const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real Earth)
 
+export type TaskingMode = 'pushbroom' | 'whiskbroom' | 'frame';
+
 export function useSatelliteVisualization({
   containerRef,
   inputs,
@@ -67,10 +69,23 @@ export function useSatelliteVisualization({
   onPositionUpdate
 }: UseSatelliteVisualizationProps) {
   const sceneRef = useRef<SceneRef | null>(null);
-  
+  const taskingRef = useRef<{ active: boolean; mode: TaskingMode; startedAt: number }>({
+    active: false,
+    mode: 'pushbroom',
+    startedAt: 0,
+  });
+
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
     return sceneRef.current ? sceneRef.current.earthRotationAngle : 0;
+  };
+
+  const getRendererCanvas = (): HTMLCanvasElement | null => {
+    return sceneRef.current?.renderer.domElement ?? null;
+  };
+
+  const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
+    taskingRef.current = { active, mode, startedAt: performance.now() };
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
