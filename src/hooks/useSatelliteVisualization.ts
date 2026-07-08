@@ -74,6 +74,8 @@ export function useSatelliteVisualization({
     mode: 'pushbroom',
     startedAt: 0,
   });
+  const trailGroupRef = useRef<THREE.Group | null>(null);
+  const warpRef = useRef<number>(1);
 
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
@@ -84,8 +86,29 @@ export function useSatelliteVisualization({
     return sceneRef.current?.renderer.domElement ?? null;
   };
 
+  const disposeTrail = () => {
+    const g = trailGroupRef.current;
+    if (!g) return;
+    while (g.children.length) {
+      const c = g.children[0];
+      g.remove(c);
+      c.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach((m: any) => m.dispose?.());
+          else o.material.dispose?.();
+        }
+      });
+    }
+  };
+
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     taskingRef.current = { active, mode, startedAt: performance.now() };
+    if (!active) disposeTrail();
+  };
+
+  const setWarpSpeed = (mult: number) => {
+    warpRef.current = Math.max(0.1, mult);
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
@@ -332,6 +355,62 @@ export function useSatelliteVisualization({
       // Add footprint to the scene (not to the satellite)
       sceneRef.current.scene.add(footprint);
       sceneRef.current.sensorFootprint = footprint;
+
+      // Persistent tasking trail: leave a fading breadcrumb of past footprints
+      if (taskingRef.current.active) {
+        if (!trailGroupRef.current) {
+          const g = new THREE.Group();
+          trailGroupRef.current = g;
+          sceneRef.current.scene.add(g);
+        }
+        const trail = trailGroupRef.current;
+        const modeColor =
+          taskingRef.current.mode === 'pushbroom' ? 0x22e0ff
+          : taskingRef.current.mode === 'whiskbroom' ? 0xff6a3d
+          : 0xfff2a8;
+        const clone = footprint.clone(true);
+        clone.traverse((obj: any) => {
+          if (obj.isMesh && obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            obj.material = mats.map((m: any) => {
+              const nm = m.clone();
+              nm.color?.setHex(modeColor);
+              nm.transparent = true;
+              nm.opacity = 0.28;
+              nm.depthWrite = false;
+              return nm;
+            });
+            if (!Array.isArray(obj.material) && obj.material.length === 1) {
+              obj.material = obj.material[0];
+            }
+          }
+        });
+        trail.add(clone);
+        // Fade older markers and cap count
+        const MAX_TRAIL = 90;
+        const kids = trail.children;
+        for (let i = 0; i < kids.length; i++) {
+          const age = kids.length - 1 - i;
+          const factor = Math.max(0.05, 1 - age / MAX_TRAIL);
+          kids[i].traverse((obj: any) => {
+            if (obj.isMesh && obj.material) {
+              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+              mats.forEach((m: any) => { m.opacity = 0.28 * factor; });
+            }
+          });
+        }
+        while (trail.children.length > MAX_TRAIL) {
+          const old = trail.children[0];
+          trail.remove(old);
+          old.traverse((o: any) => {
+            if (o.geometry) o.geometry.dispose?.();
+            if (o.material) {
+              const mats = Array.isArray(o.material) ? o.material : [o.material];
+              mats.forEach((m: any) => m.dispose?.());
+            }
+          });
+        }
+      }
     }
     
     // Notify position update with lat/long coordinates
@@ -846,7 +925,7 @@ export function useSatelliteVisualization({
       
       // Update satellite position in orbit if initialized
       if (sceneRef.current && sceneRef.current.orbitPlane && isInitialized) {
-        updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed);
+        updateSatelliteOrbitPosition(sceneRef.current.orbitSpeed * warpRef.current);
       }
       
       // Tasking-mode footprint highlight modulation
@@ -992,5 +1071,6 @@ export function useSatelliteVisualization({
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setWarpSpeed,
   };
 }

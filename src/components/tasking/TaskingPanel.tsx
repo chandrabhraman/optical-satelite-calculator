@@ -23,7 +23,11 @@ interface TaskingPanelProps {
   onChannelChange: (c: ScanChannel) => void;
   isRecording: boolean;
   onToggleRecord: () => void;
+  warp: number;
+  onWarpChange: (w: number) => void;
 }
+
+const WARP_SPEEDS = [1, 5, 20];
 
 const MODES: { id: ScanMode; label: string }[] = [
   { id: 'pushbroom', label: 'Pushbroom' },
@@ -44,6 +48,8 @@ export default function TaskingPanel({
   onChannelChange,
   isRecording,
   onToggleRecord,
+  warp,
+  onWarpChange,
 }: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const capturedRef = useRef<HTMLCanvasElement | null>(null);
@@ -227,7 +233,27 @@ export default function TaskingPanel({
     };
   }, [isRecording]);
 
-  // Minimized (recording) mode: only Stop button visible
+  // Warp speed pill (shared)
+  const WarpPills = ({ compact = false }: { compact?: boolean }) => (
+    <div className={`flex items-center gap-1 ${compact ? '' : 'mt-2'}`}>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Warp</span>
+      {WARP_SPEEDS.map((w) => (
+        <button
+          key={w}
+          onClick={() => onWarpChange(w)}
+          className={`text-[10px] px-1.5 py-0.5 rounded-md transition-colors ${
+            warp === w
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary/60 text-foreground/80 hover:bg-secondary'
+          }`}
+        >
+          {w}x
+        </button>
+      ))}
+    </div>
+  );
+
+  // Minimized (recording) mode: only Stop button + warp visible
   if (isRecording) {
     return (
       <div className="absolute left-4 bottom-4 z-30 glassmorphism rounded-full pl-3 pr-1 py-1 shadow-2xl border border-destructive/60 animate-fade-in flex items-center gap-2">
@@ -238,6 +264,7 @@ export default function TaskingPanel({
         <span className="text-[11px] text-foreground/90 font-medium tracking-wide">
           REC · {mode.toUpperCase()} · {channel}
         </span>
+        <WarpPills compact />
         <Button
           size="sm"
           variant="destructive"
@@ -249,6 +276,7 @@ export default function TaskingPanel({
       </div>
     );
   }
+
 
   return (
     <div
@@ -299,6 +327,7 @@ export default function TaskingPanel({
           </button>
         </div>
       </div>
+      <div className="flex justify-end mb-2"><WarpPills /></div>
       <canvas
         ref={canvasRef}
         width={CANVAS_W}

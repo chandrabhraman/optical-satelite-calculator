@@ -30,6 +30,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [taskingOpen, setTaskingOpen] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
+  const [warp, setWarp] = useState<number>(1);
 
   // Use custom hook for Three.js visualization
   const {
@@ -40,6 +41,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setWarpSpeed,
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -236,6 +238,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onChannelChange={setScanChannel}
               isRecording={isRecording}
               onToggleRecord={handleToggleRecord}
+              warp={warp}
+              onWarpChange={(w) => { setWarp(w); setWarpSpeed(w); }}
             />
           )}
           {!hasCalculated && (
