@@ -25,6 +25,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     trueAnomaly: 0
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
+  const [taskingOpen, setTaskingOpen] = useState(false);
   
   // Use custom hook for Three.js visualization
   const { 
@@ -132,15 +133,26 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
           <span>Satellite Sensor Field Visualization</span>
           <div className="flex items-center gap-2">
             {hasCalculated && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleSnapshot}
-                className="text-xs"
-              >
-                <Camera className="h-4 w-4 mr-1" />
-                Snapshot
-              </Button>
+              <>
+                <Button
+                  variant={taskingOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTaskingOpen((v) => !v)}
+                  className="text-xs"
+                >
+                  <Radio className="h-4 w-4 mr-1" />
+                  Animate Tasking
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSnapshot}
+                  className="text-xs"
+                >
+                  <Camera className="h-4 w-4 mr-1" />
+                  Snapshot
+                </Button>
+              </>
             )}
             {!hasCalculated && <span className="text-sm font-normal text-muted-foreground">Click Calculate to activate</span>}
           </div>
