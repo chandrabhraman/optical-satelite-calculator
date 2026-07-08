@@ -408,6 +408,7 @@ export function useSatelliteVisualization({
 
     frameTaskingView(surfacePoint, along, cross, visualHf, visualVf);
 
+    const trail = trailGroupRef.current;
     const previousCenter = lastTrailCenterRef.current;
     if (previousCenter && mode !== 'frame') {
       const segment = createSwathSegment({
@@ -433,7 +434,6 @@ export function useSatelliteVisualization({
       segmentsCross,
     });
 
-    const trail = trailGroupRef.current;
     trail.add(patch);
     lastTrailSampleAtRef.current = now;
     lastTrailCenterRef.current = center.clone();
