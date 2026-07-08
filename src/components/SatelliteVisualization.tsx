@@ -70,6 +70,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
         duration: 3000,
       });
     } else {
+      if (!hasSimulated) {
+        toast({
+          title: 'Start the orbit first',
+          description: 'Click the glowing green "Run Simulation" button so the satellite is in motion, then record.',
+          variant: 'destructive',
+          duration: 3500,
+        });
+        return;
+      }
       const canvas = getRendererCanvas();
       if (!canvas) {
         toast({ title: 'Recording unavailable', description: 'The 3D viewport is not ready yet.', variant: 'destructive' });
