@@ -31,7 +31,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
   const [warp, setWarp] = useState<number>(1);
-  const [trailIntensity, setTrailIntensityState] = useState<number>(4);
+  const [trailIntensity, setTrailIntensityState] = useState<number>(3);
+  const [trailColor, setTrailColor] = useState<string>('#22e0ff');
   const [hasSimulated, setHasSimulated] = useState(false);
 
   // Use custom hook for Three.js visualization
@@ -44,6 +45,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     getRendererCanvas,
     setTaskingHighlight,
     setTrailIntensity,
+    setTaskingTrailStyle,
     setWarpSpeed,
   } = useSatelliteVisualization({
     containerRef,
