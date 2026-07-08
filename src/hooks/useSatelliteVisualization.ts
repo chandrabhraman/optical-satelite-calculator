@@ -75,6 +75,9 @@ export function useSatelliteVisualization({
     startedAt: 0,
   });
   const trailGroupRef = useRef<THREE.Group | null>(null);
+  const lastTrailSampleAtRef = useRef<number>(0);
+  const lastTrailCenterRef = useRef<THREE.Vector3 | null>(null);
+  const trailIntensityRef = useRef<number>(4);
   const warpRef = useRef<number>(1);
 
   // Get current Earth rotation angle
@@ -84,6 +87,34 @@ export function useSatelliteVisualization({
 
   const getRendererCanvas = (): HTMLCanvasElement | null => {
     return sceneRef.current?.renderer.domElement ?? null;
+  };
+
+  const taskingColorForMode = (mode: TaskingMode) => (
+    mode === 'pushbroom' ? 0x22e0ff
+    : mode === 'whiskbroom' ? 0xff8a3d
+    : 0xfff2a8
+  );
+
+  const applyTrailOpacity = () => {
+    const trail = trailGroupRef.current;
+    if (!trail) return;
+    const intensity = trailIntensityRef.current;
+    const maxTrail = Math.round(140 + intensity * 55);
+    const baseOpacity = Math.min(0.96, 0.24 + intensity * 0.15);
+
+    trail.children.forEach((child, i) => {
+      const age = trail.children.length - 1 - i;
+      const factor = Math.max(0.2, 1 - age / maxTrail);
+      child.traverse((obj: any) => {
+        if (obj.material) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach((m: any) => {
+            m.opacity = Math.min(1, baseOpacity * factor * (m.userData?.opacityScale ?? 1));
+            m.needsUpdate = true;
+          });
+        }
+      });
+    });
   };
 
   const disposeTrail = () => {
@@ -100,15 +131,326 @@ export function useSatelliteVisualization({
         }
       });
     }
+    lastTrailSampleAtRef.current = 0;
+    lastTrailCenterRef.current = null;
   };
 
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
+    if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
+      disposeTrail();
+      lastTrailSampleAtRef.current = 0;
+      lastTrailCenterRef.current = null;
+    }
     taskingRef.current = { active, mode, startedAt: performance.now() };
     if (!active) disposeTrail();
   };
 
+  const setTrailIntensity = (value: number) => {
+    trailIntensityRef.current = Math.min(5, Math.max(1, value));
+    applyTrailOpacity();
+  };
+
   const setWarpSpeed = (mult: number) => {
     warpRef.current = Math.max(0.1, mult);
+  };
+
+  const frameTaskingView = (
+    surfacePoint: THREE.Vector3,
+    along: THREE.Vector3,
+    cross: THREE.Vector3,
+    horizontalFootprint: number,
+    verticalFootprint: number
+  ) => {
+    const current = sceneRef.current;
+    if (!current || !taskingRef.current.active) return;
+
+    const normal = surfacePoint.clone().normalize();
+    const footprintSpan = Math.max(horizontalFootprint, verticalFootprint, 25);
+    const altitude = Math.min(1800, Math.max(700, footprintSpan * 32));
+    const trackLookAhead = Math.min(650, Math.max(180, footprintSpan * 10));
+    const desiredTarget = surfacePoint.clone().addScaledVector(along, trackLookAhead);
+    const desiredCamera = surfacePoint
+      .clone()
+      .addScaledVector(normal, altitude)
+      .addScaledVector(along, -trackLookAhead * 1.1)
+      .addScaledVector(cross, trackLookAhead * 0.45);
+
+    current.controls.autoRotate = false;
+    current.controls.target.lerp(desiredTarget, 0.16);
+    current.camera.position.lerp(desiredCamera, 0.12);
+    current.camera.near = 0.1;
+    current.camera.far = 1000000;
+    current.camera.updateProjectionMatrix();
+  };
+
+  const createSurfaceSwathPatch = ({
+    center,
+    along,
+    cross,
+    halfAlong,
+    halfCross,
+    color,
+    opacity,
+    segmentsAlong,
+    segmentsCross,
+  }: {
+    center: THREE.Vector3;
+    along: THREE.Vector3;
+    cross: THREE.Vector3;
+    halfAlong: number;
+    halfCross: number;
+    color: number;
+    opacity: number;
+    segmentsAlong: number;
+    segmentsCross: number;
+  }) => {
+    const earthRadius = 6371;
+    const lift = 12 + trailIntensityRef.current * 4;
+    const vertices: number[] = [];
+    const indices: number[] = [];
+
+    for (let i = 0; i <= segmentsAlong; i++) {
+      for (let j = 0; j <= segmentsCross; j++) {
+        const u = ((i / segmentsAlong) * 2 - 1) * halfAlong;
+        const v = ((j / segmentsCross) * 2 - 1) * halfCross;
+        const point = center
+          .clone()
+          .addScaledVector(along, u)
+          .addScaledVector(cross, v)
+          .normalize()
+          .multiplyScalar(earthRadius + lift);
+        vertices.push(point.x, point.y, point.z);
+      }
+    }
+
+    for (let i = 0; i < segmentsAlong; i++) {
+      for (let j = 0; j < segmentsCross; j++) {
+        const a = i * (segmentsCross + 1) + j;
+        const b = a + 1;
+        const c = (i + 1) * (segmentsCross + 1) + j;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    material.userData.opacityScale = 1;
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 1200;
+    mesh.frustumCulled = false;
+
+    const corner = (u: number, v: number) => center
+      .clone()
+      .addScaledVector(along, u)
+      .addScaledVector(cross, v)
+      .normalize()
+      .multiplyScalar(earthRadius + lift + 2);
+
+    const corners = [
+      corner(-halfAlong, -halfCross),
+      corner(-halfAlong, halfCross),
+      corner(halfAlong, halfCross),
+      corner(halfAlong, -halfCross),
+      corner(-halfAlong, -halfCross),
+    ];
+    const outlineGeometry = new THREE.BufferGeometry().setFromPoints(corners);
+    const outlineMaterial = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: Math.min(1, opacity + 0.25),
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    outlineMaterial.userData.opacityScale = 1.2;
+    const outline = new THREE.Line(outlineGeometry, outlineMaterial);
+    outline.renderOrder = 1201;
+    outline.frustumCulled = false;
+
+    const group = new THREE.Group();
+    group.add(mesh);
+    group.add(outline);
+    group.renderOrder = 1200;
+    return group;
+  };
+
+  const createSwathSegment = ({
+    from,
+    to,
+    cross,
+    width,
+    color,
+    opacity,
+  }: {
+    from: THREE.Vector3;
+    to: THREE.Vector3;
+    cross: THREE.Vector3;
+    width: number;
+    color: number;
+    opacity: number;
+  }) => {
+    const earthRadius = 6371;
+    const lift = 28 + trailIntensityRef.current * 6;
+    const halfWidth = Math.max(width / 2, 80);
+    const edge = (p: THREE.Vector3, side: number) => p
+      .clone()
+      .addScaledVector(cross, side * halfWidth)
+      .normalize()
+      .multiplyScalar(earthRadius + lift);
+
+    const vertices = [
+      edge(from, -1), edge(from, 1), edge(to, -1),
+      edge(from, 1), edge(to, 1), edge(to, -1),
+    ];
+    const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    material.userData.opacityScale = 1.35;
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 1300;
+    mesh.frustumCulled = false;
+    return mesh;
+  };
+
+  const addTaskingTrailSample = ({
+    surfacePoint,
+    orbitPlaneMatrix,
+    horizontalFootprint,
+    verticalFootprint,
+  }: {
+    surfacePoint: THREE.Vector3;
+    orbitPlaneMatrix: THREE.Matrix4;
+    horizontalFootprint: number;
+    verticalFootprint: number;
+  }) => {
+    if (!sceneRef.current || !taskingRef.current.active) return;
+
+    const now = performance.now();
+    const mode = taskingRef.current.mode;
+    const sampleInterval = mode === 'frame' ? 650 : 75;
+    if (lastTrailSampleAtRef.current && now - lastTrailSampleAtRef.current < sampleInterval) return;
+
+    if (!trailGroupRef.current) {
+      const g = new THREE.Group();
+      g.name = 'tasking-swath-trail';
+      trailGroupRef.current = g;
+      sceneRef.current.scene.add(g);
+    }
+
+    const normal = surfacePoint.clone().normalize();
+    const localVelocity = new THREE.Vector3(
+      -Math.sin(sceneRef.current.trueAnomaly),
+      0,
+      -Math.cos(sceneRef.current.trueAnomaly)
+    ).normalize();
+    const worldVelocity = localVelocity.transformDirection(orbitPlaneMatrix).normalize();
+    let along = worldVelocity.projectOnPlane(normal).normalize();
+    if (!Number.isFinite(along.x) || along.lengthSq() < 1e-6) {
+      along = new THREE.Vector3(0, 1, 0).projectOnPlane(normal).normalize();
+    }
+    const cross = new THREE.Vector3().crossVectors(normal, along).normalize();
+
+    const intensity = trailIntensityRef.current;
+    const color = taskingColorForMode(mode);
+    const baseOpacity = Math.min(0.96, 0.24 + intensity * 0.15);
+    const hf = Math.max(20, horizontalFootprint);
+    const vf = Math.max(20, verticalFootprint);
+    const visualScale = Math.max(4, Math.min(12, 220 / Math.max(hf, vf)));
+    const visualHf = hf * visualScale;
+    const visualVf = vf * visualScale;
+    let center = surfacePoint.clone();
+    let halfAlong = vf / 2;
+    let halfCross = hf / 2;
+    let segmentsAlong = 3;
+    let segmentsCross = 8;
+
+    if (mode === 'pushbroom') {
+      halfAlong = Math.max(40, visualVf * 0.16);
+      halfCross = Math.max(visualHf / 2, 70);
+      segmentsAlong = 1;
+      segmentsCross = 10;
+    } else if (mode === 'whiskbroom') {
+      const sweep = Math.sin((now - taskingRef.current.startedAt) * 0.009);
+      center = surfacePoint.clone().addScaledVector(cross, sweep * visualHf * 0.42).normalize().multiplyScalar(6371);
+      halfAlong = Math.max(40, visualVf * 0.2);
+      halfCross = Math.max(28, visualHf * 0.1);
+      segmentsAlong = 2;
+      segmentsCross = 3;
+    } else {
+      halfAlong = Math.max(visualVf / 2, 80);
+      halfCross = Math.max(visualHf / 2, 80);
+      segmentsAlong = 5;
+      segmentsCross = 8;
+    }
+
+    frameTaskingView(surfacePoint, along, cross, visualHf, visualVf);
+
+    const trail = trailGroupRef.current;
+    const previousCenter = lastTrailCenterRef.current;
+    if (previousCenter && mode !== 'frame') {
+      const segment = createSwathSegment({
+        from: previousCenter,
+        to: center,
+        cross,
+        width: mode === 'pushbroom' ? visualHf : Math.max(visualHf * 0.22, 56),
+        color,
+        opacity: Math.min(1, baseOpacity * 1.2),
+      });
+      trail.add(segment);
+    }
+
+    const patch = createSurfaceSwathPatch({
+      center,
+      along,
+      cross,
+      halfAlong,
+      halfCross,
+      color,
+      opacity: baseOpacity,
+      segmentsAlong,
+      segmentsCross,
+    });
+
+    trail.add(patch);
+    lastTrailSampleAtRef.current = now;
+    lastTrailCenterRef.current = center.clone();
+
+    const maxTrail = Math.round(140 + intensity * 55);
+    while (trail.children.length > maxTrail) {
+      const old = trail.children[0];
+      trail.remove(old);
+      old.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m: any) => m.dispose?.());
+        }
+      });
+    }
+    applyTrailOpacity();
   };
   
   const updateSatelliteOrbit = (data: OrbitData) => {
@@ -303,13 +645,8 @@ export function useSatelliteVisualization({
       sceneRef.current.sensorFootprint = null;
     }
     
-    // Calculate the nadir point on Earth's surface
-    const dirToCenter = new THREE.Vector3().subVectors(
-      new THREE.Vector3(0, 0, 0),
-      sceneRef.current.satellite.position
-    ).normalize();
-    
-    const surfacePoint = dirToCenter.multiplyScalar(6371); // Earth radius
+    // Calculate the nadir point on Earth's surface directly below the satellite.
+    const surfacePoint = sceneRef.current.satellite.position.clone().normalize().multiplyScalar(6371);
     
     // Only create a new footprint if we have inputs for field of view
     if (inputs && sceneRef.current.sensorField) {
@@ -340,79 +677,19 @@ export function useSatelliteVisualization({
         calculatedParams.verticalFootprint
       );
       
-      footprint.position.copy(surfacePoint);
-      
-      // Orient the footprint to be tangent to Earth's surface
-      const normal = surfacePoint.clone().normalize();
-      const up = new THREE.Vector3(0, 1, 0);
-      const axis = new THREE.Vector3().crossVectors(up, normal).normalize();
-      const angle = Math.acos(up.dot(normal));
-      
-      if (!isNaN(angle) && angle !== 0 && !isNaN(axis.x) && !isNaN(axis.y) && !isNaN(axis.z)) {
-        footprint.quaternion.setFromAxisAngle(axis, angle);
-      }
-      
-      // Add footprint to the scene (not to the satellite)
+      // createCurvedFootprint already returns world-space Earth-surface vertices.
+      // Add footprint to the scene without extra translation/rotation.
       sceneRef.current.scene.add(footprint);
       sceneRef.current.sensorFootprint = footprint;
 
-      // Persistent tasking trail: leave a fading breadcrumb of past footprints
+      // Persistent tasking trail: leave a bright, surface-following swath based on the calculated footprint size
       if (taskingRef.current.active) {
-        if (!trailGroupRef.current) {
-          const g = new THREE.Group();
-          trailGroupRef.current = g;
-          sceneRef.current.scene.add(g);
-        }
-        const trail = trailGroupRef.current;
-        const modeColor =
-          taskingRef.current.mode === 'pushbroom' ? 0x22e0ff
-          : taskingRef.current.mode === 'whiskbroom' ? 0xff8a3d
-          : 0xfff2a8;
-        const clone = footprint.clone(true);
-        // Offset slightly outward from Earth center so it renders above the surface
-        const outward = surfacePoint.clone().normalize().multiplyScalar(6);
-        clone.position.copy(surfacePoint.clone().add(outward));
-        clone.quaternion.copy(footprint.quaternion);
-        clone.traverse((obj: any) => {
-          if (obj.isMesh) {
-            const glowMat = new THREE.MeshBasicMaterial({
-              color: modeColor,
-              transparent: true,
-              opacity: 0.55,
-              depthWrite: false,
-              depthTest: false,
-              blending: THREE.AdditiveBlending,
-              side: THREE.DoubleSide,
-            });
-            obj.material = glowMat;
-            obj.renderOrder = 999;
-          }
+        addTaskingTrailSample({
+          surfacePoint,
+          orbitPlaneMatrix,
+          horizontalFootprint: calculatedParams.horizontalFootprint,
+          verticalFootprint: calculatedParams.verticalFootprint,
         });
-        trail.add(clone);
-        // Fade older markers and cap count
-        const MAX_TRAIL = 120;
-        const kids = trail.children;
-        for (let i = 0; i < kids.length; i++) {
-          const age = kids.length - 1 - i;
-          const factor = Math.max(0.12, 1 - age / MAX_TRAIL);
-          kids[i].traverse((obj: any) => {
-            if (obj.isMesh && obj.material) {
-              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-              mats.forEach((m: any) => { m.opacity = 0.55 * factor; });
-            }
-          });
-        }
-        while (trail.children.length > MAX_TRAIL) {
-          const old = trail.children[0];
-          trail.remove(old);
-          old.traverse((o: any) => {
-            if (o.geometry) o.geometry.dispose?.();
-            if (o.material) {
-              const mats = Array.isArray(o.material) ? o.material : [o.material];
-              mats.forEach((m: any) => m.dispose?.());
-            }
-          });
-        }
       }
     }
     
@@ -943,19 +1220,23 @@ export function useSatelliteVisualization({
           }
           if (t.active) {
             const elapsed = (currentTime - t.startedAt) / 1000;
+            const intensityBoost = trailIntensityRef.current / 4;
             if (t.mode === 'pushbroom') {
               m.color?.setHex(0x22e0ff);
-              m.opacity = 0.55 + 0.25 * Math.sin(elapsed * 3.2);
+              m.opacity = Math.min(0.95, (0.6 + 0.25 * Math.sin(elapsed * 3.2)) * intensityBoost);
             } else if (t.mode === 'whiskbroom') {
               m.color?.setHex(0xff6a3d);
-              m.opacity = 0.45 + 0.4 * Math.abs(Math.sin(elapsed * 8));
+              m.opacity = Math.min(0.95, (0.5 + 0.4 * Math.abs(Math.sin(elapsed * 8))) * intensityBoost);
             } else {
               const phase = elapsed % 1.2;
               const flash = phase < 0.12 ? 1 : 0.35;
               m.color?.setHex(0xfff2a8);
-              m.opacity = 0.3 + 0.55 * flash;
+              m.opacity = Math.min(0.95, (0.35 + 0.55 * flash) * intensityBoost);
             }
             m.transparent = true;
+            m.depthWrite = false;
+            m.depthTest = false;
+            m.blending = THREE.AdditiveBlending;
             m.needsUpdate = true;
           } else {
             m.color?.setHex((m as any).__origColor);
@@ -1074,6 +1355,7 @@ export function useSatelliteVisualization({
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setTrailIntensity,
     setWarpSpeed,
   };
 }

@@ -31,6 +31,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
   const [warp, setWarp] = useState<number>(1);
+  const [trailIntensity, setTrailIntensityState] = useState<number>(4);
   const [hasSimulated, setHasSimulated] = useState(false);
 
   // Use custom hook for Three.js visualization
@@ -42,6 +43,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     captureSnapshot,
     getRendererCanvas,
     setTaskingHighlight,
+    setTrailIntensity,
     setWarpSpeed,
   } = useSatelliteVisualization({
     containerRef,
@@ -58,6 +60,10 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   useEffect(() => {
     setTaskingHighlight(isRecording, scanMode);
   }, [isRecording, scanMode, setTaskingHighlight]);
+
+  useEffect(() => {
+    setTrailIntensity(trailIntensity);
+  }, [trailIntensity, setTrailIntensity]);
 
   useEffect(() => () => cancelRecording(), [cancelRecording]);
 
@@ -252,6 +258,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onToggleRecord={handleToggleRecord}
               warp={warp}
               onWarpChange={(w) => { setWarp(w); setWarpSpeed(w); }}
+              trailIntensity={trailIntensity}
+              onTrailIntensityChange={setTrailIntensityState}
               readyToRecord={hasSimulated}
             />
           )}

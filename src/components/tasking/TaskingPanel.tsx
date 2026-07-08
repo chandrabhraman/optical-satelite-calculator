@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Circle, Square, X } from 'lucide-react';
 import {
   paletteFor,
@@ -25,6 +26,8 @@ interface TaskingPanelProps {
   onToggleRecord: () => void;
   warp: number;
   onWarpChange: (w: number) => void;
+  trailIntensity: number;
+  onTrailIntensityChange: (value: number) => void;
   readyToRecord?: boolean;
 }
 
@@ -51,6 +54,8 @@ export default function TaskingPanel({
   onToggleRecord,
   warp,
   onWarpChange,
+  trailIntensity,
+  onTrailIntensityChange,
   readyToRecord = true,
 }: TaskingPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -255,6 +260,24 @@ export default function TaskingPanel({
     </div>
   );
 
+  const TrailIntensityControl = ({ compact = false }: { compact?: boolean }) => (
+    <div className={compact ? 'flex items-center gap-2 min-w-[128px]' : 'flex items-center gap-2 min-w-[190px]'}>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+        Trail
+      </span>
+      <Slider
+        value={[trailIntensity]}
+        min={1}
+        max={5}
+        step={1}
+        onValueChange={([value]) => onTrailIntensityChange(value)}
+        className="h-5"
+        aria-label="Trail intensity"
+      />
+      <span className="w-5 text-right text-[10px] text-foreground/80">{trailIntensity}</span>
+    </div>
+  );
+
   // Minimized (recording) mode: only Stop button + warp visible
   if (isRecording) {
     return (
@@ -267,6 +290,7 @@ export default function TaskingPanel({
           REC · {mode.toUpperCase()} · {channel}
         </span>
         <WarpPills compact />
+        <TrailIntensityControl compact />
         <Button
           size="sm"
           variant="destructive"
@@ -335,7 +359,10 @@ export default function TaskingPanel({
           </button>
         </div>
       </div>
-      <div className="flex justify-end mb-2"><WarpPills /></div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <TrailIntensityControl />
+        <WarpPills />
+      </div>
       <canvas
         ref={canvasRef}
         width={CANVAS_W}
