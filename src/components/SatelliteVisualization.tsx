@@ -137,8 +137,9 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       description: `Running orbit simulation at ${orbitData.altitude} km with ${orbitData.inclination}° inclination, RAAN: ${orbitData.raan}°, True Anomaly: ${orbitData.trueAnomaly}°`,
       duration: 3000,
     });
-    
+
     startOrbitAnimation(orbitData);
+    setHasSimulated(true);
   };
   
   // Handle model upload
