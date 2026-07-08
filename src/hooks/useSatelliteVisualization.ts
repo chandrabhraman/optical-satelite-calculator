@@ -79,6 +79,12 @@ export function useSatelliteVisualization({
   const trailColorRef = useRef<number>(0x22e0ff);
   const trailOpacityRef = useRef<number>(0.45);
   const warpRef = useRef<number>(1);
+  // Keep latest inputs available to the animation-loop closure so footprint
+  // (and therefore trail samples cloned from it) always reflect the newest
+  // sensor parameters after a recalculation.
+  const inputsRef = useRef<SensorInputs | null>(inputs);
+  inputsRef.current = inputs;
+
 
   // Get current Earth rotation angle
   const getCurrentEarthRotation = (): number => {
