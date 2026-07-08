@@ -984,11 +984,13 @@ export function useSatelliteVisualization({
     }
   };
 
-  return { 
-    updateSatelliteOrbit, 
-    loadCustomModel, 
+  return {
+    updateSatelliteOrbit,
+    loadCustomModel,
     startOrbitAnimation,
     getCurrentEarthRotation,
-    captureSnapshot
+    captureSnapshot,
+    getRendererCanvas,
+    setTaskingHighlight,
   };
 }
