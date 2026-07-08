@@ -331,6 +331,7 @@ export default function TaskingPanel({
         </span>
         <WarpPills compact />
         <TrailIntensityControl compact />
+        <ColorControl compact />
         <Button
           size="sm"
           variant="destructive"
