@@ -212,11 +212,12 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       </CardHeader>
       <CardContent className="flex-grow p-4 relative">
         <div className="absolute top-0 right-0 z-10 w-64 space-y-4 p-4">
-          <LocationInput 
+          <LocationInput
             onOrbitChange={handleOrbitChange}
             initialData={orbitData}
             altitudeRange={inputs ? {min: inputs.altitudeMin / 1000, max: inputs.altitudeMax / 1000} : undefined}
             onRunSimulation={handleRunSimulation}
+            highlight={hasCalculated && !hasSimulated}
           />
           <ModelUploader onModelUpload={handleModelUpload} />
         </div>
