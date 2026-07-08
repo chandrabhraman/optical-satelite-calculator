@@ -23,7 +23,11 @@ interface TaskingPanelProps {
   onChannelChange: (c: ScanChannel) => void;
   isRecording: boolean;
   onToggleRecord: () => void;
+  warp: number;
+  onWarpChange: (w: number) => void;
 }
+
+const WARP_SPEEDS = [1, 5, 20];
 
 const MODES: { id: ScanMode; label: string }[] = [
   { id: 'pushbroom', label: 'Pushbroom' },
