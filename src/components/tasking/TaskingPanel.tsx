@@ -315,8 +315,9 @@ export default function TaskingPanel({
           <Button
             size="sm"
             variant="default"
-            className="h-7 px-2 text-[11px]"
+            className={`h-7 px-2 text-[11px] ${readyToRecord ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : 'opacity-60'}`}
             onClick={onToggleRecord}
+            title={readyToRecord ? 'Start recording the 3D viewport' : 'Click "Run Simulation" first to move the satellite'}
           >
             <Circle className="h-3 w-3 mr-1 fill-current" /> Record
           </Button>
