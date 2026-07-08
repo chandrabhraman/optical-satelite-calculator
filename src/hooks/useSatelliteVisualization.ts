@@ -1002,18 +1002,19 @@ export function useSatelliteVisualization({
           }
           if (t.active) {
             const elapsed = (currentTime - t.startedAt) / 1000;
-            const opacityScale = 0.12 + trailIntensityRef.current * 0.07;
+            const opacityScale = trailOpacityRef.current;
+            const col = trailColorRef.current;
             if (t.mode === 'pushbroom') {
-              m.color?.setHex(0x22e0ff);
-              m.opacity = Math.min(0.46, (0.7 + 0.18 * Math.sin(elapsed * 3.2)) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.6 + 0.2 * Math.sin(elapsed * 3.2)) * opacityScale + 0.1);
             } else if (t.mode === 'whiskbroom') {
-              m.color?.setHex(0xff6a3d);
-              m.opacity = Math.min(0.48, (0.58 + 0.3 * Math.abs(Math.sin(elapsed * 8))) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.5 + 0.35 * Math.abs(Math.sin(elapsed * 8))) * opacityScale + 0.1);
             } else {
               const phase = elapsed % 1.2;
               const flash = phase < 0.12 ? 1 : 0.35;
-              m.color?.setHex(0xfff2a8);
-              m.opacity = Math.min(0.5, (0.42 + 0.42 * flash) * opacityScale);
+              m.color?.setHex(col);
+              m.opacity = Math.min(0.9, (0.4 + 0.5 * flash) * opacityScale + 0.1);
             }
             m.transparent = true;
             m.depthWrite = false;
