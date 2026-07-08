@@ -1139,6 +1139,7 @@ export function useSatelliteVisualization({
     getRendererCanvas,
     setTaskingHighlight,
     setTrailIntensity,
+    setTaskingTrailStyle,
     setWarpSpeed,
   };
 }
