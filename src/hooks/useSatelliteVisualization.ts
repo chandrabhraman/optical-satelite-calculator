@@ -151,6 +151,35 @@ export function useSatelliteVisualization({
     warpRef.current = Math.max(0.1, mult);
   };
 
+  const frameTaskingView = (
+    surfacePoint: THREE.Vector3,
+    along: THREE.Vector3,
+    cross: THREE.Vector3,
+    horizontalFootprint: number,
+    verticalFootprint: number
+  ) => {
+    const current = sceneRef.current;
+    if (!current || !taskingRef.current.active) return;
+
+    const normal = surfacePoint.clone().normalize();
+    const footprintSpan = Math.max(horizontalFootprint, verticalFootprint, 25);
+    const altitude = Math.min(1800, Math.max(700, footprintSpan * 32));
+    const trackLookAhead = Math.min(650, Math.max(180, footprintSpan * 10));
+    const desiredTarget = surfacePoint.clone().addScaledVector(along, trackLookAhead);
+    const desiredCamera = surfacePoint
+      .clone()
+      .addScaledVector(normal, altitude)
+      .addScaledVector(along, -trackLookAhead * 1.1)
+      .addScaledVector(cross, trackLookAhead * 0.45);
+
+    current.controls.autoRotate = false;
+    current.controls.target.lerp(desiredTarget, 0.16);
+    current.camera.position.lerp(desiredCamera, 0.12);
+    current.camera.near = 0.1;
+    current.camera.far = 1000000;
+    current.camera.updateProjectionMatrix();
+  };
+
   const createSurfaceSwathPatch = ({
     center,
     along,
@@ -305,23 +334,25 @@ export function useSatelliteVisualization({
     let segmentsCross = 8;
 
     if (mode === 'pushbroom') {
-      halfAlong = Math.max(8, vf * 0.12);
-      halfCross = hf / 2;
+      halfAlong = Math.max(18, vf * 0.18);
+      halfCross = Math.max(hf / 2, 18);
       segmentsAlong = 1;
       segmentsCross = 10;
     } else if (mode === 'whiskbroom') {
       const sweep = Math.sin((now - taskingRef.current.startedAt) * 0.009);
       center = surfacePoint.clone().addScaledVector(cross, sweep * hf * 0.42).normalize().multiplyScalar(6371);
-      halfAlong = Math.max(10, vf * 0.18);
-      halfCross = Math.max(10, hf * 0.08);
+      halfAlong = Math.max(18, vf * 0.22);
+      halfCross = Math.max(12, hf * 0.1);
       segmentsAlong = 2;
       segmentsCross = 3;
     } else {
-      halfAlong = vf / 2;
-      halfCross = hf / 2;
+      halfAlong = Math.max(vf / 2, 20);
+      halfCross = Math.max(hf / 2, 20);
       segmentsAlong = 5;
       segmentsCross = 8;
     }
+
+    frameTaskingView(surfacePoint, along, cross, hf, vf);
 
     const patch = createSurfaceSwathPatch({
       center,
