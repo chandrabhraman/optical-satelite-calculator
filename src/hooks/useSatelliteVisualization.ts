@@ -148,7 +148,10 @@ export function useSatelliteVisualization({
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
       disposeTrail();
-      lastTrailSampleAtRef.current = 0;
+      // Prime the sample timer to "now" so the very first tick is skipped:
+      // we don't want the exact press-time footprint dropped as an isolated
+      // mark ahead of where the actual continuous trail starts.
+      lastTrailSampleAtRef.current = performance.now();
     }
     taskingRef.current = { active, mode, startedAt: performance.now() };
     if (active && sceneRef.current) {
@@ -157,6 +160,7 @@ export function useSatelliteVisualization({
     }
     if (!active) disposeTrail();
   };
+
 
   const setTrailIntensity = (value: number) => {
     // Slider 1..5 → opacity 0.08..0.85
