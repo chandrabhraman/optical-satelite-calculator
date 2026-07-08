@@ -9,6 +9,8 @@ import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
 import TaskingPanel from './tasking/TaskingPanel';
+import { useTaskingRecorder } from '@/hooks/useTaskingRecorder';
+import type { ScanMode, ScanChannel } from '@/utils/scanPalettes';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
@@ -26,14 +28,18 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   });
   const [customModel, setCustomModel] = useState<File | null>(null);
   const [taskingOpen, setTaskingOpen] = useState(false);
-  
+  const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
+  const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
+
   // Use custom hook for Three.js visualization
-  const { 
-    updateSatelliteOrbit, 
-    loadCustomModel, 
+  const {
+    updateSatelliteOrbit,
+    loadCustomModel,
     startOrbitAnimation,
     getCurrentEarthRotation,
-    captureSnapshot
+    captureSnapshot,
+    getRendererCanvas,
+    setTaskingHighlight,
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -42,6 +48,39 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
       // We're keeping the callback but not using the position data anymore
     }
   });
+
+  const { isRecording, start: startRecording, stop: stopRecording, cancel: cancelRecording } = useTaskingRecorder();
+
+  // Drive the 3D footprint highlight from tasking state
+  useEffect(() => {
+    setTaskingHighlight(isRecording, scanMode);
+  }, [isRecording, scanMode, setTaskingHighlight]);
+
+  useEffect(() => () => cancelRecording(), [cancelRecording]);
+
+  const handleToggleRecord = () => {
+    if (isRecording) {
+      stopRecording();
+      toast({
+        title: 'Recording saved',
+        description: 'Your satellite tasking animation is downloading now.',
+        duration: 3000,
+      });
+    } else {
+      const canvas = getRendererCanvas();
+      if (!canvas) {
+        toast({ title: 'Recording unavailable', description: 'The 3D viewport is not ready yet.', variant: 'destructive' });
+        return;
+      }
+      startRecording(canvas);
+      toast({
+        title: 'Recording started',
+        description: `Capturing ${scanMode.toUpperCase()} · ${scanChannel} tasking of the 3D viewport.`,
+        duration: 2500,
+      });
+    }
+  };
+
 
   // Handle snapshot capture
   const handleSnapshot = () => {
