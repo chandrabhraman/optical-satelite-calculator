@@ -3,11 +3,12 @@ import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera } from "lucide-react";
+import { Camera, Radio } from "lucide-react";
 import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
 import ModelUploader from './ModelUploader';
+import TaskingPanel from './tasking/TaskingPanel';
 
 interface SatelliteVisualizationProps {
   inputs: SensorInputs | null;
