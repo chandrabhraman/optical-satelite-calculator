@@ -76,6 +76,7 @@ export function useSatelliteVisualization({
   });
   const trailGroupRef = useRef<THREE.Group | null>(null);
   const lastTrailSampleAtRef = useRef<number>(0);
+  const lastTrailCenterRef = useRef<THREE.Vector3 | null>(null);
   const trailIntensityRef = useRef<number>(4);
   const warpRef = useRef<number>(1);
 
@@ -131,12 +132,14 @@ export function useSatelliteVisualization({
       });
     }
     lastTrailSampleAtRef.current = 0;
+    lastTrailCenterRef.current = null;
   };
 
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
       disposeTrail();
       lastTrailSampleAtRef.current = 0;
+      lastTrailCenterRef.current = null;
     }
     taskingRef.current = { active, mode, startedAt: performance.now() };
     if (!active) disposeTrail();
@@ -284,6 +287,54 @@ export function useSatelliteVisualization({
     return group;
   };
 
+  const createSwathSegment = ({
+    from,
+    to,
+    cross,
+    width,
+    color,
+    opacity,
+  }: {
+    from: THREE.Vector3;
+    to: THREE.Vector3;
+    cross: THREE.Vector3;
+    width: number;
+    color: number;
+    opacity: number;
+  }) => {
+    const earthRadius = 6371;
+    const lift = 28 + trailIntensityRef.current * 6;
+    const halfWidth = Math.max(width / 2, 80);
+    const edge = (p: THREE.Vector3, side: number) => p
+      .clone()
+      .addScaledVector(cross, side * halfWidth)
+      .normalize()
+      .multiplyScalar(earthRadius + lift);
+
+    const vertices = [
+      edge(from, -1), edge(from, 1), edge(to, -1),
+      edge(from, 1), edge(to, 1), edge(to, -1),
+    ];
+    const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    material.userData.opacityScale = 1.35;
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = 1300;
+    mesh.frustumCulled = false;
+    return mesh;
+  };
+
   const addTaskingTrailSample = ({
     surfacePoint,
     orbitPlaneMatrix,
@@ -327,6 +378,9 @@ export function useSatelliteVisualization({
     const baseOpacity = Math.min(0.96, 0.24 + intensity * 0.15);
     const hf = Math.max(20, horizontalFootprint);
     const vf = Math.max(20, verticalFootprint);
+    const visualScale = Math.max(4, Math.min(12, 220 / Math.max(hf, vf)));
+    const visualHf = hf * visualScale;
+    const visualVf = vf * visualScale;
     let center = surfacePoint.clone();
     let halfAlong = vf / 2;
     let halfCross = hf / 2;
@@ -334,25 +388,38 @@ export function useSatelliteVisualization({
     let segmentsCross = 8;
 
     if (mode === 'pushbroom') {
-      halfAlong = Math.max(18, vf * 0.18);
-      halfCross = Math.max(hf / 2, 18);
+      halfAlong = Math.max(40, visualVf * 0.16);
+      halfCross = Math.max(visualHf / 2, 70);
       segmentsAlong = 1;
       segmentsCross = 10;
     } else if (mode === 'whiskbroom') {
       const sweep = Math.sin((now - taskingRef.current.startedAt) * 0.009);
-      center = surfacePoint.clone().addScaledVector(cross, sweep * hf * 0.42).normalize().multiplyScalar(6371);
-      halfAlong = Math.max(18, vf * 0.22);
-      halfCross = Math.max(12, hf * 0.1);
+      center = surfacePoint.clone().addScaledVector(cross, sweep * visualHf * 0.42).normalize().multiplyScalar(6371);
+      halfAlong = Math.max(40, visualVf * 0.2);
+      halfCross = Math.max(28, visualHf * 0.1);
       segmentsAlong = 2;
       segmentsCross = 3;
     } else {
-      halfAlong = Math.max(vf / 2, 20);
-      halfCross = Math.max(hf / 2, 20);
+      halfAlong = Math.max(visualVf / 2, 80);
+      halfCross = Math.max(visualHf / 2, 80);
       segmentsAlong = 5;
       segmentsCross = 8;
     }
 
-    frameTaskingView(surfacePoint, along, cross, hf, vf);
+    frameTaskingView(surfacePoint, along, cross, visualHf, visualVf);
+
+    const previousCenter = lastTrailCenterRef.current;
+    if (previousCenter && mode !== 'frame') {
+      const segment = createSwathSegment({
+        from: previousCenter,
+        to: center,
+        cross,
+        width: mode === 'pushbroom' ? visualHf : Math.max(visualHf * 0.22, 56),
+        color,
+        opacity: Math.min(1, baseOpacity * 1.2),
+      });
+      trail.add(segment);
+    }
 
     const patch = createSurfaceSwathPatch({
       center,
@@ -369,6 +436,7 @@ export function useSatelliteVisualization({
     const trail = trailGroupRef.current;
     trail.add(patch);
     lastTrailSampleAtRef.current = now;
+    lastTrailCenterRef.current = center.clone();
 
     const maxTrail = Math.round(140 + intensity * 55);
     while (trail.children.length > maxTrail) {
