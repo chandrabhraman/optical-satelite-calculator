@@ -266,6 +266,8 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onWarpChange={(w) => { setWarp(w); setWarpSpeed(w); }}
               trailIntensity={trailIntensity}
               onTrailIntensityChange={setTrailIntensityState}
+              trailColor={trailColor}
+              onTrailColorChange={setTrailColor}
               readyToRecord={hasSimulated}
             />
           )}
