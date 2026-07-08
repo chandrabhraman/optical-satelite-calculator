@@ -162,11 +162,15 @@ const LocationInput = ({ onOrbitChange, onRunSimulation, initialData, altitudeRa
       </CardContent>
       
       <CardFooter className="p-3 pt-0">
-        <Button 
-          size="sm" 
-          className="w-full h-7 text-xs flex items-center gap-1" 
+        <Button
+          size="sm"
+          className={`w-full h-7 text-xs flex items-center gap-1 transition-all ${
+            highlight
+              ? 'bg-emerald-400 hover:bg-emerald-300 text-emerald-950 ring-2 ring-emerald-300/70 animate-pulse shadow-[0_0_18px_rgba(52,211,153,0.7)]'
+              : ''
+          }`}
           onClick={handleRun}
-          variant="secondary"
+          variant={highlight ? 'default' : 'secondary'}
         >
           <PlayIcon className="h-3 w-3" /> Run Simulation
         </Button>
