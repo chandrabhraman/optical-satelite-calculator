@@ -739,8 +739,13 @@ export function useSatelliteVisualization({
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1
     });
-    
-    const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
+    const sensorBaseMaterial = sensorFieldMaterial.clone();
+    // Hide the flat pyramid base while tasking is active (avoids the
+    // rectangle overlapping the curved footprint trail from top-down views).
+    sensorBaseMaterial.visible = !taskingRef.current.active;
+
+    const newSensorField = new THREE.Mesh(pyramidGeometry, [sensorFieldMaterial, sensorBaseMaterial]);
+    newSensorField.userData.baseMaterial = sensorBaseMaterial;
     
     newSensorField.rotation.x = Math.PI;
     newSensorField.position.y = 0;
