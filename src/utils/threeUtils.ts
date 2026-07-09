@@ -22,20 +22,24 @@ export function createPyramidGeometry(width: number, height: number, depth: numb
   ]);
   
   // Define the indices for the triangular faces
+  // Sides first (group 0), then base (group 1) so materials can be
+  // targeted independently (e.g. hide the base while tasking).
   const indices = new Uint16Array([
-    // Base
-    0, 1, 2,
-    0, 2, 3,
-    
-    // Side faces
+    // Side faces (group 0)
     0, 4, 1,  // front
     1, 4, 2,  // right
     2, 4, 3,  // back
-    3, 4, 0   // left
+    3, 4, 0,  // left
+
+    // Base (group 1)
+    0, 1, 2,
+    0, 2, 3,
   ]);
-  
+
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.addGroup(0, 12, 0); // sides → material 0
+  geometry.addGroup(12, 6, 1); // base  → material 1
   geometry.computeVertexNormals();
   
   return geometry;

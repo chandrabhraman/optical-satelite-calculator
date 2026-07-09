@@ -281,13 +281,13 @@ export default function TaskingPanel({
       <Slider
         value={[trailIntensity]}
         min={1}
-        max={5}
+        max={20}
         step={1}
         onValueChange={([value]) => onTrailIntensityChange(value)}
         className="h-5"
         aria-label="Trail opacity"
       />
-      <span className="w-5 text-right text-[10px] text-foreground/80">{trailIntensity}</span>
+      <span className="w-6 text-right text-[10px] text-foreground/80">{trailIntensity}</span>
     </div>
   );
 

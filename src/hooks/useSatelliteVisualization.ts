@@ -145,6 +145,15 @@ export function useSatelliteVisualization({
     return trailGroupRef.current;
   };
 
+  const setPyramidBaseVisibility = (visible: boolean) => {
+    const sat = sceneRef.current?.satellite;
+    if (!sat) return;
+    sat.traverse((o: any) => {
+      const base = o?.userData?.baseMaterial;
+      if (base) base.visible = visible;
+    });
+  };
+
   const setTaskingHighlight = (active: boolean, mode: TaskingMode) => {
     if (active && (!taskingRef.current.active || taskingRef.current.mode !== mode)) {
       disposeTrail();
@@ -158,14 +167,17 @@ export function useSatelliteVisualization({
       // One-time nudge: stop autorotate so user keeps control while recording
       sceneRef.current.controls.autoRotate = false;
     }
+    // Hide the flat pyramid base only while tasking is active — the base
+    // otherwise overlaps the curved footprint trail from top-down views.
+    setPyramidBaseVisibility(!active);
     if (!active) disposeTrail();
   };
 
 
   const setTrailIntensity = (value: number) => {
-    // Slider 1..5 → opacity 0.08..0.85
-    const v = Math.min(5, Math.max(1, value));
-    trailOpacityRef.current = 0.08 + ((v - 1) / 4) * (0.85 - 0.08);
+    // Slider 1..20 → opacity 0.05..0.90 (fine-grained control)
+    const v = Math.min(20, Math.max(1, value));
+    trailOpacityRef.current = 0.05 + ((v - 1) / 19) * (0.90 - 0.05);
     applyTrailStyle();
   };
 
@@ -739,8 +751,13 @@ export function useSatelliteVisualization({
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1
     });
-    
-    const newSensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
+    const sensorBaseMaterial = sensorFieldMaterial.clone();
+    // Hide the flat pyramid base while tasking is active (avoids the
+    // rectangle overlapping the curved footprint trail from top-down views).
+    sensorBaseMaterial.visible = !taskingRef.current.active;
+
+    const newSensorField = new THREE.Mesh(pyramidGeometry, [sensorFieldMaterial, sensorBaseMaterial]);
+    newSensorField.userData.baseMaterial = sensorBaseMaterial;
     
     newSensorField.rotation.x = Math.PI;
     newSensorField.position.y = 0;
@@ -900,8 +917,10 @@ export function useSatelliteVisualization({
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1
     });
-    
-    const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
+    const sensorBaseMaterial = sensorFieldMaterial.clone();
+
+    const sensorField = new THREE.Mesh(pyramidGeometry, [sensorFieldMaterial, sensorBaseMaterial]);
+    sensorField.userData.baseMaterial = sensorBaseMaterial;
     
     sensorField.rotation.x = Math.PI;
     sensorField.position.y = 0;
