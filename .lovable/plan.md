@@ -1,55 +1,31 @@
-## Goal
-Make the recorded tasking trail behave like a real satellite swath: fixed on the Earth from the moment recording starts, exactly aligned to the calculated sensor footprint, visibly translucent across an opacity range, and configurable with preset/custom colors. Also let the user freely pan, rotate and zoom the 3D view during recording.
+## Fix duplicate footprint (tasking only) + finer opacity control
 
-## Root cause to fix
-- The trail is generated from a separate rectangular approximation using nadir + along/cross vectors, while the live footprint uses `createCurvedFootprint(...)`. The two paths disagree, so trail width looks larger than the actual footprint.
-- Trail samples are added to the world scene, not to the rotating Earth, so the starting point drifts across the globe imagery instead of staying pinned to the ground.
-- Blending/opacity ranges are too narrow, so the slider does not read as transparent-to-opaque.
-- `frameTaskingView` continuously re-targets `controls.target` and re-positions the camera each frame while recording, which fights the user's mouse interaction and snaps the view back to the satellite.
+### 1. Hide the flat pyramid base only while tasking is active
+The extra square in the top-down view is the **base face** of the sensor pyramid mesh (`createPyramidGeometry`). In normal render it looks fine and shouldn't change. It only becomes visually confusing during Animate Tasking, where it overlaps the accumulating curved trail.
 
-## Implementation plan
+**Fix (scoped to tasking mode)**:
+- In `src/utils/threeUtils.ts`, split `createPyramidGeometry` indices so the **base quad** (indices `0,1,2` and `0,2,3`) is placed in its own `addGroup(...)`, separate from the 4 side faces. Keep default behavior identical — geometry still contains both.
+- In `src/hooks/useSatelliteVisualization.ts`, when building the sensor pyramid mesh use a **material array** — `[sidesMaterial, baseMaterial]` — where `baseMaterial` is a clone whose `visible` flag we can toggle. Assign group 0 = sides, group 1 = base (via the new `addGroup` calls).
+- In `setTaskingHighlight(active, mode)` (already the enter/exit hook for tasking), set `baseMaterial.visible = !active`. When tasking turns off, the base becomes visible again → basic render is unchanged.
 
-1. **Camera freedom while recording**
-   - Remove the automatic `frameTaskingView` camera lerp during recording.
-   - Keep the user's current OrbitControls state untouched: allow pan, rotate, and zoom throughout recording.
-   - Only do a one-time optional "frame the satellite" nudge when recording starts, then hand control back to the user. No re-centering per frame.
-   - Re-enable `controls.autoRotate = false` on record start but do not force target changes afterwards.
+No changes to the curved footprint, orbit math, or any other view.
 
-2. **Use the footprint geometry as the source of truth**
-   - Derive each persistent trail sample from the same geometry produced by `createCurvedFootprint(...)` (clone its vertices/mesh), instead of building a separate rectangle from along/cross vectors.
-   - Result: trail width and shape exactly match the visible sensor footprint.
+### 2. Finer opacity control
+- `src/components/tasking/TaskingPanel.tsx`: Opacity slider `min=1, max=20, step=1`.
+- `src/hooks/useSatelliteVisualization.ts` `setTrailIntensity`:
+  ```ts
+  const v = Math.min(20, Math.max(1, value));
+  trailOpacityRef.current = 0.05 + ((v - 1) / 19) * (0.90 - 0.05);
+  ```
+Existing `applyTrailStyle()` propagates to all live samples.
 
-3. **Anchor trail samples to the rotating Earth**
-   - Parent the persistent trail group to the Earth mesh (`earth.add(trailGroup)`) instead of the global scene.
-   - Convert each footprint sample's world vertices into Earth-local coordinates (`earth.worldToLocal`) before adding.
-   - Effect: recording start point remains fixed on the mapped globe as Earth rotates and as the satellite continues.
+### Files
+- `src/utils/threeUtils.ts` — add material groups to pyramid geometry
+- `src/hooks/useSatelliteVisualization.ts` — material array on pyramid; toggle base visibility in `setTaskingHighlight`; remap `setTrailIntensity` to 1..20
+- `src/components/tasking/TaskingPanel.tsx` — widen slider
 
-4. **Cumulative trail from record start**
-   - Clear the trail only on: recording start, mode change during a session, or recording stop.
-   - Never remove old samples based on the slider.
-   - Keep a large safety cap (performance only), unrelated to opacity.
-
-5. **Visible opacity control**
-   - Switch trail materials to `NormalBlending` with `transparent: true`, `depthWrite: false`.
-   - Map slider 1..5 to opacity ~0.08..0.85 so transparency reads clearly against Earth.
-   - Rename the panel control to **Opacity**; changes update all existing trail materials immediately.
-
-6. **Configurable trail color (Presets + custom)**
-   - Add a color row in `TaskingPanel`: preset swatches (cyan, emerald, amber, magenta, red, ice-white) + a native `<input type="color">` for custom.
-   - Store `trailColor` in `SatelliteVisualization` state; pass into `useSatelliteVisualization` via a new setter `setTaskingTrailStyle({ color })`.
-   - Apply the selected color to (a) the live footprint highlight while recording and (b) all new trail samples. Update existing samples' color when the user changes it.
-
-7. **Mode-specific persistence, still footprint-accurate**
-   - **Pushbroom:** clone the current footprint mesh at each sample tick and stitch to build a continuous swath.
-   - **Whiskbroom:** animate the live beam visually, but persist only real footprint-sized marks so the persisted trail never exceeds the true footprint envelope.
-   - **Frame:** drop a footprint-sized frame at each capture interval.
-
-8. **Validation**
-   - Flow: Calculate → Run Simulation → Animate Tasking → pick mode/color/opacity → Record.
-   - Verify:
-     - User can freely rotate/pan/zoom during recording without the camera snapping back.
-     - Trail start point stays fixed on Earth as it rotates.
-     - Trail width matches the live sensor footprint exactly.
-     - Opacity slider visibly changes translucency.
-     - Chosen preset/custom color appears on both live footprint and persisted trail.
-     - Corner "REC" overlay and Stop & Save still work; watermark still present in export.
+### Validation
+- Basic render (tasking panel closed / not recording): pyramid looks exactly as before, base face visible.
+- Animate Tasking open + recording: from top-down view only the curved footprint + trail appear; no flat rectangle.
+- Closing tasking restores the base.
+- Opacity slider gives 20 fine stops between near-transparent and near-opaque.
