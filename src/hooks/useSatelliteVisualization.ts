@@ -905,8 +905,10 @@ export function useSatelliteVisualization({
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1
     });
-    
-    const sensorField = new THREE.Mesh(pyramidGeometry, sensorFieldMaterial);
+    const sensorBaseMaterial = sensorFieldMaterial.clone();
+
+    const sensorField = new THREE.Mesh(pyramidGeometry, [sensorFieldMaterial, sensorBaseMaterial]);
+    sensorField.userData.baseMaterial = sensorBaseMaterial;
     
     sensorField.rotation.x = Math.PI;
     sensorField.position.y = 0;
