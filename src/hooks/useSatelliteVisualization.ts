@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -84,6 +84,11 @@ export function useSatelliteVisualization({
   const trailOpacityRef = useRef<number>(0.45);
   const warpRef = useRef<number>(5);
   const modelPivotRef = useRef<THREE.Group | null>(null);
+  const gizmoRef = useRef<THREE.Group | null>(null);
+  const orientationModeRef = useRef<boolean>(false);
+  const [orientationMode, setOrientationModeState] = useState(false);
+  const [modelEuler, setModelEuler] = useState<{ yaw: number; pitch: number; roll: number }>({ yaw: 0, pitch: 0, roll: 0 });
+  const [activeAxis, setActiveAxis] = useState<'yaw' | 'pitch' | 'roll' | null>(null);
   // Keep latest inputs available to the animation-loop closure so footprint
   // (and therefore trail samples cloned from it) always reflect the newest
   // sensor parameters after a recalculation.
