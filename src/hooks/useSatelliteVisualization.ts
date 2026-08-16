@@ -1201,6 +1201,23 @@ export function useSatelliteVisualization({
     
     const satellite = new THREE.Group();
     scene.add(satellite);
+
+    // Dedicated lighting rig that travels with the satellite so the model
+    // stays legible regardless of where it is along the orbit.
+    const satKeyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    satKeyLight.position.set(400, 300, 400);
+    satellite.add(satKeyLight);
+    satellite.add(satKeyLight.target);
+
+    const satFillLight = new THREE.DirectionalLight(0xbcd8ff, 1.1);
+    satFillLight.position.set(-400, -200, -300);
+    satellite.add(satFillLight);
+    satellite.add(satFillLight.target);
+
+    const satRimLight = new THREE.PointLight(0xffffff, 1.4, 0, 0);
+    satRimLight.position.set(0, 250, -250);
+    satellite.add(satRimLight);
+
     
     const containerSize = {
       width: containerRef.current.clientWidth,
