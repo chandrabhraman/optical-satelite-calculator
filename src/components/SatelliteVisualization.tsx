@@ -3,7 +3,7 @@ import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, Radio } from "lucide-react";
+import { Camera, Radio, Move3d, RotateCcw, Minus, Plus } from "lucide-react";
 import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
