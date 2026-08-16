@@ -47,6 +47,12 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     setTrailIntensity,
     setTaskingTrailStyle,
     setWarpSpeed,
+    orientationMode,
+    setOrientationMode,
+    modelEuler,
+    activeAxis,
+    nudgeModelRotation,
+    resetModelOrientation,
   } = useSatelliteVisualization({
     containerRef,
     inputs,
