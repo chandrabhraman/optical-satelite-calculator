@@ -976,18 +976,19 @@ export function useSatelliteVisualization({
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
     
-    const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+    const ambientLight = new THREE.AmbientLight(0x808080, 2.0);
     scene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.5);
+    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 2.0);
     directionalLight.position.set(5000, 3000, 5000);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
     directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
     
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x080820, 0.8);
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x202840, 1.2);
     scene.add(hemisphereLight);
+
     
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
