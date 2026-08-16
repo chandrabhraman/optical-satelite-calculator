@@ -30,7 +30,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
   const [taskingOpen, setTaskingOpen] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('pushbroom');
   const [scanChannel, setScanChannel] = useState<ScanChannel>('RGB');
-  const [warp, setWarp] = useState<number>(1);
+  const [warp, setWarp] = useState<number>(5);
   const [trailIntensity, setTrailIntensityState] = useState<number>(3);
   const [trailColor, setTrailColor] = useState<string>('#22e0ff');
   const [hasSimulated, setHasSimulated] = useState(false);

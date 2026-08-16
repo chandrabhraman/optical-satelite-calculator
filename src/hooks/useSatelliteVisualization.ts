@@ -1061,7 +1061,7 @@ export function useSatelliteVisualization({
     instructionsElement.style.borderRadius = '5px';
     instructionsElement.style.fontSize = '12px';
     instructionsElement.style.pointerEvents = 'none';
-    instructionsElement.innerText = 'Click and drag to rotate. Scroll to zoom.';
+    instructionsElement.innerText = 'Drag to orbit the view · Scroll to zoom · Drag the satellite to re-orient it';
     containerRef.current.appendChild(instructionsElement);
     
     const handleResize = () => {
