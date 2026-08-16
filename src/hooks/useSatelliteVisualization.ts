@@ -58,7 +58,11 @@ const MODEL_PATHS = [
 // Real Earth rotates at ~0.0042 degrees per second
 // For 2x faster than real Earth: 0.0042 * 2 = 0.0084 degrees per second
 // Convert to radians per frame: 0.0084 * (Math.PI/180) = ~0.0001466 radians per frame
-const EARTH_ROTATION_RATE = 0.0000146; // radians per frame (2x faster than real Earth)
+// True sidereal Earth rotation: 7.292115e-5 rad/s. At the 60 fps render cadence
+// that is 1.21535e-6 rad/frame. The scene runs at real time when warp = 1x, and
+// the same warp multiplier is applied to both Earth spin and orbital motion so
+// ground tracks stay physically consistent at any speed.
+const EARTH_ROTATION_RATE = 7.292115e-5 / 60; // radians per frame (real time)
 
 export type TaskingMode = 'pushbroom' | 'whiskbroom' | 'frame';
 
@@ -78,7 +82,8 @@ export function useSatelliteVisualization({
   const lastTrailSampleAtRef = useRef<number>(0);
   const trailColorRef = useRef<number>(0x22e0ff);
   const trailOpacityRef = useRef<number>(0.45);
-  const warpRef = useRef<number>(1);
+  const warpRef = useRef<number>(5);
+  const modelPivotRef = useRef<THREE.Group | null>(null);
   // Keep latest inputs available to the animation-loop closure so footprint
   // (and therefore trail samples cloned from it) always reflect the newest
   // sensor parameters after a recalculation.
@@ -510,6 +515,26 @@ export function useSatelliteVisualization({
     }
   };
   
+  // A dedicated pivot group holds the satellite mesh so the user can rotate the
+  // model locally (drag on the model) without fighting the orbital orientation
+  // that is re-applied to the parent group every frame.
+  const getModelPivot = (satelliteGroup: THREE.Group) => {
+    let pivot = satelliteGroup.children.find(
+      (c) => c.name === 'satellite-model-pivot'
+    ) as THREE.Group | undefined;
+    if (!pivot) {
+      pivot = new THREE.Group();
+      pivot.name = 'satellite-model-pivot';
+      satelliteGroup.add(pivot);
+    }
+    modelPivotRef.current = pivot;
+    return pivot;
+  };
+
+  const resetModelOrientation = () => {
+    if (modelPivotRef.current) modelPivotRef.current.rotation.set(0, 0, 0);
+  };
+
   const loadCustomModel = (file: File) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
     
@@ -554,7 +579,7 @@ export function useSatelliteVisualization({
         const center = box.getCenter(new THREE.Vector3());
         gltf.scene.position.sub(center);
         
-        satelliteGroup.add(gltf.scene);
+        getModelPivot(satelliteGroup).add(gltf.scene);
         URL.revokeObjectURL(objectUrl);
       },
       (xhr) => {
@@ -593,7 +618,7 @@ export function useSatelliteVisualization({
           const box = new THREE.Box3().setFromObject(gltf.scene);
           const center = box.getCenter(new THREE.Vector3());
           gltf.scene.position.sub(center);
-          satelliteGroup.add(gltf.scene);
+          getModelPivot(satelliteGroup).add(gltf.scene);
         },
         undefined,
         (error) => {
@@ -832,6 +857,66 @@ export function useSatelliteVisualization({
     controls.autoRotateSpeed = 0.3;
     const stopAutoRotate = () => { controls.autoRotate = false; };
     controls.addEventListener('start', stopAutoRotate);
+
+    // --- Drag-to-rotate the satellite model itself -------------------------
+    const dragRaycaster = new THREE.Raycaster();
+    const pointerNdc = new THREE.Vector2();
+    let modelDragging = false;
+    let lastPointer = { x: 0, y: 0 };
+
+    const pointerOverModel = (event: PointerEvent) => {
+      const pivot = modelPivotRef.current;
+      if (!pivot || pivot.children.length === 0) return false;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      dragRaycaster.setFromCamera(pointerNdc, camera);
+      return dragRaycaster.intersectObject(pivot, true).length > 0;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      if (!pointerOverModel(event)) return;
+      modelDragging = true;
+      lastPointer = { x: event.clientX, y: event.clientY };
+      controls.enabled = false;
+      controls.autoRotate = false;
+      renderer.domElement.style.cursor = 'grabbing';
+      renderer.domElement.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!modelDragging) {
+        renderer.domElement.style.cursor = pointerOverModel(event) ? 'grab' : '';
+        return;
+      }
+      const pivot = modelPivotRef.current;
+      if (!pivot) return;
+      const dx = event.clientX - lastPointer.x;
+      const dy = event.clientY - lastPointer.y;
+      lastPointer = { x: event.clientX, y: event.clientY };
+      const speed = 0.008;
+      // Rotate about the camera's screen axes so dragging feels direct
+      const up = camera.up.clone().normalize();
+      const right = new THREE.Vector3().crossVectors(camera.getWorldDirection(new THREE.Vector3()), up).normalize().negate();
+      pivot.rotateOnWorldAxis(up, dx * speed);
+      pivot.rotateOnWorldAxis(right, dy * speed);
+    };
+
+    const endPointerDrag = (event: PointerEvent) => {
+      if (!modelDragging) return;
+      modelDragging = false;
+      controls.enabled = true;
+      renderer.domElement.style.cursor = '';
+      renderer.domElement.releasePointerCapture?.(event.pointerId);
+    };
+
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    renderer.domElement.addEventListener('pointerup', endPointerDrag);
+    renderer.domElement.addEventListener('pointercancel', endPointerDrag);
     
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 10000;
@@ -976,7 +1061,7 @@ export function useSatelliteVisualization({
     instructionsElement.style.borderRadius = '5px';
     instructionsElement.style.fontSize = '12px';
     instructionsElement.style.pointerEvents = 'none';
-    instructionsElement.innerText = 'Click and drag to rotate. Scroll to zoom.';
+    instructionsElement.innerText = 'Drag to orbit the view · Scroll to zoom · Drag the satellite to re-orient it';
     containerRef.current.appendChild(instructionsElement);
     
     const handleResize = () => {
@@ -1016,7 +1101,7 @@ export function useSatelliteVisualization({
       
       // Update Earth rotation angle for day/night effect
       // This doesn't affect the coordinates system or RAAN
-      earthRotationAngle = normalizeAngle(earthRotationAngle + EARTH_ROTATION_RATE);
+      earthRotationAngle = normalizeAngle(earthRotationAngle + EARTH_ROTATION_RATE * warpRef.current);
       earth.rotation.y = earthRotationAngle;
       
       stars.rotation.y += 0.0001;
@@ -1169,6 +1254,7 @@ export function useSatelliteVisualization({
   return {
     updateSatelliteOrbit,
     loadCustomModel,
+    resetModelOrientation,
     startOrbitAnimation,
     getCurrentEarthRotation,
     captureSnapshot,
