@@ -1016,9 +1016,67 @@ export function useSatelliteVisualization({
       return dragRaycaster.intersectObject(pivot, true).length > 0;
     };
 
+    // Which gizmo ring (if any) is under the pointer
+    const pickGizmoAxis = (event: PointerEvent): 'yaw' | 'pitch' | 'roll' | null => {
+      const g = gizmoRef.current;
+      if (!orientationModeRef.current || !g) return null;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      dragRaycaster.setFromCamera(pointerNdc, camera);
+      const hits = dragRaycaster.intersectObject(g, true);
+      for (const h of hits) {
+        const a = (h.object as any).userData?.gizmoAxis;
+        if (a) return a;
+      }
+      return null;
+    };
+
+    let ringAxis: 'yaw' | 'pitch' | 'roll' | null = null;
+    let lastRingAngle = 0;
+    let ringSign = 1;
+
+    const screenCenterOfPivot = () => {
+      const pivot = modelPivotRef.current!;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const p = pivot.getWorldPosition(new THREE.Vector3()).project(camera);
+      return {
+        x: rect.left + ((p.x + 1) / 2) * rect.width,
+        y: rect.top + ((1 - p.y) / 2) * rect.height,
+      };
+    };
+
+    const localAxisVector = (axis: 'yaw' | 'pitch' | 'roll') =>
+      axis === 'yaw' ? new THREE.Vector3(0, 1, 0)
+        : axis === 'pitch' ? new THREE.Vector3(1, 0, 0)
+          : new THREE.Vector3(0, 0, 1);
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
+      const axis = pickGizmoAxis(event);
+      if (axis) {
+        const pivot = modelPivotRef.current!;
+        ringAxis = axis;
+        highlightAxis(axis);
+        const c = screenCenterOfPivot();
+        lastRingAngle = Math.atan2(event.clientY - c.y, event.clientX - c.x);
+        // Sign flips when the rotation axis points away from the camera
+        const worldAxis = localAxisVector(axis).applyQuaternion(pivot.getWorldQuaternion(new THREE.Quaternion())).normalize();
+        const toCam = camera.position.clone().sub(pivot.getWorldPosition(new THREE.Vector3())).normalize();
+        ringSign = worldAxis.dot(toCam) >= 0 ? -1 : 1;
+        controls.enabled = false;
+        controls.autoRotate = false;
+        renderer.domElement.style.cursor = 'grabbing';
+        renderer.domElement.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (!pointerOverModel(event)) return;
+      if (!orientationModeRef.current) {
+        // First click on the satellite reveals the yaw/pitch/roll rings
+        setOrientationMode(true);
+      }
       modelDragging = true;
       lastPointer = { x: event.clientX, y: event.clientY };
       controls.enabled = false;
@@ -1030,11 +1088,27 @@ export function useSatelliteVisualization({
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      if (!modelDragging) {
-        renderer.domElement.style.cursor = pointerOverModel(event) ? 'grab' : '';
+      const pivot = modelPivotRef.current;
+      if (ringAxis && pivot) {
+        const c = screenCenterOfPivot();
+        const ang = Math.atan2(event.clientY - c.y, event.clientX - c.x);
+        let delta = ang - lastRingAngle;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        if (delta < -Math.PI) delta += Math.PI * 2;
+        lastRingAngle = ang;
+        const amount = delta * ringSign;
+        if (ringAxis === 'yaw') pivot.rotation.y += amount;
+        if (ringAxis === 'pitch') pivot.rotation.x += amount;
+        if (ringAxis === 'roll') pivot.rotation.z += amount;
+        syncEulerState();
         return;
       }
-      const pivot = modelPivotRef.current;
+      if (!modelDragging) {
+        const hoverAxis = pickGizmoAxis(event);
+        if (orientationModeRef.current) highlightAxis(hoverAxis);
+        renderer.domElement.style.cursor = hoverAxis || pointerOverModel(event) ? 'grab' : '';
+        return;
+      }
       if (!pivot) return;
       const dx = event.clientX - lastPointer.x;
       const dy = event.clientY - lastPointer.y;
@@ -1045,15 +1119,22 @@ export function useSatelliteVisualization({
       const right = new THREE.Vector3().crossVectors(camera.getWorldDirection(new THREE.Vector3()), up).normalize().negate();
       pivot.rotateOnWorldAxis(up, dx * speed);
       pivot.rotateOnWorldAxis(right, dy * speed);
+      syncEulerState();
     };
 
     const endPointerDrag = (event: PointerEvent) => {
-      if (!modelDragging) return;
+      if (ringAxis) {
+        ringAxis = null;
+        highlightAxis(null);
+      } else if (!modelDragging) {
+        return;
+      }
       modelDragging = false;
       controls.enabled = true;
       renderer.domElement.style.cursor = '';
       renderer.domElement.releasePointerCapture?.(event.pointerId);
     };
+
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     renderer.domElement.addEventListener('pointermove', onPointerMove);
