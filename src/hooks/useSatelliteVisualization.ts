@@ -536,9 +536,146 @@ export function useSatelliteVisualization({
     return pivot;
   };
 
+  const syncEulerState = () => {
+    const p = modelPivotRef.current;
+    if (!p) return;
+    setModelEuler({
+      yaw: toDegrees(p.rotation.y),
+      pitch: toDegrees(p.rotation.x),
+      roll: toDegrees(p.rotation.z),
+    });
+  };
+
   const resetModelOrientation = () => {
     if (modelPivotRef.current) modelPivotRef.current.rotation.set(0, 0, 0);
+    syncEulerState();
   };
+
+  // ---- Yaw / Pitch / Roll gizmo ----------------------------------------
+  const makeAxisLabel = (text: string, color: string) => {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 128;
+    const ctx = c.getContext('2d')!;
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.font = 'bold 64px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = color;
+    ctx.fillText(text, 128, 64);
+    const tex = new THREE.CanvasTexture(c);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sprite.renderOrder = 3001;
+    return sprite;
+  };
+
+  const disposeGizmo = () => {
+    const g = gizmoRef.current;
+    if (!g) return;
+    g.parent?.remove(g);
+    g.traverse((o: any) => {
+      o.geometry?.dispose?.();
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m: any) => { m.map?.dispose?.(); m.dispose?.(); });
+      }
+    });
+    gizmoRef.current = null;
+  };
+
+  const AXIS_COLORS: Record<'yaw' | 'pitch' | 'roll', number> = {
+    yaw: 0x34d399,   // green – about body Y
+    pitch: 0xff6b6b, // red   – about body X
+    roll: 0x38bdf8,  // blue  – about body Z
+  };
+
+  const buildGizmo = () => {
+    const pivot = modelPivotRef.current;
+    if (!pivot || pivot.children.length === 0) return null;
+    disposeGizmo();
+
+    const box = new THREE.Box3().setFromObject(pivot);
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
+    const R = Math.max(sphere.radius * 1.35, 1);
+    const tube = Math.max(R * 0.018, 0.05);
+
+    const group = new THREE.Group();
+    group.name = 'orientation-gizmo';
+    group.renderOrder = 3000;
+
+    const rings: Array<{ axis: 'yaw' | 'pitch' | 'roll'; rot: [number, number, number]; label: THREE.Vector3 }> = [
+      { axis: 'yaw', rot: [-Math.PI / 2, 0, 0], label: new THREE.Vector3(R * 1.12, 0, 0) },
+      { axis: 'pitch', rot: [0, Math.PI / 2, 0], label: new THREE.Vector3(0, R * 1.12, 0) },
+      { axis: 'roll', rot: [0, 0, 0], label: new THREE.Vector3(0, 0, R * 1.12) },
+    ];
+
+    rings.forEach(({ axis, rot, label }) => {
+      const geom = new THREE.TorusGeometry(R, tube, 12, 96);
+      const mat = new THREE.MeshBasicMaterial({
+        color: AXIS_COLORS[axis],
+        transparent: true,
+        opacity: 0.55,
+        depthTest: false,
+      });
+      const ring = new THREE.Mesh(geom, mat);
+      ring.rotation.set(rot[0], rot[1], rot[2]);
+      ring.renderOrder = 3000;
+      ring.userData.gizmoAxis = axis;
+      group.add(ring);
+
+      // invisible fat ring for easier grabbing
+      const hitGeom = new THREE.TorusGeometry(R, tube * 5, 8, 48);
+      const hit = new THREE.Mesh(hitGeom, new THREE.MeshBasicMaterial({ visible: false }));
+      hit.rotation.copy(ring.rotation);
+      hit.userData.gizmoAxis = axis;
+      group.add(hit);
+
+      const sprite = makeAxisLabel(axis.toUpperCase(), `#${AXIS_COLORS[axis].toString(16).padStart(6, '0')}`);
+      sprite.position.copy(label);
+      sprite.scale.set(R * 0.55, R * 0.28, 1);
+      sprite.userData.gizmoAxis = axis;
+      group.add(sprite);
+    });
+
+    pivot.add(group);
+    gizmoRef.current = group;
+    return group;
+  };
+
+  const highlightAxis = (axis: 'yaw' | 'pitch' | 'roll' | null) => {
+    gizmoRef.current?.traverse((o: any) => {
+      const a = o.userData?.gizmoAxis;
+      if (!a || !o.material || o.isSprite) return;
+      if (o.material.visible === false) return;
+      o.material.opacity = axis === null ? 0.55 : a === axis ? 1 : 0.18;
+      o.material.needsUpdate = true;
+    });
+    setActiveAxis(axis);
+  };
+
+  const setOrientationMode = useCallback((on: boolean) => {
+    orientationModeRef.current = on;
+    setOrientationModeState(on);
+    if (on) {
+      buildGizmo();
+      syncEulerState();
+    } else {
+      disposeGizmo();
+      setActiveAxis(null);
+    }
+  }, []);
+
+  const nudgeModelRotation = (axis: 'yaw' | 'pitch' | 'roll', deltaDeg: number) => {
+    const p = modelPivotRef.current;
+    if (!p) return;
+    const d = toRadians(deltaDeg);
+    if (axis === 'yaw') p.rotation.y += d;
+    if (axis === 'pitch') p.rotation.x += d;
+    if (axis === 'roll') p.rotation.z += d;
+    syncEulerState();
+  };
+
 
   const loadCustomModel = (file: File) => {
     if (!sceneRef.current || !sceneRef.current.isInitialized) return;
