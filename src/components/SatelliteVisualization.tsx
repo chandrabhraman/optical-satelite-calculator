@@ -3,7 +3,7 @@ import { SensorInputs } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, Radio } from "lucide-react";
+import { Camera, Radio, Move3d, RotateCcw, Minus, Plus } from "lucide-react";
 import LocationInput, { OrbitData } from './LocationInput';
 import VisualizationContainer from './VisualizationContainer';
 import { useSatelliteVisualization } from '@/hooks/useSatelliteVisualization';
@@ -47,6 +47,12 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
     setTrailIntensity,
     setTaskingTrailStyle,
     setWarpSpeed,
+    orientationMode,
+    setOrientationMode,
+    modelEuler,
+    activeAxis,
+    nudgeModelRotation,
+    resetModelOrientation,
   } = useSatelliteVisualization({
     containerRef,
     inputs,
@@ -208,6 +214,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
                   Animate Tasking
                 </Button>
                 <Button
+                  variant={orientationMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setOrientationMode(!orientationMode)}
+                  className="text-xs"
+                >
+                  <Move3d className="h-4 w-4 mr-1" />
+                  Orient Model
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={handleSnapshot}
@@ -270,6 +285,43 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
               onTrailColorChange={setTrailColor}
               readyToRecord={hasSimulated}
             />
+          )}
+          {hasCalculated && orientationMode && (
+            <div className="absolute bottom-3 left-3 z-30 w-64 rounded-lg border border-border/60 bg-background/70 backdrop-blur-md p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-primary">Model Orientation</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={resetModelOrientation}>
+                  <RotateCcw className="h-3 w-3 mr-1" /> Reset
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-snug">
+                Drag a coloured ring on the satellite to rotate about that body axis, or drag the body for free rotation.
+              </p>
+              {([
+                { axis: 'yaw' as const, label: 'Yaw', color: '#34d399', value: modelEuler.yaw },
+                { axis: 'pitch' as const, label: 'Pitch', color: '#ff6b6b', value: modelEuler.pitch },
+                { axis: 'roll' as const, label: 'Roll', color: '#38bdf8', value: modelEuler.roll },
+              ]).map(({ axis, label, color, value }) => (
+                <div
+                  key={axis}
+                  className={`flex items-center justify-between gap-2 rounded px-1.5 py-1 ${activeAxis === axis ? 'bg-primary/10' : ''}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+                    {label}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => nudgeModelRotation(axis, -5)}>
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-12 text-right tabular-nums">{value.toFixed(1)}°</span>
+                    <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => nudgeModelRotation(axis, 5)}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
           {!hasCalculated && (
             <div className="absolute inset-0 flex items-center justify-center">
