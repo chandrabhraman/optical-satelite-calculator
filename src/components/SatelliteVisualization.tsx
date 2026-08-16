@@ -214,6 +214,15 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
                   Animate Tasking
                 </Button>
                 <Button
+                  variant={orientationMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setOrientationMode(!orientationMode)}
+                  className="text-xs"
+                >
+                  <Move3d className="h-4 w-4 mr-1" />
+                  Orient Model
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={handleSnapshot}
