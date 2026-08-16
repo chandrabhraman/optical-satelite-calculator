@@ -298,7 +298,7 @@ const SatelliteVisualization = ({ inputs, calculationCount = 0 }: SatelliteVisua
                 Drag a coloured ring on the satellite to rotate about that body axis, or drag the body for free rotation.
               </p>
               {([
-                { axis: 'yaw' as const, label: 'Yaw (body Z-up)', color: '#34d399', value: modelEuler.yaw },
+                { axis: 'yaw' as const, label: 'Yaw', color: '#34d399', value: modelEuler.yaw },
                 { axis: 'pitch' as const, label: 'Pitch', color: '#ff6b6b', value: modelEuler.pitch },
                 { axis: 'roll' as const, label: 'Roll', color: '#38bdf8', value: modelEuler.roll },
               ]).map(({ axis, label, color, value }) => (
