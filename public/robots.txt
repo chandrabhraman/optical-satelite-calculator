@@ -35,4 +35,4 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
-Sitemap: https://opticalsatellitetools.space/sitemap.xml
+Sitemap: https://optical-satelite-calculator.lovable.app/sitemap.xml
